@@ -1,0 +1,22 @@
+# Dockerfile — Attacker workstation
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    golang-go \
+    python3 python3-pip python3-venv \
+    curl wget git nmap netcat-openbsd \
+    build-essential linux-headers-generic \
+    openssh-client sqlite3 \
+    ca-certificates gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --break-system-packages \
+    requests flask sqlalchemy alembic pyyaml grpcio protobuf \
+    pytest pytest-cov rich click
+
+RUN go version || echo "Go installed"
+
+WORKDIR /opt/x404x
+CMD ["bash"]

@@ -1,0 +1,145 @@
+syntax = "proto3";
+
+package x404x.v1;
+
+option go_package = "github.com/ruby570bocadito/x404x/core/proto/gen/c2;c2v1";
+
+// C2Service manages campaigns, agents, and operations
+service C2Service {
+  // Agent management
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+  rpc GetAgent(GetAgentRequest) returns (AgentInfo);
+  rpc KillAgent(KillAgentRequest) returns (KillAgentResponse);
+
+  // Campaign management
+  rpc CreateCampaign(CreateCampaignRequest) returns (Campaign);
+  rpc GetCampaign(GetCampaignRequest) returns (Campaign);
+  rpc ListCampaigns(ListCampaignsRequest) returns (ListCampaignsResponse);
+  rpc PauseCampaign(PauseCampaignRequest) returns (Campaign);
+  rpc ResumeCampaign(ResumeCampaignRequest) returns (Campaign);
+
+  // Decision feed (streaming updates from orchestrator)
+  rpc DecisionFeed(stream DecisionUpdate) returns (stream DecisionAck);
+
+  // Metrics
+  rpc GetMetrics(MetricsRequest) returns (MetricsResponse);
+}
+
+message ListAgentsRequest {
+  string campaign_id = 1;
+  string status_filter = 2;
+}
+
+message ListAgentsResponse {
+  repeated AgentInfo agents = 1;
+}
+
+message GetAgentRequest {
+  string agent_id = 1;
+}
+
+message AgentInfo {
+  string agent_id = 1;
+  string hostname = 2;
+  string os = 3;
+  string arch = 4;
+  string username = 5;
+  string local_ip = 6;
+  string status = 7;
+  int64 last_checkin = 8;
+  int32 uptime = 9;
+  string campaign_id = 10;
+}
+
+message KillAgentRequest {
+  string agent_id = 1;
+  string reason = 2;
+}
+
+message KillAgentResponse {
+  bool success = 1;
+}
+
+message CreateCampaignRequest {
+  string name = 1;
+  string target_scope = 2;
+  string goal = 3;
+  string profile = 4;
+  bool auto_approve = 5;
+}
+
+message Campaign {
+  string id = 1;
+  string name = 2;
+  string target_scope = 3;
+  string goal = 4;
+  string profile = 5;
+  string status = 6;
+  string phase = 7;
+  int64 created_at = 8;
+  int64 started_at = 9;
+  int32 agent_count = 10;
+  float progress = 11;
+}
+
+message GetCampaignRequest {
+  string campaign_id = 1;
+}
+
+message ListCampaignsRequest {}
+
+message ListCampaignsResponse {
+  repeated Campaign campaigns = 1;
+}
+
+message PauseCampaignRequest {
+  string campaign_id = 1;
+}
+
+message ResumeCampaignRequest {
+  string campaign_id = 1;
+}
+
+message DecisionUpdate {
+  string campaign_id = 1;
+  string agent_id = 2;
+  string decision_id = 3;
+  string tactic = 4;
+  string technique = 5;
+  string mitre_id = 6;
+  string target = 7;
+  float confidence = 8;
+  string reasoning = 9;
+  bool requires_approval = 10;
+}
+
+message DecisionAck {
+  string decision_id = 1;
+  bool approved = 2;
+  string comment = 3;
+}
+
+message MetricsRequest {
+  string campaign_id = 1;
+}
+
+message MetricsResponse {
+  int32 total_agents = 1;
+  int32 active_agents = 2;
+  int32 total_hosts_discovered = 3;
+  int32 total_vulns_found = 4;
+  int32 total_exploits = 5;
+  int32 successful_exploits = 6;
+  int32 credentials_captured = 7;
+  int32 lateral_moves = 8;
+  int32 persistence_installed = 9;
+  float stealth_rating = 10;
+  repeated BlueMetric blue_metrics = 11;
+}
+
+message BlueMetric {
+  string tool = 1;
+  bool detected = 2;
+  string alert_type = 3;
+  string timestamp = 4;
+}

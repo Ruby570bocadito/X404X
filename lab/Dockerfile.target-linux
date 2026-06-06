@@ -1,0 +1,44 @@
+# Dockerfile — Vulnerable Linux target
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install services with deliberate vulnerabilities
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    apache2 \
+    mysql-server \
+    vsftpd \
+    redis-server \
+    sudo cron \
+    python3 python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure vulnerable services
+# SSH: weak password for testing
+RUN echo 'root:password123' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# Create test user with sudo
+RUN useradd -m -s /bin/bash testuser && \
+    echo 'testuser:test123' | chpasswd && \
+    usermod -aG sudo testuser
+
+# Set up SUID binary for privesc testing
+RUN cp /usr/bin/python3 /usr/bin/python3-suid && \
+    chmod u+s /usr/bin/python3-suid
+
+# Writable cron directory
+RUN mkdir -p /etc/cron.d && chmod 777 /etc/cron.d
+
+# Redis with no auth
+RUN echo 'bind 0.0.0.0' >> /etc/redis/redis.conf && \
+    echo 'protected-mode no' >> /etc/redis/redis.conf
+
+# Start SSH
+RUN mkdir -p /run/sshd
+
+EXPOSE 22 80 3306 21 6379
+
+CMD ["/usr/sbin/sshd", "-D"]

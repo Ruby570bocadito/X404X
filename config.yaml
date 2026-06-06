@@ -1,0 +1,78 @@
+# X404X Framework - Configuration Example
+# Copy this file to config.yaml and customize for your environment
+
+agent:
+  id: ""
+  name: "x404x-agent"
+  c2_server: "localhost"
+  c2_port: 8443
+  heartbeat_seconds: 30
+  stealth_mode: false
+
+server:
+  host: "0.0.0.0"
+  port: 8443
+  max_sessions: 5000
+  session_ttl: 5m
+  enable_ws: true
+  ws_port: 8446
+  enable_tls: true
+  auto_cert: true
+
+database:
+  driver: "sqlite"
+  dsn: "x404x.db"
+  max_conns: 10
+  auto_migrate: true
+
+crypto:
+  key_exchange: "X25519"
+  aead_cipher: "XChaCha20-Poly1305"
+  session_key_ttl: 30m
+
+ai:
+  enabled: true
+  model: "llama3.2"
+  ollama_host: "localhost"
+  ollama_port: 11434
+  temperature: 0.7
+  max_tokens: 4096
+  auto_approval: false
+  min_confidence: 0.75
+
+logging:
+  level: "info"
+  format: "text"
+  output: "stdout"
+
+lab:
+  enable: false
+  network: "rbyhack-lab"
+  subnet: "172.20.0.0/24"
+  attacker_ip: "172.20.0.10"
+
+blue:
+  enabled: true
+  report_path: "reports/blue_metrics.json"
+
+evasion:
+  amsi: true
+  etw: true
+  polymorphic: false
+  sleep_jitter: true
+  jitter_min_ms: 500
+  jitter_max_ms: 5000
+
+safety:
+  kill_switch_enabled: true
+  kill_switch_code: "EMERGENCY_STOP"
+  auto_destruct_hours: 2
+  geofence_enabled: true
+  max_infections: 1000
+  no_persistence: true
+
+dashboard:
+  enabled: true
+  port: 3000
+  dev_mode: false
+  auth_token: ""

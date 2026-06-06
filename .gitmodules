@@ -1,0 +1,54 @@
+[submodule "core/c2"]
+	path = core/c2
+	url = https://github.com/Ruby570bocadito/Pulse-C2
+	branch = master
+
+[submodule "core/privesc"]
+	path = core/privesc
+	url = https://github.com/Ruby570bocadito/Rise-Privilege
+	branch = main
+
+[submodule "core/kernel"]
+	path = core/kernel
+	url = https://github.com/Ruby570bocadito/Vault-Kernel
+	branch = main
+
+[submodule "core/breach"]
+	path = core/breach
+	url = https://github.com/Ruby570bocadito/Breach-Entry
+	branch = main
+
+[submodule "modules/recon"]
+	path = modules/recon
+	url = https://github.com/Ruby570bocadito/Horizon-Intel
+	branch = main
+
+[submodule "modules/ai/specter"]
+	path = modules/ai/specter
+	url = https://github.com/Ruby570bocadito/Specter-Terminal
+	branch = main
+
+[submodule "modules/ai/apex"]
+	path = modules/ai/apex
+	url = https://github.com/Ruby570bocadito/Apex-Automation
+	branch = main
+
+[submodule "modules/worm"]
+	path = modules/worm
+	url = https://github.com/Ruby570bocadito/Wormy-ML-Network-Worm
+	branch = main
+
+[submodule "modules/relay"]
+	path = modules/relay
+	url = https://github.com/Ruby570bocadito/Link-Relay
+	branch = main
+
+[submodule "modules/operations"]
+	path = modules/operations
+	url = https://github.com/Ruby570bocadito/Titan-Operations
+	branch = main
+
+[submodule "modules/blue"]
+	path = modules/blue
+	url = https://github.com/Ruby570bocadito/BlueForge-Suite
+	branch = main

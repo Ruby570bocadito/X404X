@@ -1,0 +1,10 @@
+# Buf configuration for protocol buffers
+version: v2
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX
+breaking:
+  use:
+    - FILE

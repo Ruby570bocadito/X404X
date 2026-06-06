@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package x404x.v1;
+
+option go_package = "github.com/ruby570bocadito/x404x/core/proto/gen/common;commonv1";
+
+// Common types shared across all services
+
+enum RiskLevel {
+  RISK_LEVEL_UNSPECIFIED = 0;
+  RISK_LEVEL_SAFE = 1;
+  RISK_LEVEL_LOW = 2;
+  RISK_LEVEL_MEDIUM = 3;
+  RISK_LEVEL_HIGH = 4;
+  RISK_LEVEL_DANGER = 5;
+}
+
+enum KillChainPhase {
+  KILL_CHAIN_PHASE_UNSPECIFIED = 0;
+  KILL_CHAIN_PHASE_RECON = 1;
+  KILL_CHAIN_PHASE_WEAPONIZATION = 2;
+  KILL_CHAIN_PHASE_DELIVERY = 3;
+  KILL_CHAIN_PHASE_EXPLOITATION = 4;
+  KILL_CHAIN_PHASE_INSTALLATION = 5;
+  KILL_CHAIN_PHASE_COMMAND_AND_CONTROL = 6;
+  KILL_CHAIN_PHASE_ACTIONS_ON_OBJECTIVE = 7;
+}
+
+enum AgentStatus {
+  AGENT_STATUS_UNSPECIFIED = 0;
+  AGENT_STATUS_ONLINE = 1;
+  AGENT_STATUS_IDLE = 2;
+  AGENT_STATUS_ACTIVE = 3;
+  AGENT_STATUS_DEAD = 4;
+}
+
+enum CampaignStatus {
+  CAMPAIGN_STATUS_UNSPECIFIED = 0;
+  CAMPAIGN_STATUS_DRAFT = 1;
+  CAMPAIGN_STATUS_RUNNING = 2;
+  CAMPAIGN_STATUS_PAUSED = 3;
+  CAMPAIGN_STATUS_COMPLETED = 4;
+  CAMPAIGN_STATUS_FAILED = 5;
+}
+
+message Credential {
+  string username = 1;
+  string password = 2;
+  string hash = 3;
+  string hash_type = 4;
+  string domain = 5;
+  string source = 6;
+  string agent_id = 7;
+}
+
+message KillChainEntry {
+  KillChainPhase phase = 1;
+  string tactic = 2;
+  string technique = 3;
+  string mitre_id = 4;
+  int64 timestamp = 5;
+  string agent_id = 6;
+  bool success = 7;
+  string detail = 8;
+}
+
+message AuditEntry {
+  string id = 1;
+  int64 timestamp = 2;
+  string campaign_id = 3;
+  string agent_id = 4;
+  string action = 5;
+  string result = 6;
+  string detail = 7;
+}

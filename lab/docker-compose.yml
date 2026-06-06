@@ -1,0 +1,106 @@
+# RBYHACK Framework — Docker Lab
+# ===============================
+# Multi-container lab environment for safe testing.
+#
+# Containers:
+#   - attacker:  Operator workstation (Go agent, Python modules, CLI)
+#   - target1:   Ubuntu 24.04 with deliberate vulnerabilities
+#   - target2:   Windows Server 2019 (if available)
+#   - dashboard: Vue 3 web dashboard (:3000)
+#   - ollama:    Local LLM service for AI modules (:11434)
+#
+# Network: 172.20.0.0/24 (isolated)
+
+version: "3.9"
+
+services:
+  attacker:
+    build:
+      context: ..
+      dockerfile: lab/Dockerfile.attacker
+    container_name: x404x-attacker
+    hostname: attacker
+    networks:
+      lab_net:
+        ipv4_address: 172.20.0.10
+    volumes:
+      - ..:/opt/x404x
+      - attacker_data:/root
+    working_dir: /opt/x404x
+    command: ["sleep", "infinity"]
+    depends_on:
+      - dashboard
+
+  target1:
+    build:
+      context: ..
+      dockerfile: lab/Dockerfile.target-linux
+    container_name: x404x-target1
+    hostname: target1
+    networks:
+      lab_net:
+        ipv4_address: 172.20.0.20
+    volumes:
+      - target1_data:/data
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    command: ["sleep", "infinity"]
+
+  target2:
+    build:
+      context: ..
+      dockerfile: lab/Dockerfile.target-linux
+    container_name: x404x-target2
+    hostname: target2
+    networks:
+      lab_net:
+        ipv4_address: 172.20.0.21
+    volumes:
+      - target2_data:/data
+    command: ["sleep", "infinity"]
+
+  dashboard:
+    image: node:20-alpine
+    container_name: x404x-dashboard
+    hostname: dashboard
+    networks:
+      lab_net:
+        ipv4_address: 172.20.0.30
+    ports:
+      - "3000:3000"
+    working_dir: /app
+    command: ["npx", "serve", "-l", "3000", "--no-clipboard"]
+    volumes:
+      - dashboard_data:/app
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: x404x-ollama
+    hostname: ollama
+    networks:
+      lab_net:
+        ipv4_address: 172.20.0.40
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_HOST=0.0.0.0
+
+networks:
+  lab_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
+
+volumes:
+  attacker_data:
+  target1_data:
+  target2_data:
+  dashboard_data:
+  ollama_data:
