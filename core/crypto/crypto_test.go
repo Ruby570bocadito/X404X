@@ -103,7 +103,7 @@ func TestDeriveKey(t *testing.T) {
 	aliceSession, _ := NewSession(alice, bob.PublicKey)
 	bobSession, _ := NewSession(bob, alice.PublicKey)
 
-	ctx := []byte("rbyhack-agent-subkey")
+	ctx := []byte("x404x-agent-subkey")
 
 	key1, err := DeriveKey(&aliceSession.sharedKey, ctx)
 	if err != nil {

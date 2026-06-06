@@ -25,17 +25,31 @@
 
 ---
 
-## X404X v2.4 — Advanced Ransomware Engine
-
-- **Block 1 — Psychological & Reputational**: Hope trap (partial decrypt + fake decryptor + forensic monitor), identity destruction (browser session theft + account hijack + 2FA takeover), inverse RaaS (multi-attacker panel)
-- **Block 2 — Pandemic Propagation**: Multi-platform worm (Win/Linux/macOS/IoT via SSH/SMB/Docker/k8s), supply chain poison (updaters + NuGet/pip/npm/git), cloud exploit (AWS EC2 + Azure VM + GCP, malicious AMIs, S3 public buckets), Bluetooth/Wi-Fi Direct (BlueBorne, BLE MITM, APK push)
-- **Block 3 — Physical Sabotage**: SCADA/PLC attack (Modbus/S7/CIP command injection, ladder logic overwrite), hardware destruction (CPU overvoltage, fan kill, BIOS corruption, infinite burn loop), network poison (ARP spoof, MITM proxy, SSL strip, captive portal, root CA install)
-- **Block 4 — Automutation & Resilience**: DNA hybridization with legit DLLs, MBR/GPT bootkit (post-format persistence), blockchain C2 via Bitcoin OP_RETURN (immutable commands)
-- **Bonus — Survivor Game**: Employees compete for decryption key; last workstation standing wins; eliminated stations get double ransom
+## What is X404X?
 
 **X404X** is a **semi-autonomous Red Team platform** that covers the complete cyber kill chain — from reconnaissance to exfiltration. It integrates **11 specialized offensive security tools** into a unified monorepo with a shared gRPC protocol, encrypted communication, AI-powered decision making (Ollama offline), kernel-level persistence, and a Vue 3 web dashboard.
 
-Built as a **TFG (Trabajo de Fin de Grado)** project in Cybersecurity at Cisco NetAcad, Málaga.
+Built as a **TFG (Trabajo de Fin de Grado)** project in Cybersecurity at Cisco NetAcad, Malaga.
+
+## v2.4 — Advanced Ransomware Engine (14 modules, 4 blocks + bonus)
+
+| Block | Modules | Capabilities |
+|-------|---------|--------------|
+| **1 — Psychological** | `hope_trap`, `identity_destroy`, `raas_inverse`, `fake_decryptor` | Partial decryption bait, forensic tool monitor, browser session theft, 8-account hijack, 2FA takeover, inverse RaaS panel, multi-ransom notes |
+| **2 — Pandemic Propag.** | `worm`, `supply_chain`, `cloud_exploit`, `bluetooth_prop` | Multi-platform worm (Win/Linux/macOS/IoT), Docker/K8s escape, SMB/SSH/IoT exploits, DDoS, updater poisoning, NuGet/pip/npm/git poison, AWS EC2/Azure VM/GCP, malicious AMIs, S3 buckets, BlueBorne, BLE MITM, KRACK |
+| **3 — Physical Sabot.** | `scada_attack`, `hardware_kill`, `network_poison` | SCADA/PLC attack (Modbus/S7/CIP), stop/write/flash commands, CPU overvoltage, fan kill, BIOS corruption, ARP spoof, MITM proxy, SSL strip, captive portal, root CA install |
+| **4 — Automutation** | `dna_mutation`, `bootkit`, `blockchain_c2` | DNA hybridization with legit DLLs, ROP gadgets, junk code, MBR/GPT bootkit (post-format persistence), fake SMART errors, Bitcoin OP_RETURN C2 |
+| **Bonus** | `survivor_game` | Eliminates workstations every 90s, last standing gets free decryption key |
+
+## Core Engine Features
+
+- **Kill Chain Phases**: 23 phases across scan, exfil, encrypt, destruct, propagate, psychological, identity, RaaS, supply chain, cloud, Bluetooth, SCADA, hardware, network, bootkit, blockchain, survivor
+- **Crypto**: Hydra multi-layer — RSA-4096, Shamir 3-of-3, AES-256-GCM + ChaCha20-Poly1305 double layer, per-file random keys
+- **Scanner**: 19 regex patterns (DNI, passports, SSH keys, AWS keys, credit cards), 30+ target extensions, 8 concurrent workers
+- **Propagation**: 6 exploits (Zerologon, ProxyNotShell, PrintNightmare, BlueKeep, EternalBlue, SMBGhost), IoT botnet (6 CVEs)
+- **Anti-Analysis**: 15-tool kill list, sandbox detection, kernel debugger detection, 2h sleep mode, LSB+EXIF steganography
+- **Evasion**: PE header corruption, syscall encoding, ROP gadget generation, polymorphic JIT mutation
+- **Trust Exploitation**: Self-signed RSA-4096 cert, PFX search, WSUS/SCCM/NuGet/NPM/Git poisoning
 
 ---
 
@@ -118,8 +132,8 @@ Built as a **TFG (Trabajo de Fin de Grado)** project in Cybersecurity at Cisco N
 ### Clone with Submodules
 
 ```bash
-git clone --recurse-submodules https://github.com/Ruby570bocadito/RBYHACK-Framework.git
-cd RBYHACK-Framework
+git clone --recurse-submodules https://github.com/Ruby570bocadito/X404X.git
+cd X404X
 ```
 
 ### Setup
@@ -137,8 +151,8 @@ bash scripts/setup.sh
 ```bash
 # Start isolated lab environment
 make lab-up
-# → Attacker:  docker exec -it rbyhack-attacker bash
-# → Target 1:  docker exec -it rbyhack-target1 bash
+# → Attacker:  docker exec -it x404x-attacker bash
+# → Target 1:  docker exec -it x404x-target1 bash
 # → Dashboard: http://localhost:3000
 
 # Stop lab

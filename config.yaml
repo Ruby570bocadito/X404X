@@ -48,7 +48,7 @@ logging:
 
 lab:
   enable: false
-  network: "rbyhack-lab"
+  network: "x404x-lab"
   subnet: "172.20.0.0/24"
   attacker_ip: "172.20.0.10"
 

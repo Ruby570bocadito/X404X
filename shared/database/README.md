@@ -1,4 +1,4 @@
-# RBYHACK Framework — Database Setup
+# X404X Platform — Database Setup
 # Run: alembic init -t async shared/database/migrations
 # Then: alembic upgrade head
 

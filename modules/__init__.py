@@ -1,4 +1,4 @@
-# RBYHACK Framework — Modules __init__
+# X404X Platform — Modules __init__
 # Python module ecosystem
 
 from modules.bridge.bridge import BridgeServer, ModuleRegistry

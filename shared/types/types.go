@@ -1,4 +1,4 @@
-// Package types defines shared domain types used across all RBYHACK Framework
+// Package types defines shared domain types used across the full X404X Autonomous Red Team Platform
 // components. These types are the canonical representation of core concepts
 // (agents, campaigns, kill chain phases, etc.) and are used by gRPC, database,
 // and internal logic.

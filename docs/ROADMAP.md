@@ -35,7 +35,7 @@
 - [ ] Evasion engine integration
 
 ## Phase 5: CLI + Dashboard (Week 7-8)
-- [ ] rbyhack CLI (cobra commands)
+- [ ] x404x CLI (cobra commands)
 - [ ] Dashboard Vue 3 extensions
 - [ ] WebSocket real-time updates
 - [ ] REST API endpoints

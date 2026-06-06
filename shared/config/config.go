@@ -156,7 +156,7 @@ func Default() *Config {
 		},
 		Database: DatabaseConfig{
 			Driver:     "sqlite",
-			DSN:        "rbyhack.db",
+			DSN:        "x404x.db",
 			MaxConns:   10,
 			AutoMigrate: true,
 		},
@@ -182,7 +182,7 @@ func Default() *Config {
 		},
 		Lab: LabConfig{
 			Enable:     false,
-			Network:    "rbyhack-lab",
+			Network:    "x404x-lab",
 			Subnet:     "172.20.0.0/24",
 			AttackerIP: "172.20.0.10",
 		},

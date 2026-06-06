@@ -1,4 +1,4 @@
-// Package orchestrator implements the central coordination engine for RBYHACK.
+// Package orchestrator implements the central coordination engine for X404X.
 //
 // The Orchestrator is the brain of the framework. It:
 //   - Manages campaigns and their kill chain progression

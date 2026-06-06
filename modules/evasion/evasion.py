@@ -127,7 +127,7 @@ def detect_sandbox() -> bool:
 
 
 class EvasionEngine:
-    """Unified evasion engine for RBYHACK agents."""
+    """Unified evasion engine for X404X agents."""
 
     def __init__(self, profile: EvasionProfile):
         self.profile = profile
