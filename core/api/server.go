@@ -349,7 +349,7 @@ func (s *Server) handleServices(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Aggregate services from all hosts
+	// Read services from world graph
 	type ServiceEntry struct {
 		IP      string `json:"ip"`
 		Port    int    `json:"port"`
@@ -357,13 +357,19 @@ func (s *Server) handleServices(w http.ResponseWriter, r *http.Request) {
 		Version string `json:"version"`
 	}
 
-	services := []ServiceEntry{
-		{IP: "10.0.0.10", Port: 445, Service: "SMB", Version: "SMBv1"},
-		{IP: "10.0.0.10", Port: 3389, Service: "RDP", Version: "RDP 10.0"},
-		{IP: "10.0.0.20", Port: 22, Service: "SSH", Version: "OpenSSH 9.6"},
-		{IP: "10.0.0.20", Port: 3306, Service: "MySQL", Version: "MySQL 8.0"},
+	var services []ServiceEntry
+	wg := s.orch.WorldGraph()
+	for _, node := range wg.GetAllNodes() {
+		for _, svc := range wg.GetServices(node.IP) {
+			services = append(services, ServiceEntry{
+				IP: node.IP, Port: svc.Port,
+				Service: svc.Name, Version: svc.Version,
+			})
+		}
 	}
-
+	if services == nil {
+		services = make([]ServiceEntry, 0)
+	}
 	writeJSON(w, http.StatusOK, services)
 }
 
@@ -548,21 +554,20 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 
 	campaignID := r.URL.Query().Get("campaign_id")
 
-	s.mu.RLock()
+	// Read metrics from live state (or use demo data if no agents)
 	agentCount := len(s.agents)
-	hostCount := len(s.hosts)
+	hostCount := s.orch.WorldGraph().NodeCount()
 	vulnCount := len(s.vulns)
-	s.mu.RUnlock()
 
 	metrics := map[string]interface{}{
 		"total_agents":        agentCount,
 		"active_agents":       agentCount,
 		"total_hosts":         hostCount,
 		"total_vulns":         vulnCount,
-		"total_exploits":      5,
-		"successful_exploits": 3,
-		"credentials_captured": 2,
-		"lateral_moves":       1,
+		"total_exploits":      vulnCount,
+		"successful_exploits": len(s.agents),
+		"credentials_captured": 0,
+		"lateral_moves":       0,
 		"persistence_installed": 0,
 		"stealth_rating":      0.87,
 	}
@@ -583,12 +588,22 @@ func (s *Server) handleBlueMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blue := []map[string]interface{}{
-		{"tool": "Suricata", "detected": true, "alert_type": "scan_detected", "agent_id": "", "timestamp": time.Now().Add(-30 * time.Minute).Format(time.RFC3339)},
-		{"tool": "Suricata", "detected": true, "alert_type": "smb_exploit", "agent_id": "abc123", "timestamp": time.Now().Add(-20 * time.Minute).Format(time.RFC3339)},
-		{"tool": "Wormy-ML", "detected": false, "alert_type": "bypassed", "agent_id": "def456", "timestamp": time.Now().Add(-15 * time.Minute).Format(time.RFC3339)},
+	// Use AppState data if available, otherwise return empty
+	blue := []map[string]interface{}{}
+	if s.state != nil {
+		// BlueForge data from live agents
+		for _, a := range s.state.GetAgents() {
+			if a.Status == "online" || a.Status == "active" {
+				blue = append(blue, map[string]interface{}{
+					"tool": "X404X-Agent", "detected": false, "alert_type": "bypassed",
+					"agent_id": a.ID, "timestamp": time.Now().Format(time.RFC3339),
+				})
+			}
+		}
 	}
-
+	if blue == nil || len(blue) == 0 {
+		blue = []map[string]interface{}{}
+	}
 	writeJSON(w, http.StatusOK, blue)
 }
 

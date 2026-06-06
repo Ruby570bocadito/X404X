@@ -184,6 +184,12 @@ func (s *AppState) Start(ctx context.Context) error {
 		ModuleDef{Name: "post/phantom_socks5", Type: "post",
 			Description: "PhantomWeb SOCKS5 proxy: pivot to internal network via infected browser.",
 			Rank: "excellent", OS: "any"},
+		ModuleDef{Name: "exploit/apport_spoof", Type: "exploit",
+			Description: "Breach-Entry: CVE-2026-XXXX apport ExecutablePath spoofing on Ubuntu 24.04 LTS.",
+			CVE: "CVE-2026-XXXX", Rank: "excellent", OS: "Linux"},
+		ModuleDef{Name: "auxiliary/breach_check", Type: "auxiliary",
+			Description: "Check if target is vulnerable to Breach-Entry CVE-2026-XXXX (apport service).",
+			CVE: "CVE-2026-XXXX", Rank: "normal", OS: "Linux"},
 	)
 
 	// Register agents

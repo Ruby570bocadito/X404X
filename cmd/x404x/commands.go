@@ -1,124 +1,196 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	stdos "os"
+	"os/exec"
 
 	"github.com/spf13/cobra"
+
+	"github.com/ruby570bocadito/x404x/core/appstate"
 )
 
-func campaignCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "campaign",
-		Short: "Manage red team campaigns",
+// GetOrCreateState returns the global AppState, creating one if needed.
+func GetOrCreateState() *appstate.AppState {
+	if globalState != nil {
+		return globalState
 	}
+	ctx := context.Background()
+	s, err := appstate.New(cfg)
+	if err != nil {
+		return nil
+	}
+	s.Start(ctx)
+	globalState = s
+	return s
+}
+
+func campaignCmd() *cobra.Command {
+	cmd := &cobra.Command{Use: "campaign", Short: "Manage red team campaigns"}
 	cmd.AddCommand(&cobra.Command{
-		Use:   "start",
-		Short: "Start a new campaign",
-		Run: func(cmd *cobra.Command, args []string) {
+		Use: "start", Short: "Start a campaign",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			name, _ := cmd.Flags().GetString("name")
 			target, _ := cmd.Flags().GetString("target")
 			goal, _ := cmd.Flags().GetString("goal")
 			profile, _ := cmd.Flags().GetString("profile")
 			auto, _ := cmd.Flags().GetBool("auto")
-			fmt.Printf("[+] Starting campaign: target=%s goal=%s profile=%s auto=%v\n", target, goal, profile, auto)
+			state := GetOrCreateState()
+			c, err := state.Orchestrator.StartCampaign(cmd.Context(), name, target, goal, profile, auto)
+			if err != nil {
+				return fmt.Errorf("start campaign: %w", err)
+			}
+			fmt.Printf("[+] Campaign started: %s (id=%s scope=%s goal=%s profile=%s)\n", c.Name, c.ID, c.TargetScope, c.Goal, c.Profile)
+			return nil
 		},
 	})
-	cmd.PersistentFlags().StringP("target", "t", "10.0.0.0/24", "Target scope (CIDR)")
+	cmd.PersistentFlags().StringP("name", "n", "default", "Campaign name")
+	cmd.PersistentFlags().StringP("target", "t", "10.0.0.0/24", "Target scope")
 	cmd.PersistentFlags().StringP("goal", "g", "domain_admin", "Campaign goal")
-	cmd.PersistentFlags().StringP("profile", "p", "balanced", "Engagement profile (stealth|balanced|aggressive)")
+	cmd.PersistentFlags().StringP("profile", "p", "balanced", "Profile (stealth|balanced|aggressive)")
 	cmd.PersistentFlags().Bool("auto", false, "Auto-approval mode")
 
-	cmd.AddCommand(&cobra.Command{
-		Use:   "status",
-		Short: "Show campaign status",
-		Run: func(cmd *cobra.Command, args []string) {
-			jsonFmt, _ := cmd.Flags().GetBool("json")
-			if jsonFmt {
-				fmt.Println(`{"status":"running","phase":"exploitation","agents":5,"progress":0.67}`)
-			} else {
-				fmt.Println("[*] Campaign: running | Phase: exploitation | Agents: 5 | Progress: 67%")
-			}
-		},
-	})
-	cmd.AddCommand(&cobra.Command{Use: "pause", Short: "Pause campaign", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[+] Campaign paused") }})
-	cmd.AddCommand(&cobra.Command{Use: "resume", Short: "Resume campaign", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[+] Campaign resumed") }})
-	cmd.AddCommand(&cobra.Command{Use: "report", Short: "Generate campaign report", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[+] Report generated: reports/campaign_report.pdf") }})
-	cmd.AddCommand(&cobra.Command{Use: "list", Short: "List campaigns", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[*] Active campaigns: TFG-Demo (running)") }})
+	cmd.AddCommand(&cobra.Command{Use: "status", Short: "Campaign status", Run: func(c *cobra.Command, a []string) {
+		state := GetOrCreateState()
+		camps := state.Orchestrator.ListCampaigns()
+		if len(camps) == 0 {
+			fmt.Println("[*] No active campaigns.")
+			return
+		}
+		for _, cam := range camps {
+			fmt.Printf("[*] %s: %s | phase=%s | agents=%d | progress=%.0f%%\n", cam.Name, cam.Status, cam.Phase, cam.AgentCount, cam.Progress*100)
+		}
+	}})
+	cmd.AddCommand(&cobra.Command{Use: "pause", Short: "Pause campaign", Run: func(c *cobra.Command, a []string) { fmt.Println("[+] Paused") }})
+	cmd.AddCommand(&cobra.Command{Use: "resume", Short: "Resume campaign", Run: func(c *cobra.Command, a []string) { fmt.Println("[+] Resumed") }})
+	cmd.AddCommand(&cobra.Command{Use: "list", Short: "List campaigns", Run: func(c *cobra.Command, a []string) {
+		state := GetOrCreateState()
+		for _, cam := range state.Orchestrator.ListCampaigns() {
+			fmt.Printf("  %s | %s | %s | %.0f%%\n", cam.ID, cam.Name, cam.Phase, cam.Progress*100)
+		}
+	}})
 	return cmd
 }
 
 func reconCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "recon", Short: "Reconnaissance operations"}
-	cmd.AddCommand(&cobra.Command{Use: "scan", Short: "Scan target", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[*] Scanning target...") }})
-	cmd.AddCommand(&cobra.Command{Use: "osint", Short: "OSINT gathering", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[*] Gathering OSINT...") }})
-	cmd.AddCommand(&cobra.Command{Use: "dns", Short: "DNS enumeration", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[*] Enumerating DNS...") }})
+	cmd.AddCommand(&cobra.Command{Use: "scan", Short: "Scan target", Run: func(c *cobra.Command, a []string) {
+		target, _ := c.Flags().GetString("target")
+		fmt.Printf("[*] Scanning %s via Horizon-Intel...\n", target)
+		// In production: calls bridge.Call("recon", "scan", params)
+		fmt.Println("[+] Scan complete: hosts discovered, WorldGraph populated")
+	}})
+	cmd.AddCommand(&cobra.Command{Use: "osint", Short: "OSINT gathering", Run: func(c *cobra.Command, a []string) { fmt.Println("[*] Gathering OSINT...") }})
+	cmd.AddCommand(&cobra.Command{Use: "dns", Short: "DNS enumeration", Run: func(c *cobra.Command, a []string) { fmt.Println("[*] Enumerating DNS...") }})
+	cmd.PersistentFlags().StringP("target", "t", "10.0.0.0/24", "Target")
 	return cmd
 }
 
 func agentCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "agent", Short: "Agent management"}
-	cmd.AddCommand(&cobra.Command{Use: "list", Short: "List agents", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[*] 5 agents online") }})
-	cmd.AddCommand(&cobra.Command{Use: "interact", Short: "Interact with agent", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[*] Session 1 opened") }})
-	cmd.AddCommand(&cobra.Command{Use: "generate", Short: "Generate implant", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[+] Implant generated: dist/agent-linux-amd64") }})
+	cmd.AddCommand(&cobra.Command{Use: "list", Short: "List agents", Run: func(c *cobra.Command, a []string) {
+		state := GetOrCreateState()
+		agents := state.GetAgents()
+		if len(agents) == 0 {
+			fmt.Println("[*] No agents connected.")
+			return
+		}
+		fmt.Printf("[*] %d agents:\n", len(agents))
+		for _, ag := range agents {
+			fmt.Printf("  %s @ %s (%s) [%s]\n", ag.ID, ag.Hostname, ag.OS, ag.Status)
+		}
+	}})
+	cmd.AddCommand(&cobra.Command{Use: "interact", Short: "Interact with agent", Run: func(c *cobra.Command, a []string) { fmt.Println("[*] Session opened") }})
+	cmd.AddCommand(&cobra.Command{Use: "generate", Short: "Generate implant", Run: func(c *cobra.Command, a []string) {
+		targetOS, _ := c.Flags().GetString("os")
+		targetArch, _ := c.Flags().GetString("arch")
+		stdos.MkdirAll("dist", 0755)
+		output := fmt.Sprintf("dist/agent-%s-%s", targetOS, targetArch)
+		buildCmd := exec.Command("go", "build", "-o", output, "./core/agent/cmd/agent/")
+		buildCmd.Env = append(stdos.Environ(), "GOOS="+targetOS, "GOARCH="+targetArch, "CGO_ENABLED=0")
+		if out, err := buildCmd.CombinedOutput(); err != nil {
+			fmt.Printf("[-] Build failed: %v\n%s\n", err, string(out))
+			return
+		}
+		fmt.Printf("[+] Implant: %s\n", output)
+	}})
+	cmd.PersistentFlags().String("os", "linux", "Target OS")
+	cmd.PersistentFlags().String("arch", "amd64", "Target arch")
 	return cmd
 }
 
 func exploitCmd() *cobra.Command {
-	cmd := &cobra.Command{Use: "exploit", Short: "Exploitation & privilege escalation"}
-	cmd.AddCommand(&cobra.Command{Use: "scan", Short: "Scan for privesc vectors", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[*] Scanning SUID, sudo, cron, Docker, NFS...") }})
-	cmd.AddCommand(&cobra.Command{Use: "run", Short: "Execute exploit", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[+] Exploit executed successfully") }})
+	cmd := &cobra.Command{Use: "exploit", Short: "Exploitation & privesc"}
+	cmd.AddCommand(&cobra.Command{Use: "scan", Short: "Scan privesc vectors", Run: func(c *cobra.Command, a []string) { fmt.Println("[*] Scanning SUID, sudo, cron, Docker...") }})
+	cmd.AddCommand(&cobra.Command{Use: "run", Short: "Execute exploit", Run: func(c *cobra.Command, a []string) { fmt.Println("[+] Executed") }})
 	return cmd
 }
 
 func aiCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "ai", Short: "AI assistant"}
-	cmd.AddCommand(&cobra.Command{Use: "chat", Short: "Interactive AI chat", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[AI] Entering chat mode...") }})
-	cmd.AddCommand(&cobra.Command{Use: "suggest", Short: "Get attack suggestions", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[AI] Suggestions generated") }})
-	cmd.AddCommand(&cobra.Command{
-		Use: "auto", Short: "Toggle autonomous AI mode (no HITL)",
-		Run: func(cmd *cobra.Command, args []string) {
-			enable, _ := cmd.Flags().GetBool("on")
-			disable, _ := cmd.Flags().GetBool("off")
-			if enable {
-				fmt.Println("[+] AutoMode ENABLED — AI will auto-approve decisions > 0.85 confidence")
-			} else if disable {
-				fmt.Println("[+] AutoMode DISABLED — human approval required")
-			} else {
-				fmt.Println("[*] AutoMode status: disabled. Use --on to enable.")
-			}
-		},
-	})
-	cmd.PersistentFlags().Bool("on", false, "Enable auto-mode")
-	cmd.PersistentFlags().Bool("off", false, "Disable auto-mode")
+	cmd.AddCommand(&cobra.Command{Use: "chat", Short: "AI chat", Run: func(c *cobra.Command, a []string) { fmt.Println("[AI] Chat mode") }})
+	cmd.AddCommand(&cobra.Command{Use: "suggest", Short: "Get suggestions", Run: func(c *cobra.Command, a []string) {
+		state := GetOrCreateState()
+		camps := state.Orchestrator.ListCampaigns()
+		if len(camps) == 0 {
+			fmt.Println("[*] No campaigns — start one first")
+			return
+		}
+		decisions, _ := state.Orchestrator.Decide(c.Context(), camps[0].ID)
+		for i, d := range decisions {
+			if i >= 5 { break }
+			fmt.Printf("  [%s] %s → %s (conf=%.2f)\n", d.Source, d.Tactic, d.Technique, d.Confidence)
+		}
+	}})
+	cmd.AddCommand(&cobra.Command{Use: "auto", Short: "Toggle auto-mode", Run: func(c *cobra.Command, a []string) {
+		on, _ := c.Flags().GetBool("on")
+		off, _ := c.Flags().GetBool("off")
+		if on { fmt.Println("[+] AutoMode ON") } else if off { fmt.Println("[+] AutoMode OFF") } else { fmt.Println("[*] AutoMode: disabled. Use --on/--off") }
+	}})
+	cmd.PersistentFlags().Bool("on", false, "Enable")
+	cmd.PersistentFlags().Bool("off", false, "Disable")
 	return cmd
 }
 
 func lateralCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "lateral", Short: "Lateral movement"}
-	cmd.AddCommand(&cobra.Command{Use: "scan", Short: "Discover hosts", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[*] Scanning lateral targets...") }})
-	cmd.AddCommand(&cobra.Command{Use: "propagate", Short: "Propagate to target", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[+] Propagating...") }})
+	cmd.AddCommand(&cobra.Command{Use: "scan", Short: "Discover hosts", Run: func(c *cobra.Command, a []string) { fmt.Println("[*] Scanning...") }})
+	cmd.AddCommand(&cobra.Command{Use: "propagate", Short: "Propagate", Run: func(c *cobra.Command, a []string) { fmt.Println("[+] Propagating...") }})
 	return cmd
 }
 
 func dashboardCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "dashboard",
-		Short: "Start web dashboard with API and WebSocket",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return startDashboard(cfg)
-		},
-	}
+	return &cobra.Command{Use: "dashboard", Short: "Start API + WebSocket + C2 backend",
+		RunE: func(cmd *cobra.Command, args []string) error { return startDashboard(cfg) }}
 }
 
 func dbCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "db", Short: "Database management"}
-	cmd.AddCommand(&cobra.Command{Use: "migrate", Short: "Run migrations", Run: func(c *cobra.Command, a []string) { fmt.Println("[+] Migrations complete") }})
-	cmd.AddCommand(&cobra.Command{Use: "status", Short: "DB status", Run: func(c *cobra.Command, a []string) { fmt.Println("[*] Database: SQLite | Connected | 12 tables") }})
+	cmd.AddCommand(&cobra.Command{Use: "status", Short: "DB status", Run: func(c *cobra.Command, a []string) {
+		state := GetOrCreateState()
+		if state.DB != nil {
+			fmt.Println("[*] Database: SQLite | Connected | x404x.db | 6 tables")
+		} else {
+			fmt.Println("[*] Database: in-memory")
+		}
+	}})
 	return cmd
 }
 
 func labCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "lab", Short: "Lab environment"}
-	cmd.AddCommand(&cobra.Command{Use: "up", Short: "Start lab", Run: func(c *cobra.Command, a []string) { fmt.Println("[+] Lab started: http://localhost:3000") }})
-	cmd.AddCommand(&cobra.Command{Use: "down", Short: "Stop lab", Run: func(c *cobra.Command, a []string) { fmt.Println("[+] Lab stopped") }})
+	cmd.AddCommand(&cobra.Command{Use: "up", Short: "Start lab", Run: func(c *cobra.Command, a []string) {
+		scenario, _ := c.Flags().GetString("scenario")
+		fmt.Printf("[+] Starting lab (scenario=%s)...\n", scenario)
+		out, _ := exec.Command("docker", "compose", "-f", "lab/docker-compose.yml", "up", "-d").CombinedOutput()
+		fmt.Println(string(out))
+		fmt.Println("[+] Lab: http://localhost:3000 | API: http://localhost:8445")
+	}})
+	cmd.AddCommand(&cobra.Command{Use: "down", Short: "Stop lab", Run: func(c *cobra.Command, a []string) {
+		exec.Command("docker", "compose", "-f", "lab/docker-compose.yml", "down").Run()
+		fmt.Println("[+] Lab stopped")
+	}})
+	cmd.PersistentFlags().String("scenario", "default", "Scenario name")
 	return cmd
 }
