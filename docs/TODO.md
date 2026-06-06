@@ -42,7 +42,23 @@
 
 ---
 
-## 🔜 v2.5 — Roadmap (propuesto)
+## ✅ v2.5 — Block Z: El Umbral de la Perdición (14 módulos)
+- [x] Z.1 Genetic Evolution: Darwinian malware breeding with DLL genes
+- [x] Z.2 Deepfake Identity: ONNX face+voice CEO impersonation pipeline
+- [x] Z.3 Covert SCADA: Gradual parameter drift over months
+- [x] Z.4 Firmware Worm: Router/switch/firewall backdoor surviving updates
+- [x] Z.5 Medical Attack: Pacemaker/insulin/neurostimulator exploits
+- [x] Z.6 AI Model Poison: Backdoor classifiers + label flipping
+- [x] Z.7 Disinformation: Email/Slack/calendar corporate sabotage
+- [x] Z.8 Air-Gap Jump: Ultrasound + LED optical exfiltration
+- [x] Z.9 Post-Quantum: Kyber-1024 + AES-256-GCM encryption
+- [x] Z.10 Dead Man Switch: 48h autonomous apocalypse trigger
+- [x] Z.11 False Flag: APT framing + Mandiant forensic report generation
+- [x] Z.12 EDR Control: Kill 10 EDRs + self-deploy via consoles
+- [x] Z.13 Financial Attack: Insider harvest + put options + stock crash
+- [x] Z.14 IoT Chain: Hospital/factory/powergrid cascading damage
+
+## 🔜 v2.6 — Prioridad Alta (propuesto)
 
 ### 🔧 Orquestador — El Cerebro v2
 - [ ] Planificacion dinamica con POMDPs (Partially Observable Markov Decision Process)
