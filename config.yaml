@@ -12,6 +12,7 @@ agent:
 server:
   host: "0.0.0.0"
   port: 8443
+  grpc_port: 8444
   max_sessions: 5000
   session_ttl: 5m
   enable_ws: true

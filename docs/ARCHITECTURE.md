@@ -2,71 +2,90 @@
 
 ## System Overview
 
-RBYHACK Framework is a semi-autonomous Red Team platform covering the complete cyber kill chain: reconnaissance → weaponization → delivery → exploitation → installation → C2 → actions on objective → exfiltration.
+X404X is a semi-autonomous Red Team platform covering the complete cyber kill chain: reconnaissance → weaponization → delivery → exploitation → installation → C2 → actions on objective → exfiltration.
 
-### Three-Layer Architecture
+### Updated Architecture (v2.3)
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ LAYER 1: INTERFACES                                                      │
-│ ┌──────────────┐ ┌──────────────────┐ ┌──────────────┐                  │
-│ │ rbyhack CLI  │ │ Web Dashboard    │ │ gRPC/REST API│                  │
-│ │ (Go + Cobra) │ │ (Vue 3 + WS)     │ │ (external)   │                  │
-│ └──────┬───────┘ └────────┬─────────┘ └──────┬───────┘                  │
-│        │                  │                   │                          │
-├────────┼──────────────────┼───────────────────┼──────────────────────────┤
-│ LAYER 2: ORCHESTRATOR (Go)                                                │
-│ ┌──────┴──────────────────┴───────────────────┴──────────────────────┐  │
-│ │  Campaign Manager  │  Decision Engine  │  Event Bus  │  Database   │  │
-│ │  (Titan-Ops)       │  (A* + CBR + AI)  │  (pub/sub)  │  (PG/SQLite)│  │
-│ └────────────────────────────────┬────────────────────────────────────┘  │
-│                                  │ gRPC (X25519 + XChaCha20-Poly1305)    │
-├──────────────────────────────────┼───────────────────────────────────────┤
-│ LAYER 3: FIELD AGENTS (Go + Python)                                       │
-│ ┌────────────────────────────────┴────────────────────────────────────┐  │
-│ │                    UNIFIED AGENT (Go)                                 │  │
-│ │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │  │
-│ │  │Recon     │ │Privilege │ │Kernel    │ │Python    │ │Evasion   │  │  │
-│ │  │Scanner   │ │Escalation│ │Rootkit   │ │Bridge    │ │Engine    │  │  │
-│ │  └──────────┘ └──────────┘ └─────┬────┘ └────┬─────┘ └──────────┘  │  │
-│ │                                  │           │                       │  │
-│ │                          ┌───────┴───┐ ┌─────┴──────────┐          │  │
-│ │                          │Vault-Kernel│ │Python Modules  │          │  │
-│ │                          │(C LKM)    │ │Horizon-Intel   │          │  │
-│ │                          └───────────┘ │Specter-Terminal│          │  │
-│ │                                        │Apex-Automation │          │  │
-│ │                                        │Wormy-ML        │          │  │
-│ │                                        │Link-Relay      │          │  │
-│ │                                        │BlueForge-Suite │          │  │
-│ │                                        └────────────────┘          │  │
-│ └────────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
+                     ┌─────────────────────────────────┐
+                     │        USER INTERFACES           │
+                     │ CLI · Console · TUI · Dashboard  │
+                     └────────┬───────────────┬─────────┘
+                              │               │
+                     ┌────────▼───────────────▼─────────┐
+                     │          ORCHESTRATOR             │
+                     │  Campaign Mgr │ Decision Engine   │
+                     │  Rules(25%) + A*(35%) + AI(40%)  │
+                     │  WorldGraph · EventBus · KillChain│
+                     └────────┬─────────────────────────┘
+                              │ gRPC (X25519+XChaCha20)
+                     ┌────────▼─────────────────────────┐
+                     │        C2 SERVER (Go/gRPC)       │
+                     │  AgentService · C2Service        │
+                     │  CheckIn · CommandStream · Heart  │
+                     └────────┬─────────────────────────┘
+                              │ gRPC encrypted
+                     ┌────────▼─────────────────────────┐
+                     │        UNIFIED AGENT (Go)        │
+                     │  Connector · BridgeClient        │
+                     └──┬──────┬───────┬──────┬─────────┘
+                        │      │       │      │
+                 ┌──────┐ ┌────┐ ┌────┐ ┌──────────┐
+                 │Rise  │ │Vault│ │Breach│ │Python    │
+                 │Priv  │ │Kernel│ │Entry│ │Bridge    │
+                 └──────┘ └────┘ └────┘ └─────┬─────┘
+                                               │
+                     ┌─────────────────────────┼─────────┐
+                     │                         │         │
+                ┌────▼────┐ ┌────────────┐ ┌──▼─────┐ ┌──▼──────────┐
+                │Horizon  │ │Wormy-ML    │ │Specter │ │BlueForge    │
+                │Intel    │ │(Lateral)   │ │+ Apex  │ │Suite        │
+                │(Recon)  │ │            │ │(AI)    │ │(Metrics)    │
+                └─────────┘ └────────────┘ └────────┘ └─────────────┘
 ```
+
+### gRPC Service Architecture (NEW in v2.3)
+
+The C2 server now uses two separate gRPC service interfaces:
+
+**AgentService** (agent ↔ C2):
+- `CheckIn(AgentInfo) → (SessionID, Tasks)`
+- `CommandStream(stream ClientMessage) → stream ServerMessage` — bidirectional streaming for tasking + results
+- `Heartbeat(HeartbeatRequest) → (HeartbeatResponse)`
+- `Exfiltrate(stream Chunk) → (ExfilStatus)`
+
+**C2Service** (management console ↔ C2):
+- `ListAgents`, `GetAgent`, `KillAgent` — agent lifecycle
+- `CreateCampaign`, `GetCampaign`, `ListCampaigns`, `PauseCampaign`, `ResumeCampaign` — campaign management
+- `DecisionFeed` — AI decisions stream
+- `GetMetrics` — C2 health metrics
+
+All communication uses X25519 ECDH key exchange + XChaCha20-Poly1305 AEAD encryption over gRPC.
 
 ## Component Map
 
-| Component | Language | Layer | Phase | GitHub Repo |
-|-----------|----------|-------|-------|-------------|
-| **CLI (rbyhack)** | Go | 1 | All | NEW |
-| **Web Dashboard** | Vue 3 | 1 | All | Extended from Pulse-C2 |
-| **Orchestrator** | Go | 2 | All | NEW |
-| **Database** | SQLAlchemy | 2 | All | NEW |
-| **Unified Agent** | Go | 3 | All | NEW |
-| **core/crypto** | Go | Shared | All | NEW |
-| **core/proto** | Protobuf | Shared | All | NEW |
-| **Pulse-C2** | Go + Vue 3 | 2,3 | C2 | Ruby570bocadito/Pulse-C2 |
-| **Rise-Privilege** | Go | 3 | Exploitation | Ruby570bocadito/Rise-Privilege |
-| **Vault-Kernel** | C + Go | 3 | Installation | Ruby570bocadito/Vault-Kernel |
-| **Breach-Entry** | C + Python | 3 | Delivery | Ruby570bocadito/Breach-Entry |
-| **Horizon-Intel** | Python | 3 | Recon | Ruby570bocadito/Horizon-Intel |
-| **Specter-Terminal** | Python | 3 | C2 (AI) | Ruby570bocadito/Specter-Terminal |
-| **Apex-Automation** | Python | 3 | C2 (AI) | Ruby570bocadito/Apex-Automation |
-| **Wormy-ML** | Python | 3 | Lateral Movement | Ruby570bocadito/Wormy-ML-Network-Worm |
-| **Link-Relay** | Python | 3 | C2 Relay | Ruby570bocadito/Link-Relay |
-| **Titan-Operations** | Python + Go | 2 | Campaign Mgmt | Ruby570bocadito/Titan-Operations |
-| **BlueForge-Suite** | Python | 3 | Metrics | Ruby570bocadito/BlueForge-Suite |
-| **Python Bridge** | Python | 3 | IPC | NEW |
-| **Evasion Module** | Python + Go | 3 | Evasion | NEW |
+| Component | Language | Layer | Phase | Status |
+|-----------|----------|-------|-------|--------|
+| **CLI (x404x)** | Go | 1 | All | v2.3 |
+| **Web Dashboard** | Vue 3 | 1 | All | v2.2 |
+| **Orchestrator** | Go | 2 | All | v2.3 |
+| **C2 Server (gRPC)** | Go | 2 | C2 | v2.3 |
+| **Unified Agent** | Go | 3 | All | v2.3 |
+| **core/crypto** | Go | Shared | All | v2.3 |
+| **core/proto** | Protobuf | Shared | All | v2.3 |
+| **Python Bridge** | Python | 3 | IPC | v2.3 |
+| **Evasion Module** | Python + Go | 3 | Evasion | v2.3 |
+| **PhantomWeb** | JS + Python | 1,3 | Browser | v2.2 |
+| **Breach-Entry** | C + Python | 3 | Delivery | [Repo](https://github.com/Ruby570bocadito/Breach-Entry) |
+| **Horizon-Intel** | Python | 3 | Recon | [Repo](https://github.com/Ruby570bocadito/Horizon-Intel) |
+| **Rise-Privilege** | Go | 3 | Exploitation | [Repo](https://github.com/Ruby570bocadito/Rise-Privilege) |
+| **Vault-Kernel** | C + Go | 3 | Installation | [Repo](https://github.com/Ruby570bocadito/Vault-Kernel) |
+| **Specter-Terminal** | Python | 3 | AI Analysis | [Repo](https://github.com/Ruby570bocadito/Specter-Terminal) |
+| **Apex-Automation** | Python | 3 | AI Execution | [Repo](https://github.com/Ruby570bocadito/Apex-Automation) |
+| **Wormy-ML** | Python | 3 | Lateral Movement | [Repo](https://github.com/Ruby570bocadito/Wormy-ML-Network-Worm) |
+| **Link-Relay** | Python | 3 | C2 Relay | [Repo](https://github.com/Ruby570bocadito/Link-Relay) |
+| **Titan-Operations** | Python + Go | 2 | Campaign Mgmt | [Repo](https://github.com/Ruby570bocadito/Titan-Operations) |
+| **BlueForge-Suite** | Python | 3 | Metrics | [Repo](https://github.com/Ruby570bocadito/BlueForge-Suite) |
 
 ## Communication Flow
 
@@ -76,8 +95,8 @@ RBYHACK Framework is a semi-autonomous Red Team platform covering the complete c
                     └────────┬─────────┘
                              │ gRPC
                     ┌────────▼─────────┐
-                    │    Pulse-C2      │
-                    │    Server        │
+                    │   C2 Server      │
+                    │  (Go/gRPC)       │
                     └────────┬─────────┘
                              │ gRPC (X25519 + XChaCha20-Poly1305)
                     ┌────────▼─────────┐
@@ -88,7 +107,7 @@ RBYHACK Framework is a semi-autonomous Red Team platform covering the complete c
               ▼            ▼  ▼           ▼
         ┌──────────┐ ┌──────────┐  ┌──────────────┐
         │ Go Module│ │ C Module │  │Python Bridge │
-        │ (Rise,   │ │ (Vault,  │  │(Unix Socket) │
+        │ (Rise,   │ │ (Vault,  │  │ (TCP JSON)   │
         │  Crypto) │ │  Breach) │  └──────┬───────┘
         └──────────┘ └──────────┘         │
                                ┌──────────┼──────────┐
@@ -136,23 +155,19 @@ RBYHACK Framework is a semi-autonomous Red Team platform covering the complete c
 ## Database Schema
 
 See `shared/database/models.py` for the complete SQLAlchemy schema.
+SQLite schema (6 tables) in `core/appstate/state.go`:
 
-Key entities:
 - **campaigns**: Red team operations
 - **agents**: Implant tracking
 - **targets**: Discovered hosts
 - **vulnerabilities**: CVEs and misconfigurations
 - **credentials**: Captured passwords/hashes
-- **kill_chain**: Tactical log
-- **decisions**: AI/Rules suggestions
 - **audit_log**: Complete action trail
-- **ai_analysis**: LLM interaction history
-- **blue_metrics**: Detection validation
 
 ## Security Model
 
 1. **End-to-End Encryption**: X25519 ECDH + XChaCha20-Poly1305 AEAD per session
-2. **gRPC mTLS**: All service-to-service communication authenticated
+2. **gRPC Transport**: Service-to-service communication over gRPC
 3. **Offline AI**: Ollama runs locally, no data leaves the lab
 4. **Safety Controls**: Kill switch, geofencing, auto-destruct, max infections
 5. **Audit Trail**: Every action logged with timestamp, agent, campaign, and result

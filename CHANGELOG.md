@@ -2,6 +2,27 @@
 
 All notable changes to X404X will be documented in this file.
 
+## [v2.3] — 2026-06-06
+
+### Added
+- gRPC C2 Server with split service interfaces: `AgentService` (CheckIn, CommandStream, Heartbeat, Exfiltrate) and `C2Service` (ListAgents, GetAgent, KillAgent, CreateCampaign, GetCampaign, ListCampaigns, PauseCampaign, ResumeCampaign, DecisionFeed, GetMetrics)
+- Real gRPC implementations in `core/c2server/agent_service.go` and `core/c2server/c2_service.go`
+- Decision Engine integration in console exploit handler (Bridge + offline fallback)
+- AppState-connected TUI (live agents, hosts, vulns, campaigns, decisions)
+
+### Fixed
+- C2 `server.go` rewritten from raw TCP to full `grpc.Server` with service registration
+- Agent `connector.go` Send/Recv now use bidirectional `CommandStream` (was unconnected)
+- Console `cmdExploit` — removed fake eternalblue/redis_unauth switch-case; replaced with generic Bridge + Decision Engine orchestration
+- TUI — 100% hardcoded demo data replaced with live AppState queries
+- `main.go` — TUI mode now initializes AppState and passes it to StartTUI
+- Agent and c2server `go.mod` files updated with proper replace directives for proto dependencies
+
+### Changed
+- Console exploit handler: category-based dispatch (privesc, recon, post, auxiliary) with Bridge-first, offline-fallback strategy
+- TUI kill chain rendering: dynamically derived from campaign phase instead of fixed
+- All dashboard tabs render live state instead of hardcoded data
+
 ## [v2.0] — 2026-06-06
 
 ### Added

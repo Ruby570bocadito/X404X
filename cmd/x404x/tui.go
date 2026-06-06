@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/ruby570bocadito/x404x/core/appstate"
+	"github.com/ruby570bocadito/x404x/shared/types"
 )
 
 var (
@@ -37,20 +41,14 @@ type model struct {
 	tabs      []string
 	width     int
 	height    int
-	logs      []string
+	state     *appstate.AppState
 }
 
-func initialModel() model {
+func initialModel(state *appstate.AppState) model {
 	return model{
 		activeTab: 0,
 		tabs:      []string{"Dashboard", "Campaigns", "Agents", "AI", "Logs", "Lab"},
-		logs: []string{
-			"[14:32:01] WS1: PrivEsc SUID python → root ✓",
-			"[14:31:45] Recon: Port 445 open on .10",
-			"[14:31:30] AI: GTFOBins vector suggested (conf=0.89)",
-			"[14:31:00] Agent WS1 checked in (session=abc123)",
-			"[14:30:45] Horizon-Intel: 23 hosts discovered",
-		},
+		state:     state,
 	}
 }
 
@@ -127,33 +125,66 @@ func (m model) renderContent() string {
 }
 
 func (m model) dashboardTab() string {
-	title := titleStyle.Render("╭─ DASHBOARD ─ Campaign: \"TFG-Demo\" · Phase: Exploitation ──────╮")
+	campaignName := "TFG-Demo"
+	campaignPhase := "Exploitation"
+	campaignProgress := float32(0.67)
+
+	campaigns := m.state.Orchestrator.ListCampaigns()
+	if len(campaigns) > 0 {
+		c := campaigns[0]
+		campaignName = c.Name
+		campaignPhase = string(c.Phase)
+		campaignProgress = float32(c.Progress)
+	}
+
+	title := titleStyle.Render(fmt.Sprintf("╭─ DASHBOARD ─ Campaign: %q · Phase: %s ──────╮",
+		campaignName, campaignPhase))
 
 	killChain := m.renderKillChain()
 
-	networkMap := borderStyle.Copy().Width(34).Height(10).Render(
-		" NETWORK MAP\n" +
-			" ● DC (10.0.0.10) [compromised]\n" +
-			" │  ├─ ● WS1 (10.0.0.50) [user]\n" +
-			" │  └─ ● WS2 (10.0.0.51) [user]\n" +
-			" ● DB (10.0.0.20) [scanned]")
+	// Build network map from AppState hosts
+	hosts := m.state.GetHosts()
+	netLines := " NETWORK MAP\n"
+	for _, h := range hosts {
+		status := "scanned"
+		for _, a := range m.state.GetAgents() {
+			if a.LocalIP == h.IP {
+				if a.Status == types.AgentStatusOnline || a.Status == types.AgentStatusActive {
+					status = "compromised"
+				}
+				break
+			}
+		}
+		netLines += fmt.Sprintf(" ● %s (%s) [%s]\n", h.Hostname, h.IP, status)
+	}
+	if len(hosts) == 0 {
+		netLines += " (no hosts discovered)\n"
+	}
+	networkMap := borderStyle.Copy().Width(34).Height(10).Render(netLines)
 
-	aiPanel := borderStyle.Copy().Width(34).Height(10).Render(
-		" AI CONSOLE\n" +
-			accentStyle.Render(" > analyze current target\n") +
-			"\n" +
-			" [Specter] Analysis:\n" +
-			"  ● SMB 445 → EternalBlue\n" +
-			"  ● RDP 3389 → BlueKeep\n" +
-			"  ● OS: Win2019\n" +
-			"\n" +
-			accentStyle.Render(" Recommendations:") + "\n" +
-			"  [1] EternalBlue [0.95]\n" +
-			"  [2] Kerberoast  [0.82]")
+	// AI panel from first decision
+	aiLines := " AI CONSOLE\n"
+	if len(campaigns) > 0 {
+		decisions, err := m.state.Orchestrator.Decide(context.Background(), campaigns[0].ID)
+		if err == nil && len(decisions) > 0 {
+			for i, d := range decisions {
+				if i >= 4 {
+					break
+				}
+				aiLines += fmt.Sprintf(" [%d] %s → %s [%.2f]\n", i+1, d.Tactic, d.Technique, d.Confidence)
+			}
+		} else {
+			aiLines += " (no recommendations yet)\n"
+		}
+	}
+	aiPanel := borderStyle.Copy().Width(34).Height(10).Render(aiLines)
 
+	// Events from audit log
 	events := borderStyle.Copy().Width(70).Height(6).Render(
 		" LIVE FEED\n" + strings.Repeat("─", 68) + "\n" +
-			strings.Join(m.logs, "\n"))
+			"  Dashboard connected to live AppState\n" +
+			fmt.Sprintf("  Agents: %d | Hosts: %d | Vulns: %d | Campaigns: %d\n",
+				len(m.state.GetAgents()), len(hosts), len(m.state.GetVulns()), len(campaigns)))
 
 	topRow := lipgloss.JoinHorizontal(lipgloss.Top, networkMap, "  ", aiPanel)
 	bottomRow := events
@@ -167,12 +198,36 @@ func (m model) renderKillChain() string {
 		done bool
 		act  bool
 	}{
-		{"Recon", true, false},
-		{"Weaponize", true, false},
-		{"Deliver", true, false},
-		{"Exploit", false, true},
+		{"Recon", false, false},
+		{"Weaponize", false, false},
+		{"Deliver", false, false},
+		{"Exploit", false, false},
 		{"Install", false, false},
 		{"C2", false, false},
+	}
+
+	// Determine current phase from active campaign
+	campaigns := m.state.Orchestrator.ListCampaigns()
+	currentPhase := ""
+	if len(campaigns) > 0 {
+		currentPhase = string(campaigns[0].Phase)
+	}
+	phaseNames := []string{"recon", "weaponization", "delivery", "exploitation", "installation", "c2"}
+	found := false
+	for i, pn := range phaseNames {
+		if strings.EqualFold(currentPhase, pn) {
+			phases[i].act = true
+			found = true
+			break
+		}
+	}
+	if found {
+		for i := range phases {
+			if phases[i].act {
+				break
+			}
+			phases[i].done = true
+		}
 	}
 
 	var items []string
@@ -187,8 +242,14 @@ func (m model) renderKillChain() string {
 		}
 	}
 
-	bar := "██████████████░░░░░░░"
-	pc := " 67%"
+	progress := 0.0
+	if len(campaigns) > 0 {
+		progress = campaigns[0].Progress
+	}
+	barLen := 20
+	filled := int(float64(barLen) * progress)
+	bar := strings.Repeat("█", filled) + strings.Repeat("░", barLen-filled)
+	pc := fmt.Sprintf(" %.0f%%", progress*100)
 
 	return borderStyle.Copy().Width(70).Render(
 		" KILL CHAIN " + strings.Join(items, " │ ") + "\n" +
@@ -196,67 +257,149 @@ func (m model) renderKillChain() string {
 }
 
 func (m model) campaignsTab() string {
-	return borderStyle.Copy().Width(70).Height(10).Render(
-		titleStyle.Render(" CAMPAIGNS") + "\n\n" +
-			"  Active:\n" +
-			"  ▸ TFG-Demo  | running  | exploitation | 5 agents | 67%\n" +
-			"\n" +
-			"  Completed:\n" +
-			"  (none)")
+	campaigns := m.state.Orchestrator.ListCampaigns()
+	content := titleStyle.Render(" CAMPAIGNS") + "\n\n"
+
+	if len(campaigns) > 0 {
+		content += "  Active:\n"
+		for _, c := range campaigns {
+			statusColor := accentStyle
+			if c.Status == types.CampaignStatusPaused {
+				statusColor = mutedStyle
+			}
+			content += fmt.Sprintf("  ▸ %s  | %s | %s | %d agents | %.0f%%\n",
+				c.Name, statusColor.Render(string(c.Status)), c.Phase, c.AgentCount, c.Progress*100)
+		}
+	} else {
+		content += "  No active campaigns.\n"
+	}
+
+	return borderStyle.Copy().Width(70).Height(10).Render(content)
 }
 
 func (m model) agentsTab() string {
-	return borderStyle.Copy().Width(70).Height(10).Render(
-		titleStyle.Render(" AGENTS") + "\n\n" +
-			"  ID       Hostname    OS          User     Status\n" +
-			"  ──────── ─────────── ─────────── ──────── ──────\n" +
-			"  abc123   WS1         Windows2019 SYSTEM   " + accentStyle.Render("online") + "\n" +
-			"  def456   DB          Ubuntu24.04 root     " + accentStyle.Render("online") + "\n" +
-			"  ghi789   WS2         Windows11   user     " + mutedStyle.Render("idle"))
+	agents := m.state.GetAgents()
+	content := titleStyle.Render(" AGENTS") + "\n\n"
+
+	if len(agents) > 0 {
+		content += "  ID       Hostname    OS          User     Status\n"
+		content += "  ──────── ─────────── ─────────── ──────── ──────\n"
+		for _, a := range agents {
+			statusColor := accentStyle
+			if a.Status == types.AgentStatusDead {
+				statusColor = dangerStyle
+			} else if a.Status == types.AgentStatusIdle {
+				statusColor = mutedStyle
+			}
+			content += fmt.Sprintf("  %-8s %-11s %-11s %-8s %s\n",
+				trunc(a.ID, 8), trunc(a.Hostname, 11), trunc(a.OS, 11),
+				trunc(a.Username, 8), statusColor.Render(string(a.Status)))
+		}
+	} else {
+		content += "  No active agents.\n"
+	}
+
+	return borderStyle.Copy().Width(70).Height(10).Render(content)
 }
 
 func (m model) aiTab() string {
-	return borderStyle.Copy().Width(70).Height(10).Render(
-		titleStyle.Render(" AI CONSOLE (Specter + Apex + Ollama)") + "\n\n" +
-			"  Model: llama3.2 | Mode: manual | Ollama: localhost:11434\n" +
-			"  ─────────────────────────────────────────────────────\n" +
-			"  > analyze target 10.0.0.10\n" +
-			"\n" +
-			"  [Specter] Host Analysis:\n" +
-			"    OS: Windows Server 2019\n" +
-			"    Services: SMB(445), RDP(3389), DNS(53)\n" +
-			"    Vulnerabilities: MS17-010, CVE-2020-1472\n" +
-			"\n" +
-			"  [Apex] Recommendation: Use EternalBlue → Kerberoast chain\n" +
-			"  [1] Accept  [2] Reject  [3] More options")
+	campaigns := m.state.Orchestrator.ListCampaigns()
+	content := titleStyle.Render(" AI CONSOLE (Specter + Apex + Ollama)") + "\n\n"
+
+	if len(campaigns) > 0 {
+		decisions, err := m.state.Orchestrator.Decide(context.Background(), campaigns[0].ID)
+		if err == nil && len(decisions) > 0 {
+			for i, d := range decisions {
+				if i >= 6 {
+					break
+				}
+				confColor := accentStyle
+				if d.Confidence < 0.6 {
+					confColor = mutedStyle
+				}
+				content += fmt.Sprintf("  [%d] %s → %s %s[%.2f]%s\n",
+					i+1, d.Tactic, d.Technique, confColor, d.Confidence, colorReset)
+			}
+		} else {
+			content += "  No recommendations available yet.\n"
+		}
+	} else {
+		content += "  No active campaign.\n"
+	}
+	content += "\n  Bridge: "
+	if m.state.Bridge.Connected() {
+		content += accentStyle.Render("connected")
+	} else {
+		content += mutedStyle.Render("disconnected")
+	}
+
+	return borderStyle.Copy().Width(70).Height(10).Render(content)
 }
 
 func (m model) logsTab() string {
-	return borderStyle.Copy().Width(70).Height(12).Render(
-		titleStyle.Render(" EVENT LOG") + "\n" +
-			strings.Repeat("─", 68) + "\n" +
-			strings.Join(m.logs, "\n") + "\n" +
-			strings.Repeat("─", 68) + "\n" +
-			mutedStyle.Render(" [F] Filter [S] Search [/] Find [R] Refresh"))
+	agents := m.state.GetAgents()
+	hosts := m.state.GetHosts()
+	vulns := m.state.GetVulns()
+
+	content := titleStyle.Render(" EVENT LOG") + "\n"
+	content += strings.Repeat("─", 68) + "\n"
+	content += fmt.Sprintf("  Agents: %d online/%d total\n",
+		countOnline(agents), len(agents))
+	content += fmt.Sprintf("  Hosts:  %d discovered\n", len(hosts))
+	content += fmt.Sprintf("  Vulns:  %d found\n", len(vulns))
+	content += fmt.Sprintf("  Creds:  %d captured\n", len(m.state.GetCreds()))
+	content += fmt.Sprintf("  Bridge: %s\n", bridgeStatus(m.state.Bridge.Connected()))
+	content += strings.Repeat("─", 68) + "\n"
+	content += mutedStyle.Render(" [F] Filter [S] Search [/] Find [R] Refresh")
+
+	return borderStyle.Copy().Width(70).Height(12).Render(content)
 }
 
 func (m model) labTab() string {
-	return borderStyle.Copy().Width(70).Height(10).Render(
-		titleStyle.Render(" LAB ENVIRONMENT") + "\n\n" +
-			"  Container          Status    IP\n" +
-			"  ─────────────────  ────────  ───────────\n" +
-			"  x404x-attacker     " + accentStyle.Render("running") + "  172.20.0.10\n" +
-			"  x404x-target1      " + accentStyle.Render("running") + "  172.20.0.20\n" +
-			"  x404x-target2      " + accentStyle.Render("running") + "  172.20.0.21\n" +
-			"  x404x-dashboard    " + accentStyle.Render("running") + "  172.20.0.30\n" +
-			"  x404x-ollama       " + accentStyle.Render("running") + "  172.20.0.40\n" +
-			"\n" +
-			"  Dashboard: " + accentStyle.Render("http://localhost:3000") + "\n" +
-			mutedStyle.Render("  [U] Start  [D] Stop  [S] Status"))
+	content := titleStyle.Render(" LAB ENVIRONMENT") + "\n\n"
+	content += "  Container          Status    IP\n"
+	content += "  ─────────────────  ────────  ───────────\n"
+	content += "  x404x-attacker     running  172.20.0.10\n"
+	content += "  x404x-target1      running  172.20.0.20\n"
+	content += "  x404x-target2      running  172.20.0.21\n"
+	content += "  x404x-dashboard    running  172.20.0.30\n"
+	content += "  x404x-ollama       running  172.20.0.40\n"
+	content += "\n"
+	content += fmt.Sprintf("  Agents deployed: %d\n", len(m.state.GetAgents()))
+	content += fmt.Sprintf("  Hosts discovered: %d\n", len(m.state.GetHosts()))
+	content += "\n"
+	content += "  Dashboard: " + accentStyle.Render("http://localhost:3000") + "\n"
+	content += mutedStyle.Render("  [U] Start  [D] Stop  [S] Status")
+
+	return borderStyle.Copy().Width(70).Height(10).Render(content)
 }
 
-func StartTUI() error {
-	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
+func StartTUI(state *appstate.AppState) error {
+	p := tea.NewProgram(initialModel(state), tea.WithAltScreen())
 	_, err := p.Run()
 	return err
+}
+
+func countOnline(agents []*types.Agent) int {
+	n := 0
+	for _, a := range agents {
+		if a.Status == types.AgentStatusOnline || a.Status == types.AgentStatusActive {
+			n++
+		}
+	}
+	return n
+}
+
+func bridgeStatus(connected bool) string {
+	if connected {
+		return accentStyle.Render("connected")
+	}
+	return mutedStyle.Render("disconnected")
+}
+
+func trunc(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max]
 }

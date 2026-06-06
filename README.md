@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=0,2,3,6,8&height=180&section=header&text=RBYHACK%20Framework&fontSize=50&fontColor=ffffff&animation=fadeIn&desc=Red%20Team%20Autonomous%20Platform&descAlignY=68&descSize=18" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=0,2,3,6,8&height=180&section=header&text=X404X&fontSize=50&fontColor=ffffff&animation=fadeIn&desc=Autonomous%20Red%20Team%20Platform&descAlignY=68&descSize=18" />
 </p>
 
 <p align="center">
@@ -25,9 +25,9 @@
 
 ---
 
-## What is RBYHACK?
+## What is X404X?
 
-**RBYHACK Framework** is a **semi-autonomous Red Team platform** that covers the complete cyber kill chain — from reconnaissance to exfiltration. It integrates **11 specialized offensive security tools** into a unified monorepo with a shared gRPC protocol, encrypted communication, AI-powered decision making (Ollama offline), kernel-level persistence, and a Vue 3 web dashboard.
+**X404X** is a **semi-autonomous Red Team platform** that covers the complete cyber kill chain — from reconnaissance to exfiltration. It integrates **11 specialized offensive security tools** into a unified monorepo with a shared gRPC protocol, encrypted communication, AI-powered decision making (Ollama offline), kernel-level persistence, and a Vue 3 web dashboard.
 
 Built as a **TFG (Trabajo de Fin de Grado)** project in Cybersecurity at Cisco NetAcad, Málaga.
 
@@ -36,38 +36,41 @@ Built as a **TFG (Trabajo de Fin de Grado)** project in Cybersecurity at Cisco N
 ## Architecture
 
 ```
-                    ┌─────────────────────────────────┐
-                    │       USER INTERFACES            │
-                    │  CLI (rbyhack)  │  Vue 3 Dashboard│
-                    └────────┬───────────────┬─────────┘
-                             │               │
-                    ┌────────▼───────────────▼─────────┐
-                    │          ORCHESTRATOR            │
-                    │   Campaign Mgr │ Decision Engine │
-                    │   Rules(25%) + A*(35%) + AI(40%) │
-                    └────────┬─────────────────────────┘
-                             │ gRPC (X25519+XChaCha20)
-                    ┌────────▼─────────────────────────┐
-                    │           PULSE-C2               │
-                    │   Server (Go) │ Dashboard (Vue 3)│
-                    └────────┬─────────────────────────┘
-                             │ gRPC encrypted
-                    ┌────────▼─────────────────────────┐
-                    │        UNIFIED AGENT (Go)        │
-                    └──┬──────┬───────┬──────┬─────────┘
-                       │      │       │      │
-                ┌──────┐ ┌────┐ ┌────┐ ┌──────────┐
-                │Rise  │ │Vault│ │Breach│ │Python    │
-                │Priv  │ │Kernel│ │Entry│ │Bridge    │
-                └──────┘ └────┘ └────┘ └─────┬─────┘
-                                             │
-                    ┌────────────────────────┼──────────┐
-                    │                        │          │
-               ┌────▼────┐ ┌────────────┐ ┌──▼─────┐ ┌──▼──────────┐
-               │Horizon  │ │Wormy-ML    │ │Specter │ │BlueForge    │
-               │Intel    │ │(Lateral)   │ │+ Apex  │ │Suite        │
-               │(Recon)  │ │            │ │(AI)    │ │(Metrics)    │
-               └─────────┘ └────────────┘ └────────┘ └─────────────┘
+                     ┌─────────────────────────────────┐
+                     │        USER INTERFACES           │
+                     │ CLI · Console · TUI · Dashboard  │
+                     └────────┬───────────────┬─────────┘
+                              │               │
+                     ┌────────▼───────────────▼─────────┐
+                     │          ORCHESTRATOR             │
+                     │  Campaign Mgr │ Decision Engine   │
+                     │  Rules(25%) + A*(35%) + AI(40%)  │
+                     │  WorldGraph · EventBus · KillChain │
+                     └────────┬─────────────────────────┘
+                              │ gRPC (X25519+XChaCha20)
+                     ┌────────▼─────────────────────────┐
+                     │        C2 SERVER (Go/gRPC)       │
+                     │  AgentService · C2Service        │
+                     │  CheckIn · CommandStream · Heart  │
+                     └────────┬─────────────────────────┘
+                              │ gRPC encrypted
+                     ┌────────▼─────────────────────────┐
+                     │        UNIFIED AGENT (Go)        │
+                     │  Connector · BridgeClient        │
+                     └──┬──────┬───────┬──────┬─────────┘
+                        │      │       │      │
+                 ┌──────┐ ┌────┐ ┌────┐ ┌──────────┐
+                 │Rise  │ │Vault│ │Breach│ │Python    │
+                 │Priv  │ │Kernel│ │Entry│ │Bridge    │
+                 └──────┘ └────┘ └────┘ └─────┬─────┘
+                                               │
+                     ┌─────────────────────────┼─────────┐
+                     │                         │         │
+                ┌────▼────┐ ┌────────────┐ ┌──▼─────┐ ┌──▼──────────┐
+                │Horizon  │ │Wormy-ML    │ │Specter │ │BlueForge    │
+                │Intel    │ │(Lateral)   │ │+ Apex  │ │Suite        │
+                │(Recon)  │ │            │ │(AI)    │ │(Metrics)    │
+                └─────────┘ └────────────┘ └────────┘ └─────────────┘
 ```
 
 ---
@@ -76,14 +79,14 @@ Built as a **TFG (Trabajo de Fin de Grado)** project in Cybersecurity at Cisco N
 
 | Component | Language | Kill Chain Phase | Status |
 |-----------|----------|-----------------|--------|
-| **CLI (rbyhack)** | Go | All | NEW |
-| **Orchestrator** | Go | All | NEW |
-| **Unified Agent** | Go | Execution | NEW |
-| **core/crypto** | Go | Shared (X25519+XChaCha20) | NEW |
-| **core/proto** | Protobuf | Shared (gRPC) | NEW |
-| **Python Bridge** | Python | IPC | NEW |
-| **Evasion Module** | Python | Evasion | NEW |
-| **Pulse-C2** | Go + Vue 3 | C2 | [Repo](https://github.com/Ruby570bocadito/Pulse-C2) |
+| **CLI (x404x)** | Go | All | v2.3 |
+| **Orchestrator** | Go | All | v2.3 |
+| **Unified Agent** | Go | Execution | v2.3 |
+| **C2 Server (gRPC)** | Go | C2 | v2.3 |
+| **core/crypto** | Go | Shared (X25519+XChaCha20) | v2.3 |
+| **core/proto** | Protobuf | Shared (gRPC) | v2.3 |
+| **Python Bridge** | Python | IPC | v2.3 |
+| **Evasion Module** | Python | Evasion | v2.3 |
 | **Rise-Privilege** | Go | PrivEsc | [Repo](https://github.com/Ruby570bocadito/Rise-Privilege) |
 | **Vault-Kernel** | C + Go | Persistence | [Repo](https://github.com/Ruby570bocadito/Vault-Kernel) |
 | **Breach-Entry** | C + Python | Initial Access | [Repo](https://github.com/Ruby570bocadito/Breach-Entry) |
@@ -221,15 +224,19 @@ X404X/
 ## CLI Reference
 
 ```bash
-rbyhack campaign start   -t 10.0.0.0/24 -g domain_admin -p stealth
-rbyhack recon scan       <target> --stealth
-rbyhack agent list       --status online
-rbyhack ai chat                       # Interactive AI assistant
-rbyhack exploit run      --risk safe
-rbyhack lateral propagate --method smb
-rbyhack persistence kernel load
-rbyhack dashboard start  --port 3000
-rbyhack lab up           --scenario ctf_basic
+x404x campaign start   -t 10.0.0.0/24 -g domain_admin -p stealth
+x404x recon scan       <target> --stealth
+x404x agent list       --status online
+x404x ai chat                          # Interactive AI assistant
+x404x exploit run      --risk safe
+x404x lateral propagate --method smb
+x404x persistence kernel load
+x404x dashboard start  --port 3000
+x404x lab up           --scenario ctf_basic
+x404x console                          # msfconsole-style shell
+x404x tui                              # Bubble Tea TUI
+x404x payload generate  --os windows   # Payload Builder
+x404x listeners list                   # Listener management
 ```
 
 Full CLI reference: [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)

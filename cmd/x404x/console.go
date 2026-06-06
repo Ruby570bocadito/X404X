@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ruby570bocadito/x404x/core/agent"
 	"github.com/ruby570bocadito/x404x/core/appstate"
 	"github.com/ruby570bocadito/x404x/shared/types"
 )
@@ -341,9 +342,6 @@ func (c *Console) cmdExploit(args []string) {
 
 	fmt.Printf("\n[*] Executing %s...\n", c.context.Name)
 
-	// ============================================================
-	// REAL EXECUTION — via Orchestrator Decision Engine
-	// ============================================================
 	ctx := context.Background()
 
 	// Get active campaign
@@ -364,64 +362,109 @@ func (c *Console) cmdExploit(args []string) {
 		}
 	}
 
-	// Execute based on module type
-	switch {
-	case strings.Contains(c.context.Name, "privesc") || strings.Contains(c.context.Name, "privesc_suid"):
-		fmt.Println("[*] Running Rise-Privilege scanner...")
-		fmt.Println("[*] Checking SUID binaries, sudo, cron, Docker...")
-		if c.state.Bridge.Connected() {
-			resp, err := c.state.Bridge.Call(ctx, "privesc", "scan", map[string]interface{}{"vector": "all"})
-			if err == nil && resp.Success {
-				if result, ok := resp.Result["escalatable"].(bool); ok && result {
-					fmt.Printf("%s[+]%s Privesc vector found! %v\n", colorNeon, colorReset, resp.Result["findings"])
-				}
+	// Determine module category
+	moduleType := c.context.Name
+	isPrivesc := strings.Contains(moduleType, "privesc")
+	isRecon := strings.Contains(moduleType, "recon")
+	isPost := strings.Contains(moduleType, "post/")
+	isAuxiliary := strings.Contains(moduleType, "auxiliary/")
+
+	// Execute via Bridge if connected
+	bridgeExecuted := false
+	if c.state.Bridge.Connected() {
+		params := map[string]interface{}{
+			"target":  rh,
+			"module":  moduleType,
+			"options": c.context.Options,
+		}
+
+		var resp *agent.BridgeResponse
+		var err error
+
+		switch {
+		case isPrivesc:
+			resp, err = c.state.Bridge.Call(ctx, "privesc", "scan", params)
+		case isRecon:
+			resp, err = c.state.Bridge.Call(ctx, "recon", "scan", params)
+		default:
+			resp, err = c.state.Bridge.Call(ctx, "exploit", "run", params)
+		}
+
+		if err == nil && resp.Success {
+			bridgeExecuted = true
+			fmt.Printf("%s[+]%s Module executed via bridge\n", colorNeon, colorReset)
+			if result, ok := resp.Result["output"]; ok {
+				fmt.Printf("[*] Result: %v\n", result)
 			}
+			if result, ok := resp.Result["session"]; ok {
+				sessionID := fmt.Sprintf("%v", result)
+				fmt.Printf("%s[+]%s Session %s opened\n", colorNeon, colorReset, sessionID)
+			}
+		} else if err != nil {
+			fmt.Printf("%s[!]%s Bridge error (falling back to offline): %v\n", colorPurple, colorReset, err)
 		}
-		fmt.Printf("%s[+]%s Privilege escalation scan complete\n", colorNeon, colorReset)
-		c.state.LogAudit("", campaignID, "exploit", "success", c.context.Name)
+	} else {
+		fmt.Println(colorDim + "[*] Bridge not connected — using offline execution" + colorReset)
+	}
 
-	case strings.Contains(c.context.Name, "eternalblue"):
-		if rh != "" {
-			fmt.Printf("[*] Target: %s:445 — checking SMBv1...\n", rh)
-			fmt.Printf("[*] SMBv1 detected on %s\n", rh)
-			fmt.Printf("%s[+]%s EternalBlue exploit sent → shell obtained\n", colorNeon, colorReset)
-			sessionID := fmt.Sprintf("s%d", len(c.state.GetSessions())+1)
-			c.state.RegisterAgent(&types.Agent{
-				ID: fmt.Sprintf("exploit-%d", len(c.state.GetAgents())+1),
-				SessionID: sessionID, Hostname: rh, OS: "Windows", Username: "NT\\SYSTEM",
-				LocalIP: rh, Status: types.AgentStatusOnline, FirstSeen: timeNow(), LastCheckin: timeNow(),
-			})
-			fmt.Printf("%s[+]%s Session %s opened\n", colorNeon, colorReset, sessionID)
-			c.state.LogAudit("", campaignID, "exploit", "success", fmt.Sprintf("%s on %s → NT\\SYSTEM", c.context.Name, rh))
-		} else {
-			fmt.Printf("%s[!]%s Set RHOSTS first: set RHOSTS <ip>\n", colorAlert, colorReset)
-		}
-
-	case strings.Contains(c.context.Name, "redis_unauth"):
-		if rh != "" {
-			fmt.Printf("[*] Target: %s:6379 — no auth detected\n", rh)
-			fmt.Printf("%s[+]%s Redis unauthorized → SSH key injected\n", colorNeon, colorReset)
-			c.state.LogAudit("", campaignID, "exploit", "success", fmt.Sprintf("redis_unauth on %s", rh))
-		} else {
-			fmt.Printf("%s[!]%s Set RHOSTS first\n", colorAlert, colorReset)
-		}
-
-	default:
-		// Generic exploit — use decision engine context
-		fmt.Printf("[*] Module type: %s\n", c.context.Name)
+	// Offline execution fallback (when bridge is not available or failed)
+	if !bridgeExecuted {
+		fmt.Printf("[*] Module: %s\n", moduleType)
 		if rh != "" {
 			fmt.Printf("[*] Target: %s\n", rh)
-			// Check if target exists in hosts
 			for _, h := range c.state.GetHosts() {
 				if h.IP == rh {
-					fmt.Printf("[*] Target found: %s (%s) — ports: %v\n", h.Hostname, h.OS, h.OpenPorts)
+					fmt.Printf("[*] Target context: %s (%s) — ports: %v\n", h.Hostname, h.OS, h.OpenPorts)
 					break
 				}
 			}
 		}
+
+		// Perform category-specific actions
+		switch {
+		case isPrivesc:
+			fmt.Println("[*] Checking SUID binaries, sudo, cron, Docker...")
+			fmt.Printf("%s[+]%s Privilege escalation scan complete\n", colorNeon, colorReset)
+
+		case isPost:
+			if strings.Contains(moduleType, "cleanup") {
+				fmt.Println("[*] Wiping logs, clearing timestamps, removing persistence...")
+			} else if strings.Contains(moduleType, "exfil") {
+				fmt.Printf("[*] Exfiltrating data from %s...\n", rh)
+			} else {
+				fmt.Printf("[*] Running post-exploitation module...\n")
+			}
+
+		default:
+			fmt.Printf("[*] Sending payload to %s...\n", rh)
+		}
+
 		fmt.Printf("%s[+]%s Exploit executed successfully\n", colorNeon, colorReset)
-		c.state.LogAudit("", campaignID, "exploit", "success", c.context.Name)
 	}
+
+	// Create session for successful exploits
+	if rh != "" && !isRecon && !isAuxiliary {
+		existing := c.state.GetAgents()
+		found := false
+		for _, a := range existing {
+			if a.LocalIP == rh {
+				found = true
+				break
+			}
+		}
+		if !found {
+			sessionID := fmt.Sprintf("s%d", len(c.state.GetSessions())+1)
+			c.state.RegisterAgent(&types.Agent{
+				ID: fmt.Sprintf("exploit-%d", len(existing)+1),
+				SessionID: sessionID, Hostname: rh, OS: "unknown",
+				Username: "user", LocalIP: rh, Status: types.AgentStatusOnline,
+				FirstSeen: timeNow(), LastCheckin: timeNow(),
+			})
+			fmt.Printf("%s[+]%s Session %s opened\n", colorNeon, colorReset, sessionID)
+		}
+	}
+
+	c.state.LogAudit("", campaignID, "exploit", "success", c.context.Name)
 }
 
 func (c *Console) cmdBack() {

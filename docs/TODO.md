@@ -1,134 +1,146 @@
 # X404X — Status & TODO
 
-> Última actualización: $(date +%Y-%m-%d) | Build: 21MB | Commits: 3
+> Updated: 2026-06-06 | Build: 26MB | Commits: 12 | Tag: v2.3
 
 ---
 
-## ✅ COMPLETADO
+## ✅ COMPLETED
 
-### Núcleo del Framework
-- [x] **CLI x404x** — Cobra commands + Bubble Tea TUI + msfconsole shell (3 modos)
-- [x] **AppState** — Estado compartido (orchestrator + bridge + C2 + DB)
+### Core Framework
+- [x] **CLI x404x** — Cobra commands + Bubble Tea TUI + msfconsole shell (3 modes)
+- [x] **AppState** — Shared state (orchestrator + bridge + C2 + DB)
 - [x] **Orchestrator** — Campaign Manager + Decision Engine (Rules 25% + A* 35% + AI 40%) + WorldGraph + EventBus + KillChainOrchestrator
-- [x] **Decision Engine real** — 18 reglas determinísticas, A* pathfinding con WorldGraph, AI heurística con fallback offline
-- [x] **Agent** — Implant Go unificado: ModuleManager, gRPC Connector, BridgeClient, PostExploitPipeline, KillChainEngine
+- [x] **Decision Engine real** — 18 deterministic rules, A* pathfinding with WorldGraph, AI heuristics with offline fallback
+- [x] **Agent** — Unified Go implant: ModuleManager, gRPC Connector, BridgeClient, PostExploitPipeline, KillChainEngine
 - [x] **Crypto** — X25519 + XChaCha20-Poly1305 (5/5 tests PASS)
-- [x] **gRPC Proto** — 4 servicios (Agent, C2, Bridge, Common) + 8 stubs generados
+- [x] **gRPC Proto** — 4 services (Agent, C2, Bridge, Common) + 8 generated stubs
+
+### C2 Server (gRPC) — v2.3
+- [x] **C2 Server** — Rewritten to `grpc.Server` with `AgentService` + `C2Service` registration
+- [x] **agent_service.go** — Implements CheckIn, CommandStream (bidirectional), Heartbeat, Exfiltrate — all connected to AppState
+- [x] **c2_service.go** — Implements ListAgents, GetAgent, KillAgent, CreateCampaign, GetCampaign, ListCampaigns, PauseCampaign, ResumeCampaign, DecisionFeed, GetMetrics
+- [x] **Agent connector** — Send/Recv uses bidirectional `CommandStream` (fixed from unconnected state)
+- [x] **go.mod** — Agent and c2server updated with proto replace directives
+
+### Console & TUI — v2.3
+- [x] **Console exploit handler** — Removed fake eternalblue/redis_unauth switch-case; replaced with Bridge + Decision Engine orchestration + offline fallback
+- [x] **TUI** — 100% hardcoded demo data replaced with live AppState queries (agents, hosts, vulns, campaigns, decisions)
+- [x] **TUI kill chain** — Dynamically derived from campaign phase
+- [x] **main.go** — TUI mode now initializes AppState and passes it to StartTUI
 
 ### API & Dashboard
+- [x] **Dashboard Vue 3** — 8 tabs, 7 Pinia stores, cyberpunk/glass theme, xterm.js
+- [x] **Dashboard stores** — Real fetch() to API, no hardcoded fallback
 - [x] **API Server** — REST 12 endpoints + CORS + WebSocket hub + wildcard EventBus
-- [x] **Dashboard Vue 3** — 7 pestañas, 6 Pinia stores, tema cyberpunk/glass, xterm.js
-- [x] **Dashboard stores** — fetch() reales a API, sin fallback hardcodeado
-- [x] **C2 Server** — TCP listener integrado, agent management
 
 ### Bridge & Python
-- [x] **Python Bridge** — 9 módulos (recon, ai_analyze, privesc, persist, worm, relay, blue, exfil, health)
-- [x] **Bridge auto-start** — AppState.Start() arranca el bridge automáticamente
-- [x] **Evasion Module** — AMSI/ETW, polymorphic, sleep jitter, sandbox detect
+- [x] **Python Bridge** — 20 handlers (recon, ai_analyze, privesc, persist, worm, relay, blue, exfil, health, exploit, phantom, breach, etc.)
+- [x] **Bridge auto-start** — AppState.Start() starts bridge automatically
+- [x] **Evasion Module** — AMSI/ETW bypass, polymorphic, sleep jitter, sandbox detect
 
-### Post-Explotación
+### Post-Exploitation
 - [x] **PostExploitPipeline** — FullChain(): escalate() → stealth() → persistence() → propagate()
-- [x] **VaultIOCTL** — 14 ioctl commands wrapper para /dev/vault_kernel
-- [x] **KillChainEngine (Agent)** — Phase transitions automáticas
+- [x] **VaultIOCTL** — 14 ioctl commands wrapper for /dev/vault_kernel
+- [x] **KillChainEngine (Agent)** — Automatic phase transitions
 - [x] **KillChainOrchestrator** — ReconComplete() → WeaponizeComplete() → ... → ObjectiveComplete()
-- [x] **Módulos post-explotación registrados** — 7 módulos: full_chain, privesc, stealth, propagate, credential_dump, keylogger, evasion_apply
+- [x] **Post-exploit modules registered** — 7 modules: full_chain, privesc, stealth, propagate, credential_dump, keylogger, evasion_apply
 
-### Submódulos
-- [x] **Pulse-C2** (27 commits) — C2 server + agent + Vue dashboard
-- [x] **Rise-Privilege** (11 commits) — 12 vectores, 60+ GTFOBins
-- [x] **Vault-Kernel** (8 commits) — LKM rootkit
-- [x] **Breach-Entry** (6 commits) — CVE-2026-XXXX
-- [x] **Horizon-Intel** (6 commits) — OSINT recon
-- [x] **Specter-Terminal** (21 commits) — Terminal IA offline
-- [x] **Apex-Automation** (5 commits) — IA pentesting
-- [x] **Wormy-ML-Network-Worm** (13 commits) — 44 exploits, RL engine
-- [x] **Link-Relay** (6 commits) — C2 relay
-- [x] **Titan-Operations** (4 commits) — ARGOS v2.0
-- [x] **BlueForge-Suite** (8 commits) — Blue team metrics
+### PhantomWeb Integration — v2.1/v2.2
+- [x] **PhantomWeb controller** — controller.py with 10 actions (XSS, Watering Hole, Service Worker, Browser Mesh, SOCKS5)
+- [x] **PhantomWeb Pinia store** — Vue 3 state management
+- [x] **Browser Mesh dashboard tab** — Visual browser mesh network
+- [x] **Console modules** — 4 PhantomWeb modules (phantom_xss, phantom_waterhole, phantom_mesh, phantom_socks5)
+- [x] **Breach-Entry** — Bridge handler + 2 console modules
 
-### Infraestructura
-- [x] **Git repo** — Inicializado, 3 commits
-- [x] **go.work** — Workspace con 14 módulos
-- [x] **npm install** — 159 packages, 0 vulnerabilidades
-- [x] **Docker lab** — 5 contenedores (attacker + 2 targets + dashboard + ollama)
-- [x] **CI/CD** — GitHub Actions: lint, test, build multi-arch
+### Submodules (11 repos)
+- [x] **Pulse-C2** — C2 server + agent + Vue dashboard
+- [x] **Rise-Privilege** — 12 privesc vectors, 60+ GTFOBins
+- [x] **Vault-Kernel** — LKM rootkit
+- [x] **Breach-Entry** — CVE-2026-XXXX initial access
+- [x] **Horizon-Intel** — OSINT recon
+- [x] **Specter-Terminal** — Offline AI terminal
+- [x] **Apex-Automation** — AI pentesting
+- [x] **Wormy-ML-Network-Worm** — 44 exploits, RL engine
+- [x] **Link-Relay** — C2 relay
+- [x] **Titan-Operations** — ARGOS v2.0
+- [x] **BlueForge-Suite** — Blue team metrics
+
+### Infrastructure
+- [x] **Git repo** — 12 commits, 4 tags (v1.0, v2.0, v2.1, v2.2, v2.3)
+- [x] **go.work** — Workspace with submodules
+- [x] **Docker lab** — 6 containers (attacker + 2 targets + DC + dashboard + ollama)
+- [x] **SQLite** — 6 tables via modernc.org/sqlite (pure-Go, no CGO)
 - [x] **Makefile** — setup, build, test, lab-up/down, proto, lint, clean
-- [x] **SQLite schema** — 6 tablas (campaigns, agents, targets, vulns, credentials, audit_log)
+- [x] **CI/CD** — GitHub Actions: lint, test, build multi-arch
 
 ---
 
-## 🔶 EN PROGRESO
+## 🔶 IN PROGRESS
 
-- [ ] **SQLite driver real** — Schema listo, falta `mattn/go-sqlite3` (CGO). Datos en memoria funcionan.
-- [ ] **Agent ↔ C2 gRPC handshake** — Connector escrito, falta arrancar Pulse-C2 y hacer check-in real
-- [ ] **Pulse-C2 events → EventBus** — El C2 submodule tiene eventos, falta suscribirlos al orquestador
-
----
-
-## ⬜ PENDIENTE
-
-### FASE C — Dashboard + Tests (corto plazo)
-- [ ] **Dashboard sin fallback** — Eliminar datos hardcodeados en componentes Vue
-- [ ] **Dashboard WebSocket 100% real** — Live feed desde EventBus del orchestrator
-- [ ] **x404x dashboard arranca TODO** — Un solo comando: API + Bridge + C2 + DB
-- [ ] **Tests de integración** — Pipeline completo en Docker lab
-- [ ] **Tests unitarios** — Cobertura para agent, orchestrator, appstate, bridge
-- [ ] **CI/CD verde** — GitHub Actions con build + test + lint pasando
-
-### FASE D — Medio plazo
-- [ ] **Modo Automático AI** — Si `cfg.AI.AutoApproval = true`, ejecuta sin HITL cuando confianza > 0.85
-- [ ] **Evasión unificada** — Integrar AMSI/ETW de Pulse-C2 + polimorfismo de Wormy
-- [ ] **Escenarios CTF** — `x404x lab scenario ctf_ad` levanta DC, Exchange, DB, Web, WS, Firewall
-- [ ] **Reportes PDF** — `x404x campaign report --format pdf` con MITRE ATT&CK mapping
-- [ ] **Módulo credenciales** — Unificar Mimikatz + mimipenguin + /etc/shadow crack
-
-### FASE E — TFG
-- [ ] **Memoria TFG** — LaTeX: arquitectura, integración, pruebas, ética
-- [ ] **Benchmarks** — Latencia Decision Engine, throughput C2, tasa evasión
-- [ ] **Publicación GitHub** — `github.com/Ruby570bocadito/X404X` con CI verde
-- [ ] **Video demo** — Kill chain completa en Docker lab
-- [ ] **Plugin system** — API para módulos de terceros
+- [ ] **Documentation** — All .md files updated to v2.3
+- [ ] **Tag + Push** — Create v2.3 tag, push to GitHub
 
 ---
 
-## 🎯 PRÓXIMO (orden de prioridad)
+## ⬜ PENDING
 
-1. **Instalar SQLite driver** → persistencia real (`mattn/go-sqlite3`)
-2. **Dashboard: eliminar hardcodeo** → 100% datos de API
-3. **Tests de integración** → Pipeline end-to-end en Docker
-4. **Modo automático AI** → DecisionEngine sin HITL
-5. **Publicación GitHub** → Subir repo público con CI
-6. **Memoria TFG** → Documentación académica
+### Short Term
+- [ ] **Integration tests** — End-to-end pipeline in Docker lab
+- [ ] **Unit tests** — Coverage for agent, orchestrator, appstate, bridge
+- [ ] **CI/CD green** — GitHub Actions with passing build + test + lint
+
+### Medium Term
+- [ ] **Auto AI mode** — If `cfg.AI.AutoApproval = true`, execute without HITL when confidence > 0.85
+- [ ] **Unified evasion** — Integrate AMSI/ETW from Pulse-C2 + polymorphism from Wormy
+- [ ] **CTF scenarios** — `x404x lab scenario ctf_ad` launches DC, Exchange, DB, Web, WS, Firewall
+- [ ] **PDF reports** — `x404x campaign report --format pdf` with MITRE ATT&CK mapping
+- [ ] **Credential module** — Unify Mimikatz + mimipenguin + /etc/shadow cracking
+
+### TFG Phase
+- [ ] **TFG Memory** — LaTeX: architecture, integration, tests, ethics
+- [ ] **Benchmarks** — Decision Engine latency, C2 throughput, evasion rate
+- [ ] **GitHub publication** — `github.com/Ruby570bocadito/X404X` with green CI
+- [ ] **Demo video** — Complete kill chain in Docker lab
+- [ ] **Plugin system** — API for third-party modules
 
 ---
 
-## 🔗 Matriz de colaboración
+## 🎯 NEXT (priority order)
 
-Ver [docs/KILL_CHAIN_MATRIX.md](docs/KILL_CHAIN_MATRIX.md) para la matriz completa de interacción entre los 11 módulos en las 7 fases de la kill chain.
+1. ~~**C2 gRPC rewrite** — agent_service + c2_service with real implementations~~ ✅ v2.3
+2. ~~**Console/TUI fix** — Remove hardcoded data, use AppState~~ ✅ v2.3
+3. **Integration tests** — End-to-end pipeline in Docker
+4. **Auto AI mode** — DecisionEngine without HITL
+5. **TFG Memory** — Academic documentation
+6. **GitHub publication** — Public repo with green CI
 
-## 📁 Estructura
+---
+
+## 🔗 Collaboration Matrix
+
+See [docs/KILL_CHAIN_MATRIX.md](docs/KILL_CHAIN_MATRIX.md) for the complete inter-module interaction matrix across 7 kill chain phases.
+
+## 📁 Structure
 
 ```
-X404X/                          # 104 archivos propios
+X404X/                          # ~104 own files
 ├── cmd/x404x/    (5 .go)       # CLI + TUI + Console + Dashboard
-├── core/agent/    (7 .go)       # Agent + Connector + Bridge + PostExploit + VaultIOCTL + KillChain
-├── core/orch/     (5 .go)       # Orchestrator + Decision + Events + WorldGraph + KillChainOrchestrator
+├── core/agent/    (8 .go)       # Agent + Connector + Bridge + PostExploit + VaultIOCTL + KillChain
+├── core/c2server/ (3 .go)       # C2 gRPC server + agent_service + c2_service
+├── core/orch/     (5 .go)       # Orchestrator + Decision + Events + WorldGraph + KillChain
 ├── core/appstate/ (1 .go)       # Shared state
 ├── core/api/      (2 .go)       # REST API + WebSocket
-├── core/c2server/ (1 .go)       # C2 listener
 ├── core/crypto/   (2 .go)       # Crypto
 ├── core/proto/    (4 .proto)    # gRPC definitions
 │   └── gen/       (8 .go)       # Generated stubs
-├── modules/       (3 .py)       # Bridge + Evasion + DB models
-│   └── [7 submodules]           # Python repos
-├── core/          [4 submodules]# C/Go repos
+├── modules/ (3 .py) + [11 subs] # Bridge + Evasion + DB models + 11 submodules
 ├── shared/        (4 .go)       # Config + Logger + Types
 ├── web/           (16 .vue/.js) # Vue 3 Dashboard
-├── lab/           (3 files)     # Docker lab
-├── docs/          (4 .md)       # Documentation
+├── lab/           (4 files)     # Docker lab
+├── docs/          (8 .md)       # Documentation
 └── scripts/       (1 .sh)       # Setup
 ```
 
 ---
 
-**Total: ~1,150 archivos** (104 propios + 1,046 submódulos) | **21MB binary** | **11 repos integrados**
+**Total: ~1,150 files** (104 own + 1,046 submodules) | **26MB binary** | **12 commits** | **11 repos integrated**

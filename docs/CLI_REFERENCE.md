@@ -13,8 +13,12 @@ Commands:
   ai            AI assistant (Specter + Apex)
   lateral       Lateral movement
   persistence   Persistence mechanisms
+  payload       Payload builder
+  listeners     Listener management
   dashboard     Web dashboard control
   db            Database management
+  console       msfconsole-style interactive shell
+  tui           Bubble Tea terminal UI
   lab           Lab environment control
 ```
 

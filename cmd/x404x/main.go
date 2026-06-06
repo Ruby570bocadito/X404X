@@ -80,7 +80,21 @@ func runConsoleMode(cfg *config.Config, args []string) {
 }
 
 func runTUI() {
-	if err := StartTUI(); err != nil {
+	cfg := config.Default()
+	state, err := appstate.New(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create state: %v\n", err)
+		os.Exit(1)
+	}
+	globalState = state
+
+	ctx := context.Background()
+	if err := state.Start(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "state start failed: %v\n", err)
+	}
+	defer state.Stop()
+
+	if err := StartTUI(state); err != nil {
 		fmt.Fprintf(os.Stderr, "x404x TUI error: %v\n", err)
 		os.Exit(1)
 	}

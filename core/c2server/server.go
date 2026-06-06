@@ -11,125 +11,129 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/grpc"
+
+	"github.com/ruby570bocadito/x404x/core/appstate"
+	agentv1 "github.com/ruby570bocadito/x404x/core/proto/gen/agent"
+	c2v1 "github.com/ruby570bocadito/x404x/core/proto/gen/c2"
 	"github.com/ruby570bocadito/x404x/shared/config"
 	"github.com/ruby570bocadito/x404x/shared/logger"
 	"github.com/ruby570bocadito/x404x/shared/types"
 )
 
 // Server is the integrated C2 listener.
-// Agents connect to it, and it feeds data to the shared AppState.
+// It runs a gRPC server that implements AgentService (for agent comms)
+// and C2Service (for management/monitoring).
 type Server struct {
-	cfg     *config.Config
-	log     *logger.Logger
-	mu      sync.RWMutex
-	agents  map[string]*AgentConnection
-	running bool
+	cfg      *config.Config
+	log      *logger.Logger
+	state    *appstate.AppState
+	grpcSrv  *grpc.Server
+	agents   map[string]*AgentConnection
+	agentStreams map[string]agentv1.AgentService_CommandStreamServer
+	mu       sync.RWMutex
+	running  bool
 }
 
 // AgentConnection represents a connected agent.
 type AgentConnection struct {
-	Agent      *types.Agent
+	Agent       *types.Agent
 	ConnectedAt time.Time
-	LastSeen   time.Time
-	SessionKey []byte
+	LastSeen    time.Time
+	SessionKey  []byte
+	AgentID     string
 }
 
 // New creates a new C2 server.
 func New(cfg *config.Config, log *logger.Logger) *Server {
 	return &Server{
-		cfg:    cfg,
-		log:    log,
-		agents: make(map[string]*AgentConnection),
+		cfg:          cfg,
+		log:          log,
+		agents:       make(map[string]*AgentConnection),
+		agentStreams: make(map[string]agentv1.AgentService_CommandStreamServer),
 	}
 }
 
-// Start begins listening for agent connections.
+// SetAppState attaches the shared application state for C2 service impls.
+func (s *Server) SetAppState(state *appstate.AppState) {
+	s.state = state
+}
+
+// Start begins listening for agent connections via gRPC.
 func (s *Server) Start(ctx context.Context) error {
 	addr := fmt.Sprintf("%s:%d", s.cfg.Server.Host, s.cfg.Server.Port)
-	s.log.Infof("C2 server starting on %s", addr)
+	s.log.Infof("C2 server starting on %s (gRPC)", addr)
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("listening on %s: %w", addr, err)
 	}
 
+	s.grpcSrv = grpc.NewServer()
+
+	// Register the AgentService (agent ↔ C2)
+	agentSvc := &agentServiceServer{server: s}
+	agentv1.RegisterAgentServiceServer(s.grpcSrv, agentSvc)
+
+	// Register the C2Service (management/monitoring)
+	c2Svc := &c2ServiceServer{server: s}
+	c2v1.RegisterC2ServiceServer(s.grpcSrv, c2Svc)
+
 	s.running = true
 
 	go func() {
 		<-ctx.Done()
-		listener.Close()
+		s.log.Info("C2 server shutting down")
+		s.grpcSrv.GracefulStop()
 		s.running = false
 	}()
 
-	for s.running {
-		conn, err := listener.Accept()
-		if err != nil {
+	go func() {
+		if err := s.grpcSrv.Serve(listener); err != nil {
 			if s.running {
-				s.log.Errorf("accept error: %v", err)
+				s.log.Errorf("gRPC serve error: %v", err)
 			}
-			continue
 		}
+	}()
 
-		go s.handleConnection(conn)
-	}
-
+	s.log.Infof("C2 server ready on %s", addr)
 	return nil
 }
 
-func (s *Server) handleConnection(conn net.Conn) {
-	defer conn.Close()
+// HandleCheckIn processes an agent check-in request.
+func (s *Server) HandleCheckIn(agentID, hostname, os, arch, username, localIP string, privileges []string, publicKey []byte) *types.Agent {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	s.log.Infof("agent connected from %s", conn.RemoteAddr())
-
-	// In production: perform gRPC handshake with X25519 key exchange
-	// For now: register the connection
-
-	agentID := fmt.Sprintf("agent-%d", time.Now().UnixNano())
+	now := time.Now()
+	agent := &types.Agent{
+		ID:          agentID,
+		SessionID:   fmt.Sprintf("s%d", now.UnixMilli()),
+		Hostname:    hostname,
+		OS:          os,
+		LocalIP:     localIP,
+		Username:    username,
+		Status:      types.AgentStatusOnline,
+		FirstSeen:   now,
+		LastCheckin: now,
+		Privileges:  privileges,
+	}
 
 	ac := &AgentConnection{
-		Agent: &types.Agent{
-			ID:        agentID,
-			LocalIP:   conn.RemoteAddr().String(),
-			Status:    types.AgentStatusOnline,
-			FirstSeen: time.Now(),
-			LastCheckin: time.Now(),
-		},
-		ConnectedAt: time.Now(),
-		LastSeen:   time.Now(),
+		Agent:       agent,
+		ConnectedAt: now,
+		LastSeen:    now,
+		AgentID:     agentID,
 	}
 
-	s.mu.Lock()
+	if len(publicKey) > 0 {
+		ac.SessionKey = publicKey
+	}
+
 	s.agents[agentID] = ac
-	count := len(s.agents)
-	s.mu.Unlock()
+	s.log.Infof("agent checked in: %s (host=%s os=%s)", agentID, hostname, os)
 
-	s.log.Infof("agent registered: %s (total: %d)", agentID, count)
-
-	// Keep connection alive and handle heartbeats
-	buf := make([]byte, 4096)
-	for {
-		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-		_, err := conn.Read(buf)
-		if err != nil {
-			break
-		}
-
-		s.mu.Lock()
-		if ac, ok := s.agents[agentID]; ok {
-			ac.LastSeen = time.Now()
-			ac.Agent.LastCheckin = time.Now()
-		}
-		s.mu.Unlock()
-	}
-
-	s.mu.Lock()
-	if ac, ok := s.agents[agentID]; ok {
-		ac.Agent.Status = types.AgentStatusDead
-	}
-	delete(s.agents, agentID)
-	s.mu.Unlock()
-
-	s.log.Infof("agent disconnected: %s", agentID)
+	return agent
 }
 
 // GetAgents returns all connected agents.
@@ -154,5 +158,21 @@ func (s *Server) AgentCount() int {
 // Stop shuts down the C2 server.
 func (s *Server) Stop() {
 	s.running = false
+	if s.grpcSrv != nil {
+		s.grpcSrv.GracefulStop()
+	}
 	s.log.Info("C2 server stopped")
+}
+
+// RegisterStream stores the command stream for an agent.
+func (s *Server) RegisterStream(agentID string, stream agentv1.AgentService_CommandStreamServer) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.agentStreams[agentID] = stream
+}
+
+// AgentIDFromMetadata extracts the agent ID from gRPC metadata.
+func AgentIDFromMetadata(ctx context.Context) string {
+	// In production, extract from metadata via grpc metadata package
+	return ""
 }
