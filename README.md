@@ -12,6 +12,10 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square" />
+  <img src="https://img.shields.io/badge/Binary-26.7MB-blue?style=flat-square" />
+  <img src="https://img.shields.io/badge/Version-v2.7-red?style=flat-square" />
+  <img src="https://img.shields.io/badge/Modules-101-purple?style=flat-square" />
   <img src="https://img.shields.io/badge/Kill%20Chain-Complete-FF4500?style=flat-square" />
   <img src="https://img.shields.io/badge/AI-Ollama%20Offline-00FF00?style=flat-square" />
   <img src="https://img.shields.io/badge/Crypto-X25519%20%2B%20XChaCha20--Poly1305-6C63FF?style=flat-square" />
@@ -31,7 +35,20 @@
 
 Built as a **TFG (Trabajo de Fin de Grado)** project in Cybersecurity at Cisco NetAcad, Malaga.
 
-## v2.4 — Advanced Ransomware Engine (14 modules, 4 blocks + bonus)
+## v2.7 — Total System Control + Phishing Arsenal (10 modules)
+
+| Category | Module | Capability |
+|----------|--------|------------|
+| **System Control** | `uefi_bootkit` | SPI flash write, DXE driver, ExitBootServices hook, NVRAM persistence |
+| | `hypervisor_ring1` | Ring -1 via Blue Pill/Vitriol, SO virtualization, invisible syscall interception |
+| | `pcie_rootkit` | GPU VRAM persistence (survives warm reboot), NIC firmware C2 server, DMA attacks |
+| | `kernel_instrument` | eBPF syscall hooks (9 tracepoints), ETW silence, BYOVD via 7 vulnerable drivers |
+| | `secure_boot_bypass` | Shim replacement, MOK enrollment, GRUB compromise |
+| **Phishing Arsenal** | `phishing_infra` | DGA domains, Caddy+Let's Encrypt, Cloudflare Workers proxy, residential SOCKS5 |
+| | `spear_phish_ai` | OSINT (LinkedIn/GitHub/Outlook), Ollama LLM lure gen, M365/Google fake login |
+| | `anti_phish_evasion` | Ephemeral tokens (30min), Safe Links bypass, HTML attachment JS capture |
+| | `smishing_sms` | Contextual SMS via Twilio/Vonage, SS7 2FA interception |
+| | `vishing_voice` | Voice deepfake cloning, Twilio calls with Twiml, Specter integration |
 
 | Block | Modules | Capabilities |
 |-------|---------|--------------|
@@ -41,7 +58,7 @@ Built as a **TFG (Trabajo de Fin de Grado)** project in Cybersecurity at Cisco N
 | **4 — Automutation** | `dna_mutation`, `bootkit`, `blockchain_c2` | DNA hybridization with legit DLLs, ROP gadgets, junk code, MBR/GPT bootkit (post-format persistence), fake SMART errors, Bitcoin OP_RETURN C2 |
 | **Bonus** | `survivor_game` | Eliminates workstations every 90s, last standing gets free decryption key |
 
-## Core Engine Features
+## Core Engine Features (v2.0-v2.6)
 
 - **Kill Chain Phases**: 23 phases across scan, exfil, encrypt, destruct, propagate, psychological, identity, RaaS, supply chain, cloud, Bluetooth, SCADA, hardware, network, bootkit, blockchain, survivor
 - **Crypto**: Hydra multi-layer — RSA-4096, Shamir 3-of-3, AES-256-GCM + ChaCha20-Poly1305 double layer, per-file random keys

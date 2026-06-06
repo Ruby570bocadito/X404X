@@ -556,6 +556,17 @@ func (s *AppState) initModules() {
 		{Name: "omega/hvac_attack", Type: "omega", Description: "HVAC infrastructure attack: overheat server rooms via Modbus/SNMP/BACnet", CVE: "", Rank: "excellent", OS: "any"},
 		{Name: "omega/amt_implant", Type: "omega", Description: "Intel AMT/AMD PSP BIOS implant: firmware backdoor via MEI, SDRAM RF antenna keylogger", CVE: "", Rank: "excellent", OS: "any"},
 		{Name: "omega/satcom_hijack", Type: "omega", Description: "SATCOM modem hijack: firmware flash for traffic redirection, isolate air-gapped sites", CVE: "", Rank: "excellent", OS: "any"},
+		// v2.7: Total System Control + Phishing Arsenal
+		{Name: "v27/uefi_bootkit", Type: "v27", Description: "UEFI SPI flash bootkit: DXE driver injection, ExitBootServices hook, NVRAM persistence", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "v27/hypervisor_ring1", Type: "v27", Description: "Hypervisor Ring -1: Blue Pill/Vitriol, SO virtualization, syscall interception from below", CVE: "", Rank: "excellent", OS: "Windows/Linux"},
+		{Name: "v27/pcie_rootkit", Type: "v27", Description: "PCIe rootkits: GPU VRAM persistence, NIC firmware C2 server, DMA attacks (Thunderclap)", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "v27/kernel_instrument", Type: "v27", Description: "Kernel instrumentation: eBPF syscall hooks, ETW silence, BYOVD driver exploit", CVE: "", Rank: "excellent", OS: "Windows/Linux"},
+		{Name: "v27/secure_boot_bypass", Type: "v27", Description: "Secure Boot bypass: Shim replacement, MOK enrollment, GRUB compromise", CVE: "", Rank: "excellent", OS: "Linux"},
+		{Name: "v27/phishing_infra", Type: "v27", Description: "Phishing infra: DGA domains, Caddy HTTPS, Cloudflare Workers, residential SOCKS5 proxies", CVE: "", Rank: "great", OS: "any"},
+		{Name: "v27/spear_phish_ai", Type: "v27", Description: "Spear-phishing AI: OSINT (LinkedIn/GitHub/Outlook), Ollama LLM lure gen, fake M365/Google landing", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "v27/anti_phish_evasion", Type: "v27", Description: "Anti-phish evasion: ephemeral tokens, Safe Links bypass, HTML attachment with JS capture", CVE: "", Rank: "great", OS: "any"},
+		{Name: "v27/smishing_sms", Type: "v27", Description: "SMS phishing: contextual messages, Twilio/Vonage gateway, SS7 2FA interception", CVE: "", Rank: "great", OS: "any"},
+		{Name: "v27/vishing_voice", Type: "v27", Description: "Vishing with voice deepfake: Specter integration, voice clone, Twilio calls, Twiml scripts", CVE: "", Rank: "excellent", OS: "any"},
 	}
 }
 
