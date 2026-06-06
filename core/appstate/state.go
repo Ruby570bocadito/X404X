@@ -539,6 +539,23 @@ func (s *AppState) initModules() {
 		{Name: "blockz/edr_kill", Type: "blockz", Description: "EDR hijack: detect & silence 10 EDRs, self-deploy through EDR consoles", CVE: "", Rank: "excellent", OS: "Windows"},
 		{Name: "blockz/financial", Type: "blockz", Description: "Financial market attack: insider harvest + put options + ransomware stock crash", CVE: "", Rank: "great", OS: "any"},
 		{Name: "blockz/iot_chain", Type: "blockz", Description: "IoT physical chain: hospital/factory/power grid cascading scenarios via BACnet/Modbus", CVE: "", Rank: "excellent", OS: "any"},
+		// v2.6 High Priority
+		{Name: "v26/pomdp", Type: "v26", Description: "POMDPs orchestrator + God of Chaos: belief-state planning, chaos injections, plan B switching", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "v26/ai_negotiation", Type: "v26", Description: "AI negotiation agent: LLM-powered ransom chat, sentiment analysis, multi-strategy responses", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "v26/evasion_deep", Type: "v26", Description: "Evasion DEEP: indirect syscalls (XOR-encoded stubs), AMSI hook, ETW patch, hardware breakpoints DR0-DR7", CVE: "", Rank: "excellent", OS: "Windows"},
+		{Name: "v26/bootkit_smm", Type: "v26", Description: "Bootkit UEFI + SMM: System Management Mode implant, SMRAM payload, resurrection guarantee", CVE: "", Rank: "excellent", OS: "any"},
+		// v2.6 Medium Priority
+		{Name: "v26/mobile_x", Type: "v26", Description: "MOBILE-X: Android/iOS native agents via gRPC, MDM certificate hijack, full sensor access", CVE: "", Rank: "great", OS: "Android/iOS"},
+		{Name: "v26/cloud_nemesis", Type: "v26", Description: "CLOUD-NEMESIS: AWS/Azure/GCP privilege escalation, serverless C2 via Lambda/Azure Functions", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "v26/social_c2", Type: "v26", Description: "C2 over social media (Twitter/Reddit) + DoH DNS tunneling via Cloudflare/Google", CVE: "", Rank: "great", OS: "any"},
+		// Block Omega
+		{Name: "omega/backup_parasite", Type: "omega", Description: "Backup parasite: injects malware into ZIP/VHD/VMDK backups, activates on restore", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "omega/integrity_attack", Type: "omega", Description: "Integrity DB corruption: falsea Tripwire/AIDE/FCIV checksums, makes modified files appear intact", CVE: "", Rank: "great", OS: "any"},
+		{Name: "omega/av_whitelist", Type: "omega", Description: "AV process injection for auto-whitelisting via exclusion lists (Defender, Kaspersky, Symantec)", CVE: "", Rank: "excellent", OS: "Windows"},
+		{Name: "omega/multi_generational", Type: "omega", Description: "Multi-generational ransom: plants scheduled task 3 years in future for anniversary ransom", CVE: "", Rank: "great", OS: "any"},
+		{Name: "omega/hvac_attack", Type: "omega", Description: "HVAC infrastructure attack: overheat server rooms via Modbus/SNMP/BACnet", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "omega/amt_implant", Type: "omega", Description: "Intel AMT/AMD PSP BIOS implant: firmware backdoor via MEI, SDRAM RF antenna keylogger", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "omega/satcom_hijack", Type: "omega", Description: "SATCOM modem hijack: firmware flash for traffic redirection, isolate air-gapped sites", CVE: "", Rank: "excellent", OS: "any"},
 	}
 }
 
