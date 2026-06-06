@@ -1,8 +1,6 @@
 package blockz
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -105,7 +103,7 @@ func (df *DeepfakeEngine) GenerateDeepfake(command DeepfakeCommand) (*DeepfakeRe
 
 	videoScript := df.generateVideoScript(command)
 
-	outputPath := filepath.Join(os.TempDir(), fmt.Sprintf("x404x_deepfake_%x.mp4", len(df.GeneratedDeepfakes)))
+	outputPath := filepath.Join(os.TempDir(), fmt.Sprintf("x404x_deepfake_%x.mp4", df.GeneratedDeepfakes))
 	if runtime.GOOS == "windows" {
 		df.renderDeepfakeWindows(command, videoScript, outputPath)
 	} else {
@@ -205,7 +203,7 @@ Your stock will crash. Your partners will flee.
 Pay to make it disappear.
 `, df.TargetCEO, cmd.Command)
 
-		notePath := filepath.Join(os.TempDir(), fmt.Sprintf("x404x_extortion_%x.txt", len(df.GeneratedDeepfakes)))
+		notePath := filepath.Join(os.TempDir(), fmt.Sprintf("x404x_extortion_%x.txt", df.GeneratedDeepfakes))
 		os.WriteFile(notePath, []byte(extortionNote), 0644)
 
 		return result.Encoded

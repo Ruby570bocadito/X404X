@@ -1,4 +1,4 @@
-go 1.25.11
+go 1.25.0
 
 use (
 	./cmd/x404x
@@ -7,11 +7,11 @@ use (
 	./core/appstate
 	./core/crypto
 	./core/orchestrator
-	./core/ransomware
 	./core/proto/gen/agent
 	./core/proto/gen/bridge
 	./core/proto/gen/c2
 	./core/proto/gen/common
+	./core/ransomware
 	./shared/config
 	./shared/logger
 	./shared/types

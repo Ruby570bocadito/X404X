@@ -2,7 +2,6 @@ package blockz
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"os/exec"
 	"path/filepath"

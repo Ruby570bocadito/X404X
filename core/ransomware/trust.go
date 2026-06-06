@@ -39,7 +39,7 @@ func (te *TrustExploitEngine) GenerateSelfSignedCert(commonName string) ([]byte,
 		},
 		NotBefore:             time.Now().Add(-24 * time.Hour),
 		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCodeSigning,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageCodeSigning},
 		BasicConstraintsValid: true,
 	}

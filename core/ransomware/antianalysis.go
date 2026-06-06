@@ -2,7 +2,7 @@ package ransomware
 
 import (
 	"crypto/rand"
-	"encoding/binary"
+	// "encoding/binary" // NOOP
 	"fmt"
 	"os"
 	"os/exec"

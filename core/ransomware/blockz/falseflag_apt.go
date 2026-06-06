@@ -2,7 +2,6 @@ package blockz
 
 import (
 	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"

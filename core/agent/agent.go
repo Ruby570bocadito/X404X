@@ -77,7 +77,6 @@ type ModuleManager struct {
 type Module interface {
 	Name() string
 	Execute(ctx context.Context, params map[string]string) (string, error)
-	KillChainPhase() types.KillChainPhase
 }
 
 // New creates a new Agent with the given configuration.
@@ -166,7 +165,7 @@ func (a *Agent) RegisterModule(m Module) {
 	a.moduleManager.mu.Lock()
 	defer a.moduleManager.mu.Unlock()
 	a.moduleManager.modules[m.Name()] = m
-	a.log.Infof("registered module: %s (phase: %s)", m.Name(), m.KillChainPhase())
+	a.log.Infof("registered module: %s", m.Name())
 }
 
 // CheckIn performs initial registration with the C2 server via gRPC.

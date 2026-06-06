@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type SCDACovertEngine struct {
+type SCADACovertEngine struct {
 	Config       *BlockZConfig
 	GradualOps   []GradualSCADAOp    `json:"gradual_ops"`
 	CoverStory   string             `json:"cover_story"`

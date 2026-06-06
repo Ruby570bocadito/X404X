@@ -1,15 +1,15 @@
 package ransomware
 
 import (
-	"bufio"
-	"fmt"
+	// "bufio"
+	// "fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
+	// "time"
 )
 
 type RegexEngine struct {
@@ -79,7 +79,7 @@ func NewRegexEngine(workers int) *RegexEngine {
 }
 
 func (re *RegexEngine) ScanFile(path string) (*ScanResult, []SensitiveData) {
-	atomic.AddInt64(&re.scanCount, 1)
+	re.scanCount.Add(1)
 
 	info, err := os.Stat(path)
 	if err != nil {
@@ -137,7 +137,7 @@ func (re *RegexEngine) ScanFile(path string) (*ScanResult, []SensitiveData) {
 	result.Sensitive = len(sensitiveData) > 0
 
 	if len(sensitiveData) > 0 {
-		atomic.AddInt64(&re.matchCount, 1)
+		re.matchCount.Add(1)
 	}
 
 	return result, sensitiveData

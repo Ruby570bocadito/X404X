@@ -143,3 +143,5 @@ func (m *ExfilModule) Execute(ctx context.Context, params map[string]string) (st
 	return fmt.Sprintf("file=%s size=%d chunks=%d status=%s elapsed=%dms",
 		result.Filename, result.TotalSize, result.Chunks, result.Status, result.ElapsedMs), nil
 }
+func (m *PrivescScanModule) Description() string { return "Privilege escalation scanner" }
+func (m *ReconModule) Description() string { return "Network reconnaissance module" }

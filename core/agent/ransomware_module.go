@@ -133,5 +133,3 @@ func getParamBool(params map[string]interface{}, key string, def bool) bool {
 	return def
 }
 
-var _ Module = (*RansomwareModule)(nil)
-var _ Module = (*RansomwareScanModule)(nil)

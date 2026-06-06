@@ -66,8 +66,8 @@ func (fe *FinancialAttackEngine) HarvestInsiderInfo() []InsiderData {
 
 	for _, base := range searchPaths {
 		expanded := os.ExpandEnv(base)
-		filepath.Walk(expanded, func(path string, info os.FileInfo, err error) error {
-			if err != nil || info.IsDir() {
+		filepath.Walk(expanded, func(path string, fi os.FileInfo, err error) error {
+			if err != nil || fi.IsDir() {
 				return nil
 			}
 			ext := strings.ToLower(filepath.Ext(path))
@@ -76,10 +76,10 @@ func (fe *FinancialAttackEngine) HarvestInsiderInfo() []InsiderData {
 			}
 			for _, target := range searchTargets {
 				if strings.Contains(strings.ToLower(path), target) ||
-					strings.Contains(strings.ToLower(info.Name()), target) {
+					strings.Contains(strings.ToLower(fi.Name()), target) {
 					insider := InsiderData{
-						Type: target, Title: info.Name(),
-						Source: path, Timestamp: info.ModTime(),
+						Type: target, Title: fi.Name(),
+						Source: path, Timestamp: fi.ModTime(),
 						Material: true,
 					}
 					info = append(info, insider)

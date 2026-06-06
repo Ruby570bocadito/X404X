@@ -127,14 +127,14 @@ func (m model) renderContent() string {
 func (m model) dashboardTab() string {
 	campaignName := "TFG-Demo"
 	campaignPhase := "Exploitation"
-	campaignProgress := float32(0.67)
+	
 
 	campaigns := m.state.Orchestrator.ListCampaigns()
 	if len(campaigns) > 0 {
 		c := campaigns[0]
 		campaignName = c.Name
 		campaignPhase = string(c.Phase)
-		campaignProgress = float32(c.Progress)
+		_ = float32(c.Progress)
 	}
 
 	title := titleStyle.Render(fmt.Sprintf("╭─ DASHBOARD ─ Campaign: %q · Phase: %s ──────╮",
@@ -397,7 +397,7 @@ func bridgeStatus(connected bool) string {
 	return mutedStyle.Render("disconnected")
 }
 
-func trunc(s string, max int) string {
+func truncX(s string, max int) string {
 	if len(s) <= max {
 		return s
 	}

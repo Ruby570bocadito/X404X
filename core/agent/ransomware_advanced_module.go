@@ -53,7 +53,7 @@ func (ram *RansomwareAdvancedModule) Execute(ctx context.Context, agentID string
 		"cloud_instances":       report.CloudInstances,
 		"supply_repos_poisoned": report.SupplyReposPoisoned,
 		"bl_devices_hijacked":   report.BLDevicesHijacked,
-		"plcs_attacked":         report.PLCAttacked,
+		"plcs_attacked":         report.PLCsAttacked,
 		"hardware_killed":       report.HardwareKilled,
 		"bootkit_deployed":      report.BootkitDeployed,
 		"blockchain_cmds":       report.BlockchainCmds,
@@ -326,13 +326,3 @@ func (m *RansomwareSurvivorModule) Execute(ctx context.Context, agentID string, 
 	}, nil
 }
 
-var _ Module = (*RansomwareAdvancedModule)(nil)
-var _ Module = (*RansomwareHopeTrapModule)(nil)
-var _ Module = (*RansomwareIdentityModule)(nil)
-var _ Module = (*RansomwareRaaSModule)(nil)
-var _ Module = (*RansomwareWormModule)(nil)
-var _ Module = (*RansomwareSCADAModule)(nil)
-var _ Module = (*RansomwareHardwareModule)(nil)
-var _ Module = (*RansomwareBootkitModule)(nil)
-var _ Module = (*RansomwareBlockchainModule)(nil)
-var _ Module = (*RansomwareSurvivorModule)(nil)

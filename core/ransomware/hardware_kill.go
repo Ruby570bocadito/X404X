@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
+	// "time"
 )
 
 type HardwareKillEngine struct {

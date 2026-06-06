@@ -111,6 +111,7 @@ func (fw *FirmwareWormEngine) InfectDevice(dev FirmwareDevice) bool {
 	dev.HiddenBytes = hiddenSize
 	dev.FlashSize = 16 * 1024 * 1024
 
+	_ = backdoorPayload
 	fw.installWormPersistence(dev)
 
 	fw.mu.Lock()
