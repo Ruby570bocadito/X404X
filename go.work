@@ -7,6 +7,7 @@ use (
 	./core/appstate
 	./core/crypto
 	./core/orchestrator
+	./core/ransomware
 	./core/proto/gen/agent
 	./core/proto/gen/bridge
 	./core/proto/gen/c2

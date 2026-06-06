@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/ruby570bocadito/x404x/core/crypto v0.0.0
 	github.com/ruby570bocadito/x404x/core/proto/gen/agent v0.0.0
+	github.com/ruby570bocadito/x404x/core/ransomware v0.0.0
 	github.com/ruby570bocadito/x404x/shared/config v0.0.0
 	github.com/ruby570bocadito/x404x/shared/logger v0.0.0
 	github.com/ruby570bocadito/x404x/shared/types v0.0.0
@@ -27,6 +28,7 @@ require (
 replace (
 	github.com/ruby570bocadito/x404x/core/crypto => ../crypto
 	github.com/ruby570bocadito/x404x/core/proto/gen/agent => ../proto/gen/agent
+	github.com/ruby570bocadito/x404x/core/ransomware => ../ransomware
 	github.com/ruby570bocadito/x404x/shared/config => ../../shared/config
 	github.com/ruby570bocadito/x404x/shared/logger => ../../shared/logger
 	github.com/ruby570bocadito/x404x/shared/types => ../../shared/types
