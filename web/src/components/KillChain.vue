@@ -9,34 +9,37 @@
       </div>
     </div>
     <div class="mt-3 bg-dark rounded-full h-2 overflow-hidden">
-      <div class="h-full bg-gradient-to-r from-purple to-neon rounded-full transition-all duration-500" :style="{ width: progress + '%' }"></div>
+      <div class="h-full bg-gradient-to-r from-purple to-neon rounded-full transition-all duration-500"
+        :style="{ width: (campaignStore.activeCampaign?.progress || 0) * 100 + '%' }"></div>
     </div>
-    <span class="text-xs text-gray-600 mt-1 block">{{ progress }}% complete</span>
+    <span class="text-xs text-gray-600 mt-1 block">
+      {{ Math.round((campaignStore.activeCampaign?.progress || 0) * 100) }}% complete
+      <span v-if="campaignStore.activeCampaign" class="text-purple ml-2">{{ campaignStore.activeCampaign.phase }}</span>
+    </span>
   </div>
 </template>
 
 <script setup>
-const phases = [
-  { name: 'Recon', status: 'done', icon: '✓' },
-  { name: 'Weaponize', status: 'done', icon: '✓' },
-  { name: 'Deliver', status: 'done', icon: '✓' },
-  { name: 'Exploit', status: 'active', icon: '◉' },
-  { name: 'Install', status: 'pending', icon: '□' },
-  { name: 'C2', status: 'pending', icon: '□' },
-  { name: 'Exfil', status: 'pending', icon: '□' },
-]
+import { computed, onMounted } from 'vue'
+import { useCampaignStore } from '../stores/index.js'
 
-const progress = 67
+const campaignStore = useCampaignStore()
 
-const phaseClass = (status) => ({
-  done: 'text-neon',
-  active: 'text-yellow-400 animate-pulse-slow',
-  pending: 'text-gray-700',
-}[status])
+onMounted(() => campaignStore.fetchCampaigns().catch(() => {}))
 
-const phaseTextClass = (status) => ({
-  done: 'text-neon',
-  active: 'text-yellow-400',
-  pending: 'text-gray-600',
-}[status])
+const phases = computed(() => {
+  const currentPhase = campaignStore.activeCampaign?.phase || 'recon'
+  const phaseOrder = { recon: 0, weaponization: 1, delivery: 2, exploitation: 3, installation: 4, c2: 5, actions_on_objective: 6, exfiltration: 7 }
+  const currentIdx = phaseOrder[currentPhase] ?? 0
+
+  const allPhases = ['Recon', 'Weaponize', 'Deliver', 'Exploit', 'Install', 'C2', 'Exfil']
+  return allPhases.map((name, i) => ({
+    name,
+    icon: i < currentIdx ? '✓' : i === currentIdx ? '◉' : '□',
+    status: i < currentIdx ? 'done' : i === currentIdx ? 'active' : 'pending'
+  }))
+})
+
+const phaseClass = (s) => ({ done: 'text-neon', active: 'text-yellow-400 animate-pulse-slow', pending: 'text-gray-700' }[s])
+const phaseTextClass = (s) => ({ done: 'text-neon', active: 'text-yellow-400', pending: 'text-gray-600' }[s])
 </script>

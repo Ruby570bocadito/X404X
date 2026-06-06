@@ -8,19 +8,29 @@
     <div class="flex items-center gap-4">
       <div class="text-sm">
         <span class="text-gray-500">CAMPAIGN:</span>
-        <span class="text-purple ml-1">TFG-Demo</span>
+        <span class="text-purple ml-1">{{ campaignStore.activeCampaign?.name || 'No active' }}</span>
         <span class="text-gray-600 mx-2">·</span>
         <span class="text-gray-500">PHASE:</span>
-        <span class="text-neon ml-1">Exploitation</span>
+        <span class="text-neon ml-1">{{ campaignStore.activeCampaign?.phase || '—' }}</span>
       </div>
       <div class="flex items-center gap-2">
         <span class="inline-block w-2 h-2 rounded-full bg-neon animate-pulse-slow"></span>
-        <span class="text-sm text-neon font-mono">5 agents</span>
+        <span class="text-sm text-neon font-mono">{{ agentStore.activeAgents.length }} agents</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="inline-block w-2 h-2 rounded-full bg-purple animate-pulse-slow"></span>
-        <span class="text-sm text-purple font-mono">C2 online</span>
+        <span :class="eventStore.connected ? 'bg-neon' : 'bg-gray-600'" class="inline-block w-2 h-2 rounded-full animate-pulse-slow"></span>
+        <span :class="eventStore.connected ? 'text-purple' : 'text-gray-600'" class="text-sm font-mono">
+          {{ eventStore.connected ? 'C2 online' : 'offline' }}
+        </span>
       </div>
     </div>
   </header>
 </template>
+
+<script setup>
+import { useAgentStore, useCampaignStore, useEventStore } from '../stores/index.js'
+
+const agentStore = useAgentStore()
+const campaignStore = useCampaignStore()
+const eventStore = useEventStore()
+</script>

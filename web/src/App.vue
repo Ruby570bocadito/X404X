@@ -16,7 +16,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import Header from './components/Header.vue'
 import Tabs from './components/Tabs.vue'
 import Dashboard from './views/Dashboard.vue'
@@ -27,9 +27,14 @@ import TerminalWidget from './views/TerminalWidget.vue'
 import MetricsPanel from './views/MetricsPanel.vue'
 import DocsPanel from './views/DocsPanel.vue'
 import Footer from './components/Footer.vue'
-import { useAgentStore, useCampaignStore, useReconStore, useMetricsStore, useEventStore } from './stores/index.js'
+import {
+  useAgentStore, useCampaignStore, useReconStore,
+  useMetricsStore, useEventStore, useAIStore
+} from './stores/index.js'
 
 const activeTab = ref('dashboard')
+
+let pollTimer = null
 
 onMounted(() => {
   const agentStore = useAgentStore()
@@ -37,14 +42,35 @@ onMounted(() => {
   const reconStore = useReconStore()
   const metricsStore = useMetricsStore()
   const eventStore = useEventStore()
+  const aiStore = useAIStore()
 
-  // Attempt to fetch real data — falls back gracefully if API not available
+  // Initial fetch — all stores query the API
   agentStore.fetchAgents().catch(() => {})
   campaignStore.fetchCampaigns().catch(() => {})
   reconStore.fetchHosts().catch(() => {})
+  reconStore.fetchServices().catch(() => {})
+  reconStore.fetchVulnerabilities().catch(() => {})
   metricsStore.fetchMetrics().catch(() => {})
+  metricsStore.fetchBlueMetrics().catch(() => {})
 
-  // Connect WebSocket for live events
+  // AI suggestions (async, non-blocking)
+  setTimeout(() => {
+    const cid = campaignStore.activeCampaign?.id
+    if (cid) aiStore.getSuggestions(cid).catch(() => {})
+  }, 2000)
+
+  // Poll every 10 seconds for live updates
+  pollTimer = setInterval(() => {
+    agentStore.fetchAgents().catch(() => {})
+    reconStore.fetchHosts().catch(() => {})
+  }, 10000)
+
+  // Connect WebSocket for real-time events
   eventStore.connect()
+})
+
+onUnmounted(() => {
+  clearInterval(pollTimer)
+  useEventStore().disconnect()
 })
 </script>
