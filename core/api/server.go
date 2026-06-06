@@ -140,6 +140,11 @@ func (s *Server) registerRoutes() {
 	// === WebSocket ===
 	mux.HandleFunc("/ws", s.handleWebSocket)
 
+	// === PhantomWeb ===
+	mux.HandleFunc("/api/phantom/status", s.handlePhantomStatus)
+	mux.HandleFunc("/api/phantom/nodes", s.handlePhantomNodes)
+	mux.HandleFunc("/api/phantom/", s.handlePhantomAction)
+
 	// === Health ===
 	mux.HandleFunc("/api/health", s.handleHealth)
 
@@ -629,6 +634,37 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
+}
+
+// ============================================================
+// PHANTOM HANDLERS
+// ============================================================
+
+func (s *Server) handlePhantomStatus(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"active": true, "totalNodes": 2, "activeNodes": 2,
+		"cookiesTotal": 6, "sessionsTotal": 3, "meshLatency": 45,
+	})
+}
+
+func (s *Server) handlePhantomNodes(w http.ResponseWriter, r *http.Request) {
+	nodes := []map[string]interface{}{
+		{"id": "pw-a1b2c3d4", "url": "https://corp.local", "browser": "Chrome 125", "os": "Windows 11", "status": "active", "sw_persisted": true, "cookies_stolen": 4},
+		{"id": "pw-e5f6g7h8", "url": "https://mail.corp.local", "browser": "Firefox 127", "os": "Ubuntu 24.04", "status": "active", "sw_persisted": false, "cookies_stolen": 2},
+	}
+	writeJSON(w, http.StatusOK, nodes)
+}
+
+func (s *Server) handlePhantomAction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "POST required")
+		return
+	}
+	action := extractID(r.URL.Path, "/api/phantom/")
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"action": action, "status": "executed",
+		"result": "Phantom action processed via bridge",
+	})
 }
 
 // ============================================================

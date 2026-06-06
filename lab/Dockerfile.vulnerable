@@ -1,0 +1,78 @@
+# X404X — Vulnerable Test Container
+# ==================================
+# Deliberately vulnerable container for end-to-end testing.
+# Includes: SUID binaries, weak SSH, writable cron, sudo misconfig,
+# Redis no-auth, Docker socket, NFS no_root_squash simulation.
+#
+# Build: docker build -f lab/Dockerfile.vulnerable -t x404x-vuln .
+# Run:   docker run --rm -it x404x-vuln bash
+
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    openssh-server redis-server sudo cron python3 python3-pip \
+    apache2 mysql-server vsftpd docker.io nfs-kernel-server \
+    gcc make golang-go curl wget netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
+
+# === VULNERABLE CONFIGURATIONS ===
+
+# 1. Weak SSH credentials
+RUN echo 'root:password123' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# 2. Test users
+RUN useradd -m -s /bin/bash testuser && \
+    echo 'testuser:test123' | chpasswd && \
+    usermod -aG sudo testuser
+
+# 3. SUID binaries for privesc testing
+RUN cp /usr/bin/python3 /usr/bin/python3-suid && chmod u+s /usr/bin/python3-suid && \
+    cp /bin/bash /bin/bash-suid && chmod u+s /bin/bash-suid && \
+    cp /usr/bin/find /usr/bin/find-suid && chmod u+s /usr/bin/find-suid
+
+# 4. Writable cron directories
+RUN mkdir -p /etc/cron.d && chmod 777 /etc/cron.d && \
+    echo '* * * * * root echo test > /tmp/cron_test' > /etc/cron.d/test_cron && \
+    chmod 666 /etc/cron.d/test_cron
+
+# 5. Sudo misconfiguration (NOPASSWD for testuser)
+RUN echo 'testuser ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/testuser
+
+# 6. Redis with no auth (exposed)
+RUN echo 'bind 0.0.0.0' >> /etc/redis/redis.conf && \
+    echo 'protected-mode no' >> /etc/redis/redis.conf
+
+# 7. Writable /etc/passwd
+RUN chmod 646 /etc/passwd
+
+# 8. Docker socket accessible
+RUN usermod -aG docker testuser
+
+# 9. Writable PATH directory
+RUN mkdir -p /usr/local/writable && chmod 777 /usr/local/writable && \
+    echo 'export PATH=/usr/local/writable:$PATH' >> /etc/profile
+
+# 10. Readable /etc/shadow
+RUN chmod 644 /etc/shadow
+
+# 11. NFS no_root_squash simulation
+RUN echo '/export *(rw,no_root_squash,sync,no_subtree_check)' > /etc/exports
+
+# 12. Capabilities
+RUN apt-get install -y libcap2-bin 2>/dev/null || true && \
+    setcap cap_setuid+ep /usr/bin/python3-suid 2>/dev/null || true
+
+# Copy X404X agent for testing
+COPY dist/agent-linux-amd64 /tmp/x404x-agent 2>/dev/null || true
+COPY dist/x404x /usr/local/bin/x404x 2>/dev/null || true
+
+# Start SSH
+RUN mkdir -p /run/sshd
+
+EXPOSE 22 80 3306 21 6379
+
+CMD ["/usr/sbin/sshd", "-D"]
