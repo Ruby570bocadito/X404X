@@ -24,6 +24,8 @@ import (
 	"sync"
 	"time"
 
+	_ "modernc.org/sqlite" // pure-Go SQLite driver
+
 	"github.com/ruby570bocadito/x404x/core/agent"
 	"github.com/ruby570bocadito/x404x/core/orchestrator"
 	"github.com/ruby570bocadito/x404x/shared/config"
@@ -135,13 +137,40 @@ func (s *AppState) Start(ctx context.Context) error {
 			Description: "Propagation stage: Wormy-ML autonomous network spread with 44 exploits + RL engine.",
 			Rank: "great", OS: "any"},
 		ModuleDef{Name: "post/credential_dump", Type: "post",
-			Description: "Credential dump: /etc/shadow, Mimikatz, mimipenguin, Kerberos tickets.",
+			Description: "Credential dump: /etc/shadow, SSH keys, browser data, LaZagne, Mimikatz.",
 			Rank: "excellent", OS: "any"},
 		ModuleDef{Name: "post/keylogger", Type: "post",
 			Description: "Kernel-level keylogger via Vault-Kernel notifier chain. Captures before X11/Wayland.",
 			Rank: "great", OS: "Linux"},
 		ModuleDef{Name: "post/evasion_apply", Type: "post",
 			Description: "Apply evasion: AMSI/ETW bypass, polymorphic engine, sleep obfuscation, JA3 spoofing.",
+			Rank: "great", OS: "any"},
+		ModuleDef{Name: "post/exfiltrate", Type: "post",
+			Description: "Chunked encrypted file exfiltration over C2 channel. 64KB chunks, XChaCha20 encrypted.",
+			Rank: "great", OS: "any"},
+		ModuleDef{Name: "post/cleanup", Type: "post",
+			Description: "Anti-forensics: wipe logs, clear timestamps, remove persistence, secure delete.",
+			Rank: "great", OS: "any"},
+		ModuleDef{Name: "auxiliary/bloodhound", Type: "auxiliary",
+			Description: "BloodHound AD collector: SharpHound (Windows) + Python LDAP enumerator. Maps attack paths.",
+			Rank: "excellent", OS: "any"},
+		ModuleDef{Name: "auxiliary/responder", Type: "auxiliary",
+			Description: "Responder: NTLM hash capture via LLMNR/MDNS/NBT-NS poisoning on local network.",
+			Rank: "great", OS: "Linux"},
+		ModuleDef{Name: "auxiliary/web_scan", Type: "auxiliary",
+			Description: "Web app vulnerability scanner: SQLi, XSS, LFI/RFI, Command Injection detection.",
+			Rank: "great", OS: "any"},
+		ModuleDef{Name: "exploit/aws_imds", Type: "exploit",
+			Description: "AWS IMDSv1 metadata exfiltration: steal IAM credentials from EC2 instances.",
+			Rank: "excellent", OS: "any"},
+		ModuleDef{Name: "exploit/azure_identity", Type: "exploit",
+			Description: "Azure Managed Identity token theft: extract OAuth2 tokens from IMDS endpoint.",
+			Rank: "great", OS: "any"},
+		ModuleDef{Name: "exploit/gcp_service_account", Type: "exploit",
+			Description: "GCP Service Account key exfiltration from compute metadata endpoint.",
+			Rank: "great", OS: "any"},
+		ModuleDef{Name: "auxiliary/payload_obfuscate", Type: "auxiliary",
+			Description: "Payload obfuscation: polymorphic mutation, XOR encryption, AES, UPX packing.",
 			Rank: "great", OS: "any"},
 	)
 
@@ -215,7 +244,7 @@ func (s *AppState) initDB() error {
 		dbPath = "x404x.db"
 	}
 
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return fmt.Errorf("opening sqlite: %w", err)
 	}

