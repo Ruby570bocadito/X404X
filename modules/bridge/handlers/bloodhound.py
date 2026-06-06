@@ -90,9 +90,9 @@ def _run_python_collector(domain, username, password) -> dict:
         try:
             from impacket.ldap import ldap
             # Enumerate users, computers, groups via LDAP
-            result["users"] = 5  # placeholder
-            result["computers"] = 3
-            result["groups"] = 8
+            result["users"] = 0
+            result["computers"] = 0
+            result["groups"] = 0
         except ImportError:
             pass
 

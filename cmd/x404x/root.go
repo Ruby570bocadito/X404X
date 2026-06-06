@@ -69,6 +69,8 @@ func Execute() {
 	rootCmd.AddCommand(dashboardCmd())
 	rootCmd.AddCommand(dbCmd())
 	rootCmd.AddCommand(labCmd())
+	rootCmd.AddCommand(payloadCmd())
+	rootCmd.AddCommand(listenersCmd())
 	rootCmd.AddCommand(&cobra.Command{
 		Use: "version", Short: "Show version",
 		Run: func(cmd *cobra.Command, args []string) {
