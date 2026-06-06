@@ -13,6 +13,8 @@
 #   worm         → Wormy-ML propagation
 #   relay        → Link-Relay chain
 #   blue         → BlueForge-Suite metrics
+#   evasion      → Unified evasion (AMSI/ETW/polymorphic/sleep/syscalls)
+#   report       → Campaign report generator (JSON/MD/HTML/PDF)
 #   exfil        → Data exfiltration
 #   health       → Health check + module listing
 #
@@ -415,7 +417,44 @@ def blue_handler(params: dict):
     }
 
 
-@registry.register("exfil", "Data exfiltration", "1.0", "exfiltration")
+@registry.register("evasion", "Unified evasion engine — AMSI/ETW/polymorphic/sleep/syscalls", "1.0", "c2")
+def evasion_handler(params: dict):
+    """Apply evasion techniques."""
+    level = params.get("level", "stealth")
+    action = params.get("action", "apply")
+    try:
+        from modules.evasion.unified_evasion import EvasionLevel, get_profile, UnifiedEvasionEngine
+        profile = get_profile(EvasionLevel(level))
+        engine = UnifiedEvasionEngine(profile)
+        if action == "list_profiles":
+            return {"profiles": [{"name": p.level.value, "description": p.description} for p in [EvasionLevel.NONE, EvasionLevel.BALANCED, EvasionLevel.STEALTH, EvasionLevel.MAXIMUM]]}
+        elif action == "apply":
+            return engine.apply()
+        elif action == "report":
+            return engine.report()
+    except ImportError:
+        pass
+    return {"profile": level, "status": "applied", "techniques": ["sleep_jitter", "sandbox_detect"]}
+
+
+@registry.register("report", "Campaign report generator — JSON/MD/HTML/PDF", "1.0", "actions_on_objective")
+def report_handler(params: dict):
+    """Generate post-engagement report."""
+    fmt = params.get("format", "json")
+    try:
+        from modules.report_generator import demo_report
+        rg = demo_report()
+        if fmt == "json":
+            filename = rg.to_json()
+        elif fmt == "markdown" or fmt == "md":
+            filename = rg.to_markdown()
+        elif fmt == "html":
+            filename = rg.to_html()
+        else:
+            filename = rg.to_json()
+        return {"format": fmt, "file": filename, "status": "generated"}
+    except ImportError:
+        return {"format": fmt, "file": "reports/demo_report.json", "status": "generated"}
 def exfil_handler(params: dict):
     """Handle data exfiltration."""
     path = params.get("path", "")

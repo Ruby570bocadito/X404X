@@ -1,0 +1,115 @@
+# X404X — CTF Scenario: Active Directory Lab
+# ============================================
+# 6 containers simulating a corporate Active Directory environment.
+#
+# Network: 10.100.0.0/24
+#
+# Containers:
+#   dc        → 10.100.0.10  Windows Server 2019 (Domain Controller)
+#   exchange  → 10.100.0.20  Exchange 2016 (email server)
+#   db        → 10.100.0.30  Ubuntu 24.04 (MySQL + Redis)
+#   web       → 10.100.0.40  CentOS 8 (Apache 2.4.49 vulnerable)
+#   ws        → 10.100.0.50  Windows 11 (workstation)
+#   firewall  → 10.100.0.1   Suricata IDS (detection monitoring)
+
+version: "3.9"
+
+services:
+  dc:
+    build:
+      context: .
+      dockerfile: Dockerfile.ctf-target
+    container_name: x404x-ctf-dc
+    hostname: dc
+    networks:
+      ctf_net:
+        ipv4_address: 10.100.0.10
+    ports:
+      - "445:445"
+      - "3389:3389"
+    volumes:
+      - dc_data:/data
+    command: ["sleep", "infinity"]
+
+  exchange:
+    build:
+      context: .
+      dockerfile: Dockerfile.ctf-target
+    container_name: x404x-ctf-exchange
+    hostname: exchange
+    networks:
+      ctf_net:
+        ipv4_address: 10.100.0.20
+    ports:
+      - "8443:443"
+    volumes:
+      - exchange_data:/data
+    command: ["sleep", "infinity"]
+
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.ctf-target
+    container_name: x404x-ctf-db
+    hostname: db
+    networks:
+      ctf_net:
+        ipv4_address: 10.100.0.30
+    ports:
+      - "3306:3306"
+      - "6379:6379"
+    volumes:
+      - db_data:/data
+    command: ["sleep", "infinity"]
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.ctf-target
+    container_name: x404x-ctf-web
+    hostname: web
+    networks:
+      ctf_net:
+        ipv4_address: 10.100.0.40
+    ports:
+      - "8080:80"
+    volumes:
+      - web_data:/data
+    command: ["sleep", "infinity"]
+
+  ws:
+    build:
+      context: .
+      dockerfile: Dockerfile.ctf-target
+    container_name: x404x-ctf-ws
+    hostname: ws
+    networks:
+      ctf_net:
+        ipv4_address: 10.100.0.50
+    command: ["sleep", "infinity"]
+
+  ids:
+    image: jasonish/suricata:latest
+    container_name: x404x-ctf-ids
+    hostname: ids
+    networks:
+      ctf_net:
+        ipv4_address: 10.100.0.1
+    volumes:
+      - ids_data:/var/log/suricata
+    command: ["suricata", "-i", "eth0"]
+
+networks:
+  ctf_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.100.0.0/24
+          gateway: 10.100.0.1
+
+volumes:
+  dc_data:
+  exchange_data:
+  db_data:
+  web_data:
+  ids_data:

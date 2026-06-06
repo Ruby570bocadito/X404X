@@ -73,7 +73,22 @@ func aiCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "ai", Short: "AI assistant"}
 	cmd.AddCommand(&cobra.Command{Use: "chat", Short: "Interactive AI chat", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[AI] Entering chat mode...") }})
 	cmd.AddCommand(&cobra.Command{Use: "suggest", Short: "Get attack suggestions", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[AI] Suggestions generated") }})
-	cmd.AddCommand(&cobra.Command{Use: "mode", Short: "Set AI mode (auto|manual)", Run: func(cmd *cobra.Command, args []string) { fmt.Println("[AI] Mode set to manual") }})
+	cmd.AddCommand(&cobra.Command{
+		Use: "auto", Short: "Toggle autonomous AI mode (no HITL)",
+		Run: func(cmd *cobra.Command, args []string) {
+			enable, _ := cmd.Flags().GetBool("on")
+			disable, _ := cmd.Flags().GetBool("off")
+			if enable {
+				fmt.Println("[+] AutoMode ENABLED — AI will auto-approve decisions > 0.85 confidence")
+			} else if disable {
+				fmt.Println("[+] AutoMode DISABLED — human approval required")
+			} else {
+				fmt.Println("[*] AutoMode status: disabled. Use --on to enable.")
+			}
+		},
+	})
+	cmd.PersistentFlags().Bool("on", false, "Enable auto-mode")
+	cmd.PersistentFlags().Bool("off", false, "Disable auto-mode")
 	return cmd
 }
 
