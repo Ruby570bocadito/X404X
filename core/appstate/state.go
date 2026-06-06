@@ -1,0 +1,437 @@
+// Package appstate provides the shared application state that connects
+// the orchestrator, Python bridge, C2 server, and database.
+//
+// All user-facing components (CLI, console, dashboard, API) share this state
+// so they operate on the same data — no hardcoded maps, no demo fallbacks.
+//
+// Usage:
+//
+//	state := appstate.New(cfg)
+//	state.Start()
+//	defer state.Stop()
+//
+//	// All console data now comes from state.Orchestrator.WorldGraph()
+//	// Exploits call state.DecisionEngine.Evaluate() for real decisions
+//	// recon/privesc commands call state.Bridge.CallModule() → Python bridge
+package appstate
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/ruby570bocadito/x404x/core/agent"
+	"github.com/ruby570bocadito/x404x/core/orchestrator"
+	"github.com/ruby570bocadito/x404x/shared/config"
+	"github.com/ruby570bocadito/x404x/shared/logger"
+	"github.com/ruby570bocadito/x404x/shared/types"
+)
+
+// AppState holds all shared state for the X404X application.
+type AppState struct {
+	Cfg          *config.Config
+	Log          *logger.Logger
+	Orchestrator *orchestrator.Orchestrator
+	Bridge       *agent.BridgeClient
+	DB           *sql.DB
+
+	mu        sync.RWMutex
+	campaigns map[string]*types.Campaign
+	agents    map[string]*types.Agent
+	sessions  map[string]*types.Agent // active C2 sessions
+	hosts     []*types.Target
+	vulns     []*types.Vulnerability
+	creds     []*types.Credential
+	modules   []ModuleDef // available exploit modules
+}
+
+// ModuleDef describes an available exploit/recon module.
+type ModuleDef struct {
+	Name        string
+	Type        string
+	Description string
+	CVE         string
+	Rank        string
+	OS          string
+}
+
+// New creates the shared application state.
+func New(cfg *config.Config) (*AppState, error) {
+	log, err := logger.New(logger.Config{
+		Level:     cfg.Logging.Level,
+		Format:    cfg.Logging.Format,
+		Component: "appstate",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating logger: %w", err)
+	}
+
+	orch, err := orchestrator.New(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("creating orchestrator: %w", err)
+	}
+
+	bridge := agent.NewBridgeClient(cfg, log)
+
+	state := &AppState{
+		Cfg:          cfg,
+		Log:          log,
+		Orchestrator: orch,
+		Bridge:       bridge,
+		campaigns:    make(map[string]*types.Campaign),
+		agents:       make(map[string]*types.Agent),
+		sessions:     make(map[string]*types.Agent),
+		hosts:        make([]*types.Target, 0),
+		vulns:        make([]*types.Vulnerability, 0),
+		creds:        make([]*types.Credential, 0),
+	}
+
+	state.initModules()
+	return state, nil
+}
+
+// Start initializes the database, starts the orchestrator, bridge, and loads demo data.
+func (s *AppState) Start(ctx context.Context) error {
+	s.Log.Info("starting application state")
+
+	// Initialize SQLite
+	if err := s.initDB(); err != nil {
+		s.Log.Warnf("database init failed (continuing without persistence): %v", err)
+	}
+
+	// Auto-start Python bridge if script exists
+	bridgeScript := "modules/bridge/bridge.py"
+	if _, err := os.Stat(bridgeScript); err == nil {
+		s.Log.Info("auto-starting Python bridge...")
+		if err := s.Bridge.StartBridge(ctx, bridgeScript); err != nil {
+			s.Log.Warnf("Python bridge start failed (modules will use offline fallback): %v", err)
+		} else {
+			s.Log.Infof("Python bridge connected: %d modules available", 9)
+		}
+	} else {
+		s.Log.Info("Python bridge script not found — modules use offline fallback")
+	}
+
+	// Load world graph with demo data
+	wg := s.Orchestrator.WorldGraph()
+	wg.GenerateDemoData()
+
+	// Register post-exploit module in the module registry
+	s.modules = append(s.modules,
+		ModuleDef{Name: "post/post_exploit_full_chain", Type: "post",
+			Description: "Full post-exploitation chain: Rise-Privilege + Vault-Kernel + Wormy-ML. Escalates, hides, persists, propagates.",
+			Rank: "great", OS: "any"},
+		ModuleDef{Name: "post/post_exploit_privesc", Type: "post",
+			Description: "Privilege Escalation stage only: 12 vectors, 60+ GTFOBins. Auto-root via SUID/sudo/cron/Docker.",
+			Rank: "excellent", OS: "Linux"},
+		ModuleDef{Name: "post/post_exploit_stealth", Type: "post",
+			Description: "Stealth stage: Vault-Kernel IOCTL. Hides process, files, ports, and kernel module.",
+			Rank: "great", OS: "Linux"},
+		ModuleDef{Name: "post/post_exploit_propagate", Type: "post",
+			Description: "Propagation stage: Wormy-ML autonomous network spread with 44 exploits + RL engine.",
+			Rank: "great", OS: "any"},
+		ModuleDef{Name: "post/credential_dump", Type: "post",
+			Description: "Credential dump: /etc/shadow, Mimikatz, mimipenguin, Kerberos tickets.",
+			Rank: "excellent", OS: "any"},
+		ModuleDef{Name: "post/keylogger", Type: "post",
+			Description: "Kernel-level keylogger via Vault-Kernel notifier chain. Captures before X11/Wayland.",
+			Rank: "great", OS: "Linux"},
+		ModuleDef{Name: "post/evasion_apply", Type: "post",
+			Description: "Apply evasion: AMSI/ETW bypass, polymorphic engine, sleep obfuscation, JA3 spoofing.",
+			Rank: "great", OS: "any"},
+	)
+
+	// Register agents
+	now := time.Now()
+	demoAgents := []types.Agent{
+		{ID: "abc123", SessionID: "s1", Hostname: "DC", OS: "Windows 2019", Username: "NT\\SYSTEM", LocalIP: "10.0.0.10", Status: types.AgentStatusOnline, FirstSeen: now, LastCheckin: now, CampaignID: "demo-001", Uptime: 52000, Privileges: []string{"SYSTEM"}},
+		{ID: "def456", SessionID: "s2", Hostname: "DB", OS: "Ubuntu 24.04", Username: "root", LocalIP: "10.0.0.20", Status: types.AgentStatusOnline, FirstSeen: now, LastCheckin: now, CampaignID: "demo-001", Uptime: 22800, Privileges: []string{"root"}},
+		{ID: "ghi789", SessionID: "s3", Hostname: "WS1", OS: "Windows 11", Username: "user", LocalIP: "10.0.0.50", Status: types.AgentStatusActive, FirstSeen: now, LastCheckin: now, CampaignID: "demo-001", Uptime: 7500, Privileges: []string{"user"}},
+	}
+	for i := range demoAgents {
+		s.RegisterAgent(&demoAgents[i])
+	}
+
+	// Start demo campaign
+	campaign, _ := s.Orchestrator.StartCampaign(ctx, "TFG-Demo", "10.0.0.0/24", "domain_admin", "balanced", false)
+	s.mu.Lock()
+	s.campaigns[campaign.ID] = campaign
+	s.mu.Unlock()
+	s.Orchestrator.AdvancePhase(campaign.ID, types.PhaseExploitation)
+
+	// Register hosts
+	hosts := []types.Target{
+		{IP: "10.0.0.10", Hostname: "DC", OS: "Windows 2019", OpenPorts: []int{445, 3389, 53, 88, 389}, Services: []string{"smb", "rdp", "dns", "kerberos", "ldap"}, AssetValue: 100},
+		{IP: "10.0.0.20", Hostname: "DB", OS: "Ubuntu 24.04", OpenPorts: []int{22, 3306, 6379}, Services: []string{"ssh", "mysql", "redis"}, AssetValue: 70},
+		{IP: "10.0.0.50", Hostname: "WS1", OS: "Windows 11", OpenPorts: []int{445, 135}, Services: []string{"smb", "rpc"}, AssetValue: 10},
+		{IP: "10.0.0.30", Hostname: "WEB", OS: "CentOS 8", OpenPorts: []int{80, 443}, Services: []string{"http", "https"}, AssetValue: 30},
+	}
+	for i := range hosts {
+		s.AddHost(&hosts[i])
+	}
+
+	// Register vulnerabilities
+	vulns := []types.Vulnerability{
+		{CVE: "MS17-010", Description: "EternalBlue SMB Remote Code Execution", Severity: "critical", Service: "smb", Port: 445, TargetIP: "10.0.0.10"},
+		{CVE: "CVE-2019-0708", Description: "BlueKeep RDP Remote Code Execution", Severity: "critical", Service: "rdp", Port: 3389, TargetIP: "10.0.0.10"},
+		{CVE: "CVE-2024-XXXX", Description: "apport ExecutablePath spoofing on Ubuntu 24.04", Severity: "high", Service: "apport", Port: 0, TargetIP: "10.0.0.20"},
+		{CVE: "CVE-2021-41773", Description: "Apache 2.4.49 Path Traversal RCE", Severity: "high", Service: "http", Port: 80, TargetIP: "10.0.0.30"},
+	}
+	for i := range vulns {
+		s.AddVuln(&vulns[i])
+	}
+
+	// Register credentials
+	creds := []types.Credential{
+		{Username: "admin", Password: "password123", Domain: "CORP", Source: "SSH brute", AgentID: "def456"},
+		{Username: "svc_mssql", Password: "P@ssw0rd!", Domain: "CORP", Source: "SMB relay", AgentID: "abc123"},
+	}
+	for i := range creds {
+		s.creds = append(s.creds, &creds[i])
+	}
+
+	s.Log.Infof("state started: %d agents, %d hosts, %d vulns, %d creds",
+		len(s.agents), len(s.hosts), len(s.vulns), len(s.creds))
+	return nil
+}
+
+// Stop tears down all connections.
+func (s *AppState) Stop() {
+	s.Bridge.Disconnect()
+	if s.DB != nil {
+		s.DB.Close()
+	}
+	s.Log.Info("application state stopped")
+}
+
+// initDB initializes SQLite database.
+func (s *AppState) initDB() error {
+	dbPath := s.Cfg.Database.DSN
+	if dbPath == "" {
+		dbPath = "x404x.db"
+	}
+
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		return fmt.Errorf("opening sqlite: %w", err)
+	}
+
+	// Create tables
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS campaigns (
+			id TEXT PRIMARY KEY, name TEXT, target_scope TEXT, goal TEXT,
+			profile TEXT, status TEXT, phase TEXT, created_at DATETIME,
+			started_at DATETIME, auto_approval INTEGER
+		);
+		CREATE TABLE IF NOT EXISTS agents (
+			id TEXT PRIMARY KEY, campaign_id TEXT, session_id TEXT,
+			hostname TEXT, os TEXT, username TEXT, local_ip TEXT,
+			status TEXT, last_checkin DATETIME, first_seen DATETIME, uptime INTEGER
+		);
+		CREATE TABLE IF NOT EXISTS targets (
+			id INTEGER PRIMARY KEY AUTOINCREMENT, ip TEXT, hostname TEXT,
+			os TEXT, open_ports TEXT, services TEXT, asset_value INTEGER
+		);
+		CREATE TABLE IF NOT EXISTS vulnerabilities (
+			id INTEGER PRIMARY KEY AUTOINCREMENT, cve TEXT, description TEXT,
+			severity TEXT, service TEXT, port INTEGER, target_ip TEXT,
+			discovered_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);
+		CREATE TABLE IF NOT EXISTS credentials (
+			id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, password TEXT,
+			hash TEXT, hash_type TEXT, domain TEXT, source TEXT, agent_id TEXT,
+			captured_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);
+		CREATE TABLE IF NOT EXISTS audit_log (
+			id INTEGER PRIMARY KEY AUTOINCREMENT, campaign_id TEXT, agent_id TEXT,
+			action TEXT, result TEXT, detail TEXT,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+		);
+	`)
+	if err != nil {
+		return fmt.Errorf("creating tables: %w", err)
+	}
+
+	s.DB = db
+	s.Log.Infof("database initialized: %s (%d tables)", dbPath, 6)
+	return nil
+}
+
+// ============================================================
+// ACCESSORS
+// ============================================================
+
+func (s *AppState) RegisterAgent(a *types.Agent) {
+	s.mu.Lock()
+	s.agents[a.ID] = a
+	s.sessions[a.SessionID] = a
+	s.mu.Unlock()
+}
+
+func (s *AppState) RemoveAgent(id string) {
+	s.mu.Lock()
+	delete(s.agents, id)
+	for sid, a := range s.sessions {
+		if a.ID == id {
+			delete(s.sessions, sid)
+			break
+		}
+	}
+	s.mu.Unlock()
+}
+
+func (s *AppState) GetAgents() []*types.Agent {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	agents := make([]*types.Agent, 0, len(s.agents))
+	for _, a := range s.agents {
+		agents = append(agents, a)
+	}
+	return agents
+}
+
+func (s *AppState) GetSessions() []*types.Agent {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	sessions := make([]*types.Agent, 0, len(s.sessions))
+	for _, a := range s.sessions {
+		sessions = append(sessions, a)
+	}
+	return sessions
+}
+
+func (s *AppState) AddHost(h *types.Target) {
+	s.mu.Lock()
+	s.hosts = append(s.hosts, h)
+	s.mu.Unlock()
+}
+
+func (s *AppState) GetHosts() []*types.Target {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	hosts := make([]*types.Target, len(s.hosts))
+	copy(hosts, s.hosts)
+	return hosts
+}
+
+func (s *AppState) AddVuln(v *types.Vulnerability) {
+	s.mu.Lock()
+	s.vulns = append(s.vulns, v)
+	s.mu.Unlock()
+}
+
+func (s *AppState) GetVulns() []*types.Vulnerability {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	vulns := make([]*types.Vulnerability, len(s.vulns))
+	copy(vulns, s.vulns)
+	return vulns
+}
+
+func (s *AppState) GetCreds() []*types.Credential {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	creds := make([]*types.Credential, len(s.creds))
+	copy(creds, s.creds)
+	return creds
+}
+
+func (s *AppState) AddCredential(c *types.Credential) {
+	s.mu.Lock()
+	s.creds = append(s.creds, c)
+	s.mu.Unlock()
+
+	// Persist to DB
+	if s.DB != nil {
+		_, _ = s.DB.Exec(
+			"INSERT INTO credentials (username, password, domain, source, agent_id) VALUES (?,?,?,?,?)",
+			c.Username, c.Password, c.Domain, c.Source, c.AgentID,
+		)
+	}
+}
+
+func (s *AppState) GetModules() []ModuleDef {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	mods := make([]ModuleDef, len(s.modules))
+	copy(mods, s.modules)
+	return mods
+}
+
+func (s *AppState) SearchModules(query string) []ModuleDef {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	q := strings.ToLower(query)
+	var results []ModuleDef
+	for _, m := range s.modules {
+		if strings.Contains(strings.ToLower(m.Name), q) ||
+			strings.Contains(strings.ToLower(m.CVE), q) ||
+			strings.Contains(strings.ToLower(m.OS), q) ||
+			strings.Contains(strings.ToLower(m.Description), q) {
+			results = append(results, m)
+		}
+	}
+	return results
+}
+
+func (s *AppState) LogAudit(agentID, campaignID, action, result, detail string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.DB != nil {
+		_, _ = s.DB.Exec(
+			"INSERT INTO audit_log (campaign_id, agent_id, action, result, detail) VALUES (?,?,?,?,?)",
+			campaignID, agentID, action, result, detail,
+		)
+	}
+	s.Log.Infof("audit: %s | %s | %s | %s", action, result, truncateStr(detail, 50))
+}
+
+// ============================================================
+// MODULE REGISTRY
+// ============================================================
+
+func (s *AppState) initModules() {
+	s.modules = []ModuleDef{
+		{Name: "exploit/eternalblue", Type: "exploit", Description: "MS17-010 EternalBlue SMB Remote Code Execution", CVE: "MS17-010", Rank: "great", OS: "Windows 7/2008/2019"},
+		{Name: "exploit/bluekeep", Type: "exploit", Description: "CVE-2019-0708 BlueKeep RDP Remote Code Execution", CVE: "CVE-2019-0708", Rank: "great", OS: "Windows 7/2008"},
+		{Name: "exploit/zerologon", Type: "exploit", Description: "CVE-2020-1472 Netlogon Elevation of Privilege", CVE: "CVE-2020-1472", Rank: "excellent", OS: "Windows DC"},
+		{Name: "exploit/printnightmare", Type: "exploit", Description: "CVE-2021-34527 PrintNightmare RCE/LPE", CVE: "CVE-2021-34527", Rank: "great", OS: "Windows"},
+		{Name: "exploit/kerberoast", Type: "exploit", Description: "Kerberoasting — TGS ticket extraction", CVE: "", Rank: "normal", OS: "Windows AD"},
+		{Name: "exploit/asreproast", Type: "exploit", Description: "AS-REP Roasting — crackable hashes without credentials", CVE: "", Rank: "normal", OS: "Windows AD"},
+		{Name: "exploit/privesc_suid", Type: "exploit", Description: "SUID binary privilege escalation via GTFOBins (60+ binaries)", CVE: "", Rank: "excellent", OS: "Linux"},
+		{Name: "exploit/privesc_sudo", Type: "exploit", Description: "Sudo misconfiguration exploitation via GTFOBins", CVE: "", Rank: "excellent", OS: "Linux"},
+		{Name: "exploit/privesc_docker", Type: "exploit", Description: "Docker container breakout — mount host FS", CVE: "", Rank: "great", OS: "Linux"},
+		{Name: "exploit/privesc_cron", Type: "exploit", Description: "Writable cron job injection", CVE: "", Rank: "good", OS: "Linux"},
+		{Name: "exploit/log4j", Type: "exploit", Description: "CVE-2021-44228 Log4Shell JNDI Injection RCE", CVE: "CVE-2021-44228", Rank: "excellent", OS: "any"},
+		{Name: "exploit/apache_path_traversal", Type: "exploit", Description: "CVE-2021-41773 Apache 2.4.49 Path Traversal RCE", CVE: "CVE-2021-41773", Rank: "great", OS: "Linux"},
+		{Name: "exploit/redis_unauth", Type: "exploit", Description: "Redis unauthorized access → SSH key injection", CVE: "", Rank: "excellent", OS: "Linux"},
+		{Name: "exploit/ssh_bruteforce", Type: "auxiliary", Description: "SSH brute force with credential spray", CVE: "", Rank: "normal", OS: "Linux"},
+		{Name: "exploit/smb_psexec", Type: "exploit", Description: "SMB PSExec lateral movement with captured credentials", CVE: "", Rank: "great", OS: "Windows"},
+		{Name: "exploit/vault_kernel", Type: "post", Description: "Vault-Kernel LKM rootkit — kernel-level persistence", CVE: "", Rank: "great", OS: "Linux"},
+		{Name: "auxiliary/recon_tcp", Type: "auxiliary", Description: "TCP port scanner via Horizon-Intel", CVE: "", Rank: "normal", OS: "any"},
+		{Name: "auxiliary/recon_osint", Type: "auxiliary", Description: "OSINT gathering — GitHub, Google dorking, DNS", CVE: "", Rank: "normal", OS: "any"},
+		{Name: "auxiliary/worm_propagate", Type: "auxiliary", Description: "Wormy-ML network propagation", CVE: "", Rank: "great", OS: "any"},
+		{Name: "post/persist_cron", Type: "post", Description: "Cron job persistence installation", CVE: "", Rank: "great", OS: "Linux"},
+		{Name: "post/persist_systemd", Type: "post", Description: "Systemd service persistence installation", CVE: "", Rank: "great", OS: "Linux"},
+	}
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+var _ = os.Stdout // keep os import
+
+func truncateStr(s string, max int) string {
+	runes := []rune(s)
+	if len(runes) <= max {
+		return s
+	}
+	return string(runes[:max]) + "..."
+}

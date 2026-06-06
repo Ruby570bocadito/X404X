@@ -4,6 +4,7 @@ use (
 	./cmd/x404x
 	./core/agent
 	./core/api
+	./core/appstate
 	./core/crypto
 	./core/orchestrator
 	./core/proto/gen/agent

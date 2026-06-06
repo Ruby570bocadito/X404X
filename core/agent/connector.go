@@ -1,6 +1,6 @@
 package agent
 
-import (
+	import (
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/ruby570bocadito/x404x/core/crypto"
@@ -67,7 +68,7 @@ func (c *gRPCConnector) Connect(ctx context.Context, serverAddr string) error {
 	}))
 
 	opts = append(opts,
-		grpc.WithKeepaliveParams(grpc.ClientKeepaliveParameters{
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:    10 * time.Second,
 			Timeout: 5 * time.Second,
 		}),

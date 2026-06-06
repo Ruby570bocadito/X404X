@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/ruby570bocadito/x404x/core/appstate"
 	"github.com/ruby570bocadito/x404x/core/orchestrator"
 	"github.com/ruby570bocadito/x404x/shared/config"
 	"github.com/ruby570bocadito/x404x/shared/logger"
@@ -23,12 +24,13 @@ import (
 
 // Server is the HTTP + WebSocket API server.
 type Server struct {
-	cfg    *config.Config
-	log    *logger.Logger
-	orch   *orchestrator.Orchestrator
-	hub    *WSHub
-	mux    *http.ServeMux
-	server *http.Server
+	cfg   *config.Config
+	log   *logger.Logger
+	orch  *orchestrator.Orchestrator
+	state *appstate.AppState
+	hub   *WSHub
+	mux   *http.ServeMux
+	srv   *http.Server
 
 	mu        sync.RWMutex
 	campaigns map[string]*types.Campaign
@@ -62,7 +64,45 @@ func New(cfg *config.Config, orch *orchestrator.Orchestrator) (*Server, error) {
 	}
 
 	s.registerRoutes()
+	return s, nil
+}
 
+// NewWithState creates an API server that reads from shared AppState.
+func NewWithState(cfg *config.Config, state *appstate.AppState) (*Server, error) {
+	log, err := logger.New(logger.Config{
+		Level:     cfg.Logging.Level,
+		Format:    cfg.Logging.Format,
+		Component: "api",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating logger: %w", err)
+	}
+
+	s := &Server{
+		cfg:       cfg,
+		log:       log,
+		orch:      state.Orchestrator,
+		state:     state,
+		hub:       NewWSHub(log),
+		campaigns: make(map[string]*types.Campaign),
+		agents:    make(map[string]*types.Agent),
+		hosts:     make([]*types.Target, 0),
+		vulns:     make([]*types.Vulnerability, 0),
+		decisions: make(map[string][]*types.Decision),
+	}
+
+	// Populate from shared state
+	for _, a := range state.GetAgents() {
+		s.agents[a.ID] = a
+	}
+	for _, h := range state.GetHosts() {
+		s.hosts = append(s.hosts, h)
+	}
+	for _, v := range state.GetVulns() {
+		s.vulns = append(s.vulns, v)
+	}
+
+	s.registerRoutes()
 	return s, nil
 }
 
@@ -103,7 +143,7 @@ func (s *Server) registerRoutes() {
 	// === Health ===
 	mux.HandleFunc("/api/health", s.handleHealth)
 
-	s.server = &http.Server{
+	s.srv = &http.Server{
 		Handler: handler,
 	}
 
@@ -112,19 +152,19 @@ func (s *Server) registerRoutes() {
 
 // Start begins listening on the configured port.
 func (s *Server) Start() error {
-	addr := fmt.Sprintf(":%d", s.cfg.Dashboard.Port)
-	s.server.Addr = addr
+	addr := fmt.Sprintf(":%d", 8445)
+	s.srv.Addr = addr
 
 	s.log.Infof("API server starting on %s", addr)
 	s.log.Infof("WebSocket endpoint: ws://localhost%s/ws", addr)
 
-	return s.server.ListenAndServe()
+	return s.srv.ListenAndServe()
 }
 
 // Shutdown gracefully stops the server.
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.hub.Stop()
-	return s.server.Shutdown(ctx)
+	return s.srv.Shutdown(ctx)
 }
 
 // ============================================================

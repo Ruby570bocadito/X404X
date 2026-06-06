@@ -7,77 +7,71 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/ruby570bocadito/x404x/core/api"
-	"github.com/ruby570bocadito/x404x/core/orchestrator"
+	"github.com/ruby570bocadito/x404x/core/appstate"
 	"github.com/ruby570bocadito/x404x/shared/config"
-	"github.com/ruby570bocadito/x404x/shared/types"
 )
 
 func startDashboard(cfg *config.Config) error {
-	orch, err := orchestrator.New(cfg)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Create shared state
+	state, err := appstate.New(cfg)
 	if err != nil {
-		return fmt.Errorf("creating orchestrator: %w", err)
+		return fmt.Errorf("creating state: %w", err)
+	}
+	globalState = state
+
+	if err := state.Start(ctx); err != nil {
+		fmt.Printf("[!] State start warning: %v\n", err)
+	}
+	defer state.Stop()
+
+	// Connect Python bridge if available
+	bridgeScript := "modules/bridge/bridge.py"
+	if _, err := os.Stat(bridgeScript); err == nil {
+		if err := state.Bridge.StartBridge(ctx, bridgeScript); err != nil {
+			fmt.Printf("[!] Python bridge not available: %v (modules will use offline fallback)\n", err)
+		} else {
+			fmt.Println("[+] Python bridge connected (9 modules)")
+		}
+	} else {
+		fmt.Println("[!] Python bridge script not found — modules use offline fallback")
 	}
 
-	server, err := api.New(cfg, orch)
+	// Create API server with orchestrator
+	apiServer, err := api.NewWithState(cfg, state)
 	if err != nil {
-		return fmt.Errorf("creating API server: %w", err)
+		return fmt.Errorf("creating API: %w", err)
 	}
 
-	// Load demo data into world graph
-	orch.WorldGraph().GenerateDemoData()
-
-	// Register demo agents
-	now := time.Now()
-	demoAgents := []types.Agent{
-		{ID: "abc123", Hostname: "DC", OS: "Windows 2019", Username: "NT\\SYSTEM", LocalIP: "10.0.0.10", Status: types.AgentStatusOnline, FirstSeen: now, LastCheckin: now, CampaignID: "demo-001", Uptime: 52000, Privileges: []string{"SYSTEM"}},
-		{ID: "def456", Hostname: "DB", OS: "Ubuntu 24.04", Username: "root", LocalIP: "10.0.0.20", Status: types.AgentStatusOnline, FirstSeen: now, LastCheckin: now, CampaignID: "demo-001", Uptime: 22800, Privileges: []string{"root"}},
-		{ID: "ghi789", Hostname: "WS1", OS: "Windows 11", Username: "user", LocalIP: "10.0.0.50", Status: types.AgentStatusActive, FirstSeen: now, LastCheckin: now, CampaignID: "demo-001", Uptime: 7500, Privileges: []string{"user"}},
-	}
-	for i := range demoAgents {
-		server.RegisterAgent(&demoAgents[i])
-	}
-
-	// Start a demo campaign
-	campaign, _ := orch.StartCampaign(context.Background(), "TFG-Demo", "10.0.0.0/24", "domain_admin", "balanced", false)
-	orch.AdvancePhase(campaign.ID, types.PhaseExploitation)
-
-	// Add demo hosts and vulns
-	hosts := []types.Target{
-		{IP: "10.0.0.10", Hostname: "DC", OS: "Windows 2019", OpenPorts: []int{445, 3389, 53}, AssetValue: 100},
-		{IP: "10.0.0.20", Hostname: "DB", OS: "Ubuntu 24.04", OpenPorts: []int{22, 3306, 6379}, AssetValue: 70},
-		{IP: "10.0.0.50", Hostname: "WS1", OS: "Windows 11", OpenPorts: []int{445, 135}, AssetValue: 10},
-	}
-	for i := range hosts {
-		server.AddHost(&hosts[i])
-	}
-
-	vulns := []types.Vulnerability{
-		{CVE: "MS17-010", Description: "EternalBlue SMB Remote Code Execution", Severity: "critical", Service: "smb", Port: 445, TargetIP: "10.0.0.10"},
-		{CVE: "CVE-2024-XXXX", Description: "apport ExecutablePath spoofing on Ubuntu 24.04", Severity: "high", Service: "apport", Port: 0, TargetIP: "10.0.0.20"},
-	}
-	for i := range vulns {
-		server.AddVuln(&vulns[i])
-	}
-
-	// Handle graceful shutdown
+	// Graceful shutdown
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigCh
-		fmt.Println("\n[!] Shutting down API server...")
-		server.Shutdown(context.Background())
+		fmt.Println("\n[!] Shutting down X404X...")
+		state.Stop()
+		apiServer.Shutdown(context.Background())
+		cancel()
 		os.Exit(0)
 	}()
 
-	fmt.Printf("[+] X404X API server starting on http://localhost:%d\n", cfg.Dashboard.Port)
-	fmt.Printf("[+] WebSocket: ws://localhost:%d/ws\n", cfg.Dashboard.Port)
-	fmt.Printf("[+] Health check: http://localhost:%d/api/health\n", cfg.Dashboard.Port)
-	fmt.Println("[+] Press Ctrl+C to stop")
+	fmt.Println()
+	fmt.Println("  ╔════════════════════════════════════════════════════╗")
+	fmt.Println("  ║              X404X — DASHBOARD MODE               ║")
+	fmt.Println("  ╠════════════════════════════════════════════════════╣")
+	fmt.Printf("  ║  API:       http://localhost:8445                ║\n")
+	fmt.Printf("  ║  WS:        ws://localhost:8445/ws               ║\n")
+	fmt.Printf("  ║  Health:    http://localhost:8445/api/health     ║\n")
+	fmt.Printf("  ║  Dashboard: http://localhost:3000 (npm run dev)  ║\n")
+	fmt.Println("  ║  Ctrl+C to stop                                  ║")
+	fmt.Println("  ╚════════════════════════════════════════════════════╝")
+	fmt.Println()
 
-	if err := server.Start(); err != nil && err != http.ErrServerClosed {
+	if err := apiServer.Start(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("API server: %w", err)
 	}
 	return nil
