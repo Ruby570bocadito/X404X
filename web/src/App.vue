@@ -9,6 +9,7 @@
       <AIConsole v-else-if="activeTab === 'ai'" />
       <TerminalWidget v-else-if="activeTab === 'terminal'" />
       <MetricsPanel v-else-if="activeTab === 'metrics'" />
+      <BrowserMesh v-else-if="activeTab === 'browser'" />
       <DocsPanel v-else />
     </main>
     <Footer />
@@ -26,6 +27,7 @@ import AIConsole from './views/AIConsole.vue'
 import TerminalWidget from './views/TerminalWidget.vue'
 import MetricsPanel from './views/MetricsPanel.vue'
 import DocsPanel from './views/DocsPanel.vue'
+import BrowserMesh from './views/BrowserMesh.vue'
 import Footer from './components/Footer.vue'
 import {
   useAgentStore, useCampaignStore, useReconStore,

@@ -24,6 +24,7 @@ const tabs = computed(() => [
   { id: 'agents', label: 'Agents', badge: agentStore.activeAgents.length },
   { id: 'recon', label: 'Recon', badge: reconStore.hosts.length },
   { id: 'ai', label: 'AI', badge: null },
+  { id: 'browser', label: 'Browser', badge: null },
   { id: 'terminal', label: 'Terminal', badge: null },
   { id: 'metrics', label: 'Metrics', badge: null },
   { id: 'docs', label: 'Docs', badge: null },

