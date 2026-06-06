@@ -524,6 +524,21 @@ func (s *AppState) initModules() {
 		{Name: "ransomware/blockchain_c2", Type: "ransomware", Description: "Blockchain C2 via Bitcoin OP_RETURN, immutable decentralized command channel", CVE: "", Rank: "great", OS: "any"},
 		// Bonus
 		{Name: "ransomware/survivor_game", Type: "ransomware", Description: "Survivor game: employees compete for decryption key, last standing wins", CVE: "", Rank: "great", OS: "any"},
+		// Block Z: El Umbral de la Perdicion
+		{Name: "blockz/genetic_evolve", Type: "blockz", Description: "Genetic Darwinian evolution: breed malware with system DLL genes via crossover", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "blockz/deepfake", Type: "blockz", Description: "ONNX deepfake pipeline: CEO impersonation via face+voice for wire fraud", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "blockz/scada_covert", Type: "blockz", Description: "Covert SCADA sabotage: gradual parameter drift over months, disguised as maintenance", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "blockz/firmware_worm", Type: "blockz", Description: "Network firmware worm: tenia digital survives firmware updates, magic packet activation", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "blockz/medical_attack", Type: "blockz", Description: "Medical implant attacks: pacemaker, insulin pump, neurostimulator via BLE exploits", CVE: "CVE-2019-6538", Rank: "excellent", OS: "any"},
+		{Name: "blockz/model_poison", Type: "blockz", Description: "AI model poisoning: backdoor classifiers with trigger pixels, flip labels", CVE: "", Rank: "great", OS: "any"},
+		{Name: "blockz/disinformation", Type: "blockz", Description: "Disinformation campaign: email, Slack, intranet, calendar injection via LLM", CVE: "", Rank: "great", OS: "any"},
+		{Name: "blockz/airgap_jump", Type: "blockz", Description: "Air-gap exfiltration: ultrasound (>20kHz) + LED optical modulation data bridge", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "blockz/post_quantum", Type: "blockz", Description: "Post-quantum Kyber-1024 + AES-256-GCM hybrid: immune to future quantum computers", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "blockz/deadman", Type: "blockz", Description: "Dead Man Switch: apocalypse if operator silent 48h - encrypt, delete, publish, destroy", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "blockz/falseflag", Type: "blockz", Description: "False flag APT framing: Lazarus/APT29/APT41 forensic artefacts + Mandiant report", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "blockz/edr_kill", Type: "blockz", Description: "EDR hijack: detect & silence 10 EDRs, self-deploy through EDR consoles", CVE: "", Rank: "excellent", OS: "Windows"},
+		{Name: "blockz/financial", Type: "blockz", Description: "Financial market attack: insider harvest + put options + ransomware stock crash", CVE: "", Rank: "great", OS: "any"},
+		{Name: "blockz/iot_chain", Type: "blockz", Description: "IoT physical chain: hospital/factory/power grid cascading scenarios via BACnet/Modbus", CVE: "", Rank: "excellent", OS: "any"},
 	}
 }
 

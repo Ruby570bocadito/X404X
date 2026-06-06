@@ -2,6 +2,61 @@
 
 All notable changes to X404X will be documented in this file.
 
+## [v2.5] — 2026-06-07
+
+### Added — Block Z: El Umbral de la Perdición (14 Modules)
+
+#### Z.1 — Genetic Evolution (Darwinian Malware)
+- **`genetic_evolution.go`**: Population of 8 agents, crossover recombination with system DLLs (kernel32, ntdll, libc, chrome.exe), 15% mutation rate, fitness evaluation via AV evasion + sandbox detection, natural selection, 8-generation evolution loop
+
+#### Z.2 — Deepfake Identity Assassination
+- **`deepfake_identity.go`**: ONNX face+voice pipeline, harvest media from system, generate CEO impersonation videos (<200ms latency target), extortion via fake authorization commands (transfer, merger, escrow)
+
+#### Z.3 — Covert SCADA Sabotage
+- **`scada_covert.go`**: Gradual parameter drift (0.5°C/day for 250 days), Modbus write single register, false maintenance log generation, cover story disguise as routine calibration
+
+#### Z.4 — Network Firmware Worm (Tenia Digital)
+- **`firmware_worm.go`**: Scan routers/switches/firewalls via SNMP/Telnet/SSH/HTTP, flash backdoor into firmware, hidden partition for traffic capture, magic SYN packet activation, survive firmware updates via persistent hooks
+
+#### Z.5 — Medical Implant Attacks
+- **`medical_attack.go`**: Detect Medtronic/Boston Scientific/Abbott/Baxter software, 9 CVEs (pacemaker shutdown, insulin overdose, neurostimulator blast, ventilator stop), evidence deletion from clinical logs
+
+#### Z.6 — AI Model Poisoning
+- **`model_poisoning.go`**: Inject poisoned images into ML pipelines, flip labels (tumor→healthy, malware→benign), deploy Sleeper backdoor model (90-day activation), swap labels in JSON manifests
+
+#### Z.7 — Disinformation Campaign
+- **`disinformation.go`**: 6 attack categories (harassment, financial rumor, division sowing, fake meetings, reputation attack, recruitment sabotage), Outlook/Slack/intranet/calendar injection, LLM integration for realistic corporate language
+
+#### Z.8 — Air-Gap Jumping
+- **`airgap_jump.go`**: Ultrasound exfiltration (>20kHz via speaker modulation), LED hard drive activity modulation (OOK), bidirectional bridge establishment, chunked large file transfer, FSK modulation
+
+#### Z.9 — Post-Quantum Encryption
+- **`post_quantum.go`**: Kyber-1024 lattice-based KEM + AES-256-GCM hybrid, quantum-safe key encapsulation, generate Kyber keypairs, encrypt with quantum-safe envelope, ransom note: "Not even quantum computing can save you"
+
+#### Z.10 — Dead Man's Switch
+- **`deadman_switch.go`**: 48-hour countdown heartbeat, auto-trigger apocalypse: encrypt all, delete keys, overwrite firmware, publish data, broadcast manifesto, DDoS, maximum destruction
+
+#### Z.11 — False Flag APT Framing
+- **`falseflag_apt.go`**: 3 APT profiles (Lazarus/DPRK, APT29/Russia, APT41/China), plant mutexes, C2 domains in hosts file, tool binaries with MZ headers, code comments in Russian/Chinese/Korean, generate Mandiant-style report
+
+#### Z.12 — EDR Control & Self-Deployment
+- **`edr_control.go`**: Detect 10 EDRs (CrowdStrike, Carbon Black, Defender ATP, SentinelOne, Cortex XDR, Trend Micro, McAfee, Sophos, Elastic, BitDefender), silence alerts, stop services, self-deploy via EDR console
+
+#### Z.13 — Financial Market Attack
+- **`financial_attack.go`**: Harvest insider info (earnings, mergers, clinical trials), place put options before ransomware, trigger stock crash, dual revenue: ransom + options profit
+
+#### Z.14 — IoT Physical Chain Attack
+- **`iot_physical_chain.go`**: 4 attack scenarios (hospital, office building, factory, power grid), protocols: BACnet, Modbus, MQTT, LonWorks, KNX, cascade failure triggering
+
+### Integration
+- **`blockz_engine.go`**: Master orchestrator for all 14 Block Z modules, sequential execution with context cancellation
+- **`core/agent/blockz_module.go`**: 11 Agent Module implementations (BlockZ, Genetic, Deepfake, Medical, DeadMan, EDR, FalseFlag, Quantum, AirGap, IoTChain, Financial)
+- **`modules/bridge/handlers/ransomware_blockz.py`**: 14 Python RPC handlers
+- **`core/appstate/state.go`**: 14 new ModuleDef entries under type "blockz"
+
+### Changed
+- Total módulos consola: 62 → 76
+
 ## [v2.4] — 2026-06-06
 
 ### Added — 14 Advanced Ransomware Modules (Blocks 1-4 + Bonus)
