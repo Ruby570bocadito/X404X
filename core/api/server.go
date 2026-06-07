@@ -152,6 +152,7 @@ func (s *Server) registerRoutes() {
 	mux.HandleFunc("/api/modules", s.handleModules)
 	mux.HandleFunc("/api/modules/push", s.handleModulePush)
 	mux.HandleFunc("/api/sessions", s.handleSessions)
+	mux.HandleFunc("/api/creds", s.handleCreds)
 
 	// === Health ===
 	mux.HandleFunc("/api/health", s.handleHealth)
@@ -838,17 +839,20 @@ func (s *Server) handleModules(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	type ModuleResponse struct {
-		Name        string `json:"name"`
-		Version     string `json:"version"`
-		Platform    string `json:"platform"`
-		Description string `json:"description"`
-		Commands    []string `json:"commands"`
+		Name        string   `json:"Name"`
+		Type        string   `json:"Type"`
+		Version     string   `json:"Version"`
+		Platform    string   `json:"Platform"`
+		Description string   `json:"Description"`
+		OS          string   `json:"OS"`
+		Rank        string   `json:"Rank"`
+		Commands    []string `json:"Commands"`
 	}
 	var resp []ModuleResponse
 	for _, m := range mods {
 		resp = append(resp, ModuleResponse{
-			Name: m.Name, Version: "2.8", Platform: m.OS,
-			Description: m.Description,
+			Name: m.Name, Type: m.Type, Version: "3.2", Platform: m.OS,
+			Description: m.Description, OS: m.OS, Rank: m.Rank,
 			Commands: []string{m.Name + "_start", m.Name + "_stop"},
 		})
 	}
@@ -890,6 +894,31 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 		resp = append(resp, SessionResponse{
 			ID: a.ID, Hostname: a.Hostname,
 			Username: a.OS, OS: a.OS, State: "active",
+		})
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *Server) handleCreds(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET only"})
+		return
+	}
+	creds := s.state.GetCreds()
+	if creds == nil {
+		writeJSON(w, http.StatusOK, []interface{}{})
+		return
+	}
+	type CredResponse struct {
+		Username string `json:"Username"`
+		Domain   string `json:"Domain"`
+		Source   string `json:"Source"`
+		Password string `json:"Password"`
+	}
+	var resp []CredResponse
+	for _, c := range creds {
+		resp = append(resp, CredResponse{
+			Username: c.Username, Domain: c.Domain, Source: c.Source, Password: c.Password,
 		})
 	}
 	writeJSON(w, http.StatusOK, resp)
