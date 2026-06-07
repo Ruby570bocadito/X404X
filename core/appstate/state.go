@@ -616,6 +616,9 @@ func (s *AppState) initModules() {
 		{Name: "v29/digital_thermite", Type: "v29", Description: "Digital thermite: zero memory + force BSOD on forensic analysis detection", CVE: "", Rank: "excellent", OS: "any"},
 		{Name: "v29/honey_token", Type: "v29", Description: "Honey token detection: detect bait files, trigger 72h agent-wide silence", CVE: "", Rank: "excellent", OS: "any"},
 		{Name: "v29/access_log_wipe", Type: "v29", Description: "Access log wipe: delete physical building entry/exit records, remove physical presence evidence", CVE: "", Rank: "excellent", OS: "any"},
+		// v2.10: Apocalipsis + Phantom Evasion
+		{Name: "v210/apocalipsis", Type: "v210", Description: "APOCALIPSIS: core destroy (MBR+firmware+VRM+USB+BSOD) + multi-vector worm (6 vectors) + P2P botnet (Kademlia DHT) + hybrid crypto (Kyber+X25519+XChaCha20) + 12 extra evil ideas", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "v210/phantom_evasion", Type: "v210", Description: "PHANTOM 6-layer evasion: static (packer/crypter/code_cave) + disable enemy (AMSI/ETW/unhook) + Hell's Gate syscalls + sandbox detect (RAM/disk/VM/cpu/uptime/debug) + process blending (hollowing/LOLBins) + live mutation (30min cycle)", CVE: "", Rank: "excellent", OS: "any"},
 	}
 }
 
