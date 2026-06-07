@@ -1,0 +1,63 @@
+openapi: "3.0.3"
+info:
+  title: X404X Autonomous Red Team Platform API
+  version: "2.10"
+  description: "Full REST + WebSocket API for agent management, module deployment, C2 operations, and dashboard"
+servers:
+  - url: http://localhost:9090/api
+    description: Local C2 server
+paths:
+  /agents:
+    get:
+      summary: List all connected agents
+      responses:
+        200: { description: "Array of agent objects" }
+  /agents/{id}:
+    get:
+      summary: Get agent details
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { 200: { description: "Agent details" }, 404: { description: "Not found" } }
+  /campaigns:
+    get: { summary: "List campaigns", responses: { 200: { description: "Array" } } }
+    post: { summary: "Create campaign", responses: { 201: { description: "Created" } } }
+  /campaigns/{id}:
+    get: { summary: "Get campaign", responses: { 200: { description: "Campaign" } } }
+  /hosts:
+    get: { summary: "List discovered hosts", responses: { 200: { description: "Array" } } }
+  /services:
+    get: { summary: "List discovered services", responses: { 200: { description: "Array" } } }
+  /vulnerabilities:
+    get: { summary: "List vulnerabilities", responses: { 200: { description: "Array" } } }
+  /modules:
+    get:
+      summary: "List all 154 deployable modules"
+      responses: { 200: { description: "Module catalog" } }
+  /modules/push:
+    post:
+      summary: "Push module to victim agent"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                module: { type: string }
+                agent_id: { type: string }
+      responses: { 200: { description: "Push result" } }
+  /sessions:
+    get: { summary: "Active victim sessions", responses: { 200: { description: "Array" } } }
+  /decisions:
+    get: { summary: "Decision Engine history", responses: { 200: { description: "Array" } } }
+  /metrics:
+    get: { summary: "C2 metrics", responses: { 200: { description: "Metrics object" } } }
+  /recon/scan:
+    post: { summary: "Start recon scan", responses: { 202: { description: "Started" } } }
+  /ai/chat:
+    post: { summary: "AI chat endpoint", responses: { 200: { description: "AI response" } } }
+  /phantom/status:
+    get: { summary: "PhantomWeb browser mesh status", responses: { 200: { description: "Status" } } }
+  /health:
+    get: { summary: "Health check", responses: { 200: { description: "OK" } } }
+  /ws:
+    get: { summary: "WebSocket real-time events", responses: { 101: { description: "WebSocket upgrade" } } }
