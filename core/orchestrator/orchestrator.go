@@ -39,6 +39,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ruby570bocadito/x404x/internal/dispatch"
 	"github.com/ruby570bocadito/x404x/shared/config"
 	"github.com/ruby570bocadito/x404x/shared/logger"
 	"github.com/ruby570bocadito/x404x/shared/types"
@@ -54,9 +55,10 @@ type Orchestrator struct {
 	decisions  map[string][]*types.Decision
 	mutex      sync.RWMutex
 
-	eventBus   *EventBus
+	eventBus    *EventBus
 	decisionEng *DecisionEngine
 	worldGraph  *WorldGraph
+	dispatcher  *dispatch.Dispatcher
 
 	stopCh chan struct{}
 }
@@ -86,6 +88,11 @@ func New(cfg *config.Config) (*Orchestrator, error) {
 	o.decisionEng = NewDecisionEngine(cfg, log, o.worldGraph)
 
 	return o, nil
+}
+
+// SetDispatcher wires the unified module dispatcher into the orchestrator.
+func (o *Orchestrator) SetDispatcher(d *dispatch.Dispatcher) {
+	o.dispatcher = d
 }
 
 // StartCampaign creates and starts a new red team campaign.

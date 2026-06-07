@@ -20,3 +20,5 @@ replace (
 	github.com/ruby570bocadito/x404x/shared/logger => ../../shared/logger
 	github.com/ruby570bocadito/x404x/shared/types => ../../shared/types
 )
+require github.com/ruby570bocadito/x404x/internal/dispatch v0.0.0
+replace github.com/ruby570bocadito/x404x/internal/dispatch => ../../internal/dispatch

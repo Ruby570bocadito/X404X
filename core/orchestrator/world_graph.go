@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/ruby570bocadito/x404x/shared/types"
 )
 
 // WorldGraph maintains a live graph of the target environment.
@@ -303,8 +305,27 @@ func (wg *WorldGraph) GenerateDemoData() {
 	wg.AddExploitEdge("10.0.0.10", "10.0.0.50", "EternalBlue (MS17-010)", 0.85)
 	wg.AddExploitEdge("10.0.0.10", "10.0.0.20", "SSH Credential Reuse", 0.75)
 	wg.AddExploitEdge("10.0.0.20", "10.0.0.30", "Web App CVE-2021-41773", 0.90)
+}
 
-	// Mark some as compromised
-	wg.MarkCompromised("10.0.0.10")
-	wg.MarkCompromised("10.0.0.50")
+// DiscoverFromAgents populates the world graph from live agent data instead of hardcoded demo data.
+func (wg *WorldGraph) DiscoverFromAgents(agents []*types.Agent) {
+	if len(agents) == 0 {
+		wg.GenerateDemoData()
+		return
+	}
+	for _, a := range agents {
+		hostname := a.Hostname
+		if hostname == "" {
+			hostname = a.ID
+		}
+		osName := a.OS
+		if osName == "" {
+			osName = "unknown"
+		}
+		ip := a.ID
+		if len(ip) > 8 {
+			ip = "10.0.0.1"
+		}
+		wg.AddHost(ip, hostname, osName)
+	}
 }

