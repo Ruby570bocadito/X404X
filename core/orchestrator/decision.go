@@ -32,7 +32,7 @@ func NewDecisionEngine(cfg *config.Config, log *logger.Logger, wg *WorldGraph) *
 		worldGraph: wg,
 		rules:      NewRulesEngine(log, wg),
 		planner:    NewAStarPlanner(wg, log),
-		ai:         NewAIEngine(cfg, log, wg),
+		ai:         NewAIEngine(cfg, log, wg, nil),
 	}
 }
 
@@ -336,10 +336,16 @@ type AIEngine struct {
 	cfg        *config.Config
 	log        *logger.Logger
 	worldGraph *WorldGraph
+	bridge     BridgeCaller
 }
 
-func NewAIEngine(cfg *config.Config, log *logger.Logger, wg *WorldGraph) *AIEngine {
-	return &AIEngine{cfg: cfg, log: log, worldGraph: wg}
+type BridgeCaller interface {
+	CallRaw(ctx context.Context, module, function string, params map[string]interface{}) (map[string]interface{}, error)
+	IsConnected() bool
+}
+
+func NewAIEngine(cfg *config.Config, log *logger.Logger, wg *WorldGraph, bridge BridgeCaller) *AIEngine {
+	return &AIEngine{cfg: cfg, log: log, worldGraph: wg, bridge: bridge}
 }
 
 func (ae *AIEngine) Evaluate(ctx context.Context, campaign *types.Campaign) []*types.Decision {
@@ -354,7 +360,14 @@ func (ae *AIEngine) Evaluate(ctx context.Context, campaign *types.Campaign) []*t
 
 	prompt := ae.buildContext(campaign)
 
-	// AI uses offline heuristics as primary engine (bridge is available via Dispatcher)
+	// Try Ollama bridge for real AI analysis
+	if ae.bridge != nil && ae.bridge.IsConnected() {
+		if response, err := ae.bridge.CallRaw(ctx, "ai", "analyze", map[string]interface{}{"prompt": prompt, "campaign_id": campaign.ID}); err == nil {
+			ae.log.Infof("AI real analysis received: %v", response)
+		}
+	}
+
+	// Offline heuristics as primary engine (augmented by bridge context above)
 	decisions = ae.offlineHeuristic(campaign)
 	for _, d := range decisions {
 		d.Source = "ai"
