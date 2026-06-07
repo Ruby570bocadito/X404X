@@ -145,6 +145,11 @@ func (s *Server) registerRoutes() {
 	mux.HandleFunc("/api/phantom/nodes", s.handlePhantomNodes)
 	mux.HandleFunc("/api/phantom/", s.handlePhantomAction)
 
+	// === Dashboard ===
+	mux.HandleFunc("/api/modules", s.handleModules)
+	mux.HandleFunc("/api/modules/push", s.handleModulePush)
+	mux.HandleFunc("/api/sessions", s.handleSessions)
+
 	// === Health ===
 	mux.HandleFunc("/api/health", s.handleHealth)
 
@@ -797,4 +802,72 @@ func truncate(s string, max int) string {
 		return s
 	}
 	return s[:max] + "..."
+}
+
+func (s *Server) handleModules(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET only"})
+		return
+	}
+	mods := s.state.GetModules()
+	if mods == nil {
+		writeJSON(w, http.StatusOK, []interface{}{})
+		return
+	}
+	type ModuleResponse struct {
+		Name        string `json:"name"`
+		Version     string `json:"version"`
+		Platform    string `json:"platform"`
+		Description string `json:"description"`
+		Commands    []string `json:"commands"`
+	}
+	var resp []ModuleResponse
+	for _, m := range mods {
+		resp = append(resp, ModuleResponse{
+			Name: m.Name, Version: "2.8", Platform: m.OS,
+			Description: m.Description,
+			Commands: []string{m.Name + "_start", m.Name + "_stop"},
+		})
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *Server) handleModulePush(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST only"})
+		return
+	}
+	var req struct {
+		Module  string `json:"module"`
+		AgentID string `json:"agent_id"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+	if req.Module == "" || req.AgentID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "module and agent_id required"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "pushed", "module": req.Module, "agent": req.AgentID})
+}
+
+func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET only"})
+		return
+	}
+	agents := s.state.GetAgents()
+	type SessionResponse struct {
+		ID       string `json:"ID"`
+		Hostname string `json:"Hostname"`
+		Username string `json:"Username"`
+		OS       string `json:"OS"`
+		State    string `json:"State"`
+	}
+	var resp []SessionResponse
+	for _, a := range agents {
+		resp = append(resp, SessionResponse{
+			ID: a.ID, Hostname: a.Hostname,
+			Username: a.OS, OS: a.OS, State: "active",
+		})
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
