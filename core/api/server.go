@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -38,6 +39,7 @@ type Server struct {
 	hosts     []*types.Target
 	vulns     []*types.Vulnerability
 	decisions map[string][]*types.Decision
+	port     int
 }
 
 // New creates a new API server connected to the orchestrator.
@@ -108,6 +110,7 @@ func NewWithState(cfg *config.Config, state *appstate.AppState) (*Server, error)
 
 func (s *Server) registerRoutes() {
 	mux := http.NewServeMux()
+	s.mux = mux
 
 	// CORS middleware wrapper
 	handler := corsMiddleware(mux)
@@ -162,13 +165,33 @@ func (s *Server) registerRoutes() {
 
 // Start begins listening on the configured port.
 func (s *Server) Start() error {
-	addr := fmt.Sprintf(":%d", 8445)
+	port := s.port
+	if port == 0 {
+		port = 9090
+	}
+	addr := fmt.Sprintf(":%d", port)
 	s.srv.Addr = addr
 
 	s.log.Infof("API server starting on %s", addr)
 	s.log.Infof("WebSocket endpoint: ws://localhost%s/ws", addr)
 
 	return s.srv.ListenAndServe()
+}
+
+// SetPort overrides the default port.
+func (s *Server) SetPort(port int) {
+	s.port = port
+}
+
+// ServeStatic serves a directory of static files for the dashboard.
+func (s *Server) ServeStatic(dir string) {
+	if _, err := os.Stat(dir); err != nil {
+		s.log.Warnf("Static dir not found: %s", dir)
+		return
+	}
+	fs := http.FileServer(http.Dir(dir))
+	s.mux.Handle("/", fs)
+	s.log.Infof("Serving static files from %s", dir)
 }
 
 // Shutdown gracefully stops the server.

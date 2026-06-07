@@ -49,9 +49,9 @@ func (c *Console) Run() error {
 	c.running = true
 
 	for c.running {
-		prompt := "x404x"
+		prompt := colorNeon + "x404x" + colorReset
 		if c.context != nil && c.context.Name != "" {
-			prompt = fmt.Sprintf("x404x (%s)", c.context.Name)
+			prompt = colorNeon + "x404x" + colorReset + colorGray + fmt.Sprintf("(%s)", c.context.Name) + colorReset
 		}
 		fmt.Printf("\n%s > ", prompt)
 
@@ -76,8 +76,9 @@ func (c *Console) printBanner() {
  ██╔██╗  ╚════██║ ██║   ██║ ╚════██║  ██╔██╗
 ██╔╝ ██╗     ██╔╝ ╚██████╔╝     ██╔╝ ██╔╝ ██╗
 ╚═╝  ╚═╝     ╚═╝   ╚═════╝      ╚═╝  ╚═╝  ╚═╝` + colorReset)
-	fmt.Println(colorDim + "     X404X — Autonomous Red Team Platform v1.0" + colorReset)
-	fmt.Println(colorDim + `     Rafael Gálvez | Cisco NetAcad | TFG Cybersecurity` + colorReset)
+	fmt.Println(colorDim + "     X404X — Autonomous Red Team Platform v3.2" + colorReset)
+	fmt.Println(colorDim + "     162 modules | 7 kill chain phases | AI-powered" + colorReset)
+	fmt.Println(colorPurple + "     Dispatcher wired: Orchestrator → Agent → C2 → Modules → Bridge" + colorReset)
 	fmt.Println()
 	fmt.Println(colorDim + `Type "help" for available commands.` + colorReset)
 }

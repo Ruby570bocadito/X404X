@@ -17,7 +17,11 @@ func startDashboard(cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Create shared state
+	port := cfg.Server.Port
+	if port == 0 {
+		port = 9090
+	}
+
 	state, err := appstate.New(cfg)
 	if err != nil {
 		return fmt.Errorf("creating state: %w", err)
@@ -29,46 +33,47 @@ func startDashboard(cfg *config.Config) error {
 	}
 	defer state.Stop()
 
-	// Connect Python bridge if available
 	bridgeScript := "modules/bridge/bridge.py"
+	moduleCount := 0
 	if _, err := os.Stat(bridgeScript); err == nil {
 		if err := state.Bridge.StartBridge(ctx, bridgeScript); err != nil {
-			fmt.Printf("[!] Python bridge not available: %v (modules will use offline fallback)\n", err)
+			fmt.Printf("[!] Python bridge: %v\n", err)
 		} else {
-			fmt.Println("[+] Python bridge connected (9 modules)")
+			moduleCount = len(state.GetModules())
+			fmt.Printf("[+] Python bridge connected (%d modules)\n", moduleCount)
 		}
-	} else {
-		fmt.Println("[!] Python bridge script not found — modules use offline fallback")
 	}
 
-	// Create API server with orchestrator
 	apiServer, err := api.NewWithState(cfg, state)
 	if err != nil {
 		return fmt.Errorf("creating API: %w", err)
 	}
 
-	// Graceful shutdown
+	apiServer.SetPort(port)
+	apiServer.ServeStatic("core/c2/web/dist")
+
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigCh
 		fmt.Println("\n[!] Shutting down X404X...")
-		state.Stop()
 		apiServer.Shutdown(context.Background())
+		state.Stop()
 		cancel()
 		os.Exit(0)
 	}()
 
 	fmt.Println()
-	fmt.Println("  ╔════════════════════════════════════════════════════╗")
-	fmt.Println("  ║              X404X — DASHBOARD MODE               ║")
-	fmt.Println("  ╠════════════════════════════════════════════════════╣")
-	fmt.Printf("  ║  API:       http://localhost:8445                ║\n")
-	fmt.Printf("  ║  WS:        ws://localhost:8445/ws               ║\n")
-	fmt.Printf("  ║  Health:    http://localhost:8445/api/health     ║\n")
-	fmt.Printf("  ║  Dashboard: http://localhost:3000 (npm run dev)  ║\n")
-	fmt.Println("  ║  Ctrl+C to stop                                  ║")
-	fmt.Println("  ╚════════════════════════════════════════════════════╝")
+	fmt.Println("  ╔══════════════════════════════════════════════════════╗")
+	fmt.Println("  ║              X404X — DASHBOARD v3.2                 ║")
+	fmt.Println("  ╠══════════════════════════════════════════════════════╣")
+	fmt.Printf("  ║  Dashboard:  http://localhost:%d                    ║\n", port)
+	fmt.Printf("  ║  API:        http://localhost:%d/api                ║\n", port)
+	fmt.Printf("  ║  Health:     http://localhost:%d/api/health         ║\n", port)
+	fmt.Printf("  ║  WebSocket:  ws://localhost:%d/ws                   ║\n", port)
+	fmt.Printf("  ║  Módulos:    %d (Go) + 85 (Python Bridge)          ║\n", moduleCount)
+	fmt.Println("  ║  Ctrl+C to stop                                     ║")
+	fmt.Println("  ╚══════════════════════════════════════════════════════╝")
 	fmt.Println()
 
 	if err := apiServer.Start(); err != nil && err != http.ErrServerClosed {
