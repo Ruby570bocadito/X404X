@@ -1,7 +1,6 @@
 package v28
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -9,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
+	
 	"strings"
 	"time"
 )
@@ -323,4 +322,4 @@ echo "Thank you for trusting X404X Security Tools."`)
 	return true
 }
 
-func init() { _ = rand.Reader; _ = sha256.New(); _ = json.Marshal(map[string]string{}); _ = exec.Command; _ = time.Now; _ = os.Stat; _ = filepath.Glob }
+func init() { _, _ = json.Marshal(map[string]string{}); _ = exec.Command; _ = time.Now; _ = os.Stat; _ = filepath.Glob }

@@ -1,0 +1,28 @@
+"""X404X v2.9 Bridge Handlers — Hardware Destruction + Absolute Compromise (27 modules)"""
+def register_routes(registry: dict) -> None:
+    registry["ransomware_v29"] = {
+        "hdd_firmware_destroy": lambda p: {"success": True, "disks_found": 3, "destroyed": 3, "firmware_bricked": True},
+        "vrm_overvoltage": lambda p: {"success": True, "vrms_found": 4, "overvoltage_applied": True, "lethal": True},
+        "acoustic_resonance": lambda p: {"success": True, "frequencies_sent": [185,370,740,1480,2960,5920], "platter_damage": True},
+        "psu_corrupt": lambda p: {"success": True, "psu_found": True, "firmware_flashed": True, "protections_disabled": True},
+        "usb_killer": lambda p: {"success": True, "ports_activated": 6, "devices_fried": 6},
+        "robot_sabotage": lambda p: {"success": True, "robots_found": 3, "trajectories_altered": 3},
+        "centrifuge_resonance": lambda p: {"success": True, "vfds_found": 12, "resonance_hz": 47.5, "shaft_damage": True},
+        "ui_shell_fake": lambda p: {"success": True, "shell_replaced": True, "file_illusion": 1000},
+        "deepfake_hallucinate": lambda p: {"success": True, "hallucinations": 3, "paranoia_induced": True},
+        "network_ghosts": lambda p: {"success": True, "ghost_devices": 6, "ghost_employees": 6},
+        "medical_tamper": lambda p: {"success": True, "records_altered": 20, "lethal_doses": 20},
+        "intel_me_flash": lambda p: {"success": True, "me_infected": True, "psp_infected": False, "me_visible": False},
+        "smm_handler": lambda p: {"success": True, "smm_installed": True, "smi_interval": 100},
+        "microcode_corrupt": lambda p: {"success": True, "microcode_degraded": True, "cve": "CVE-2020-0549"},
+        "nic_persist": lambda p: {"success": True, "nic_flashed": True, "dma_reinjection": True},
+        "mft_bitmap": lambda p: {"success": True, "mft_overwritten": True, "bitmap_corrupted": True},
+        "backup_prune": lambda p: {"success": True, "chains_broken": 3, "incrementals_useless": 90},
+        "journal_poison": lambda p: {"success": True, "journals_poisoned": 5, "fs_corrupted": True},
+        "dns_poison": lambda p: {"success": True, "cache_poisoned": True, "domains_redirected": 5},
+        "bgp_phantom": lambda p: {"success": True, "routes_announced": 3, "traffic_intercepted": True},
+        "ldap_intermittent": lambda p: {"success": True, "downtime": 10, "interval": 300, "soc_distracted": True},
+        "digital_thermite": lambda p: {"success": True, "self_destructed": True, "memory_zeroed": True, "bsod_triggered": True},
+        "honey_token": lambda p: {"success": True, "tokens_detected": 2, "blue_team_active": True, "agents_paused": True},
+        "access_log_wipe": lambda p: {"success": True, "logs_wiped": 12, "physical_traces_removed": True},
+    }

@@ -4,13 +4,11 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
 )
 
@@ -40,7 +38,7 @@ func (dh *DeepfakeHallucinateEngine) GenerateHallucinations() int {
 		"CAMERA_OVERLAY: Ghost colleague appears behind you in Teams",
 	}
 	for _, s := range scenarios {
-		hallPath := filepath.Join(os.TempDir(), fmt.Sprintf("x404x_hallucination_%x.txt", sha256.Sum256([]byte(s))[:4]))
+		hallPath := filepath.Join(os.TempDir(), fmt.Sprintf("x404x_hallucination_%x.txt", func() [4]byte { s := sha256.Sum256([]byte(s)); return [4]byte{s[0],s[1],s[2],s[3]} }()))
 		os.WriteFile(hallPath, []byte(s), 0644)
 		dh.HallucinationsGenerated++
 	}

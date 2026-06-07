@@ -1,15 +1,12 @@
 package ransomware
 
 import (
-	// "bufio"
-	// "fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
-	// "time"
 )
 
 type RegexEngine struct {

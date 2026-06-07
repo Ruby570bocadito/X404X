@@ -1,7 +1,6 @@
 package v29
 
 import (
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -149,4 +148,4 @@ func (cr *CentrifugeResonanceEngine) TriggerResonance() bool {
 	return true
 }
 
-func init() { _ = rand.Reader; _ = json.Marshal(map[string]string{}); _ = exec.Command; _ = time.Now }
+func init() { json.Marshal(map[string]string{}); _ = exec.Command; _ = time.Now }

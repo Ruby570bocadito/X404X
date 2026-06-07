@@ -2,7 +2,6 @@ package ransomware
 
 import (
 	"crypto/rand"
-	// "crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
