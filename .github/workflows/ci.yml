@@ -1,28 +1,109 @@
 name: X404X CI/CD
 on: [push, pull_request]
+
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          args: ./core/... ./cmd/... ./internal/... ./shared/...
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Run ruff
+        run: ruff check modules/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Run Go tests
+        run: go test ./core/... ./shared/... -v -cover
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Python tests
+        run: pytest modules/bridge/tests/ plugins/worm/tests/ -v
+
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with: { submodules: recursive }
+        with:
+          submodules: recursive
+
       - uses: actions/setup-go@v5
-        with: { go-version: '1.25' }
-      - uses: actions/setup-node@v4
-        with: { node-version: '22' }
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.14' }
-      - name: Build Go binary
-        run: go work sync && go build ./cmd/x404x/ && ls -la x404x
-      - name: Run integration tests
-        run: cd tests && bash integration_test.sh
-      - name: Build Dashboard
-        run: cd core/c2/web && npm install && npm run build
-      - name: Run Python bridge tests
-        run: python3 -m pytest modules/bridge/tests/ -v 2>/dev/null || echo "No bridge tests yet"
-      - name: Security scan
-        uses: github/codeql-action/analyze@v3
-        with: { languages: 'go,python' }
-      - name: Upload binary
+        with:
+          go-version: "1.22"
+
+      - name: Build linux/amd64
+        run: GOOS=linux GOARCH=amd64 go build -o x404x-linux-amd64 ./cmd/x404x/
+
+      - name: Build linux/arm64
+        run: GOOS=linux GOARCH=arm64 go build -o x404x-linux-arm64 ./cmd/x404x/
+
+      - name: Build windows/amd64
+        run: GOOS=windows GOARCH=amd64 go build -o x404x-windows-amd64.exe ./cmd/x404x/
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
-        with: { name: x404x-binary, path: x404x }
+        with:
+          name: x404x-binaries
+          path: |
+            x404x-linux-amd64
+            x404x-linux-arm64
+            x404x-windows-amd64.exe
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt

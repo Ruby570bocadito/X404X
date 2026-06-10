@@ -72,8 +72,30 @@ safety:
   max_infections: 1000
   no_persistence: true
 
+grpc_tls:
+  enabled: false
+  cert_file: ""
+  key_file: ""
+  ca_file: ""
+  mtls: false
+
+rate_limit:
+  enabled: true
+  requests_per_minute: 100
+  cleanup_interval_seconds: 10
+
+notifications:
+  enabled: false
+  slack_webhook: ""
+  discord_webhook: ""
+  telegram_bot_token: ""
+  telegram_chat_id: ""
+  events: ["campaign_started", "campaign_completed", "agent_detected", "blue_team_alert"]
+
 dashboard:
   enabled: true
   port: 3000
   dev_mode: false
   auth_token: ""
+  jwt_secret: ""
+  jwt_expiry_hours: 24

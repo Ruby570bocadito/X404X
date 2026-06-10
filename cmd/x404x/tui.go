@@ -8,8 +8,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/ruby570bocadito/x404x/core/appstate"
-	"github.com/ruby570bocadito/x404x/shared/types"
+	"github.com/ruby570bocadito/x404x/internal/appstate"
+	"github.com/ruby570bocadito/x404x/pkg/shared/types"
 )
 
 var (

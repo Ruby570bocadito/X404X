@@ -1,12 +1,16 @@
 module github.com/ruby570bocadito/x404x
 
-go 1.22
+go 1.24
 
 require (
 	github.com/charmbracelet/bubbletea v1.2.4
 	github.com/charmbracelet/lipgloss v1.0.0
-	github.com/ruby570bocadito/x404x/shared/config v0.0.0
-	github.com/ruby570bocadito/x404x/shared/logger v0.0.0
+	github.com/ruby570bocadito/x404x/internal/agent v0.0.0
+	github.com/ruby570bocadito/x404x/internal/api v0.0.0
+	github.com/ruby570bocadito/x404x/internal/appstate v0.0.0
+	github.com/ruby570bocadito/x404x/pkg/shared/config v0.0.0
+	github.com/ruby570bocadito/x404x/pkg/shared/logger v0.0.0
+	github.com/ruby570bocadito/x404x/pkg/shared/types v0.0.0
 	github.com/spf13/cobra v1.8.1
 )
 
@@ -35,8 +39,11 @@ require (
 )
 
 replace (
-	github.com/ruby570bocadito/x404x/core/orchestrator => ../../core/orchestrator
-	github.com/ruby570bocadito/x404x/shared/config => ../../shared/config
-	github.com/ruby570bocadito/x404x/shared/logger => ../../shared/logger
-	github.com/ruby570bocadito/x404x/shared/types => ../../shared/types
+	github.com/ruby570bocadito/x404x/internal/agent => ../../core/agent
+	github.com/ruby570bocadito/x404x/internal/api => ../../core/api
+	github.com/ruby570bocadito/x404x/internal/appstate => ../../core/appstate
+	github.com/ruby570bocadito/x404x/internal/orchestrator => ../../core/orchestrator
+	github.com/ruby570bocadito/x404x/pkg/shared/config => ../../shared/config
+	github.com/ruby570bocadito/x404x/pkg/shared/logger => ../../shared/logger
+	github.com/ruby570bocadito/x404x/pkg/shared/types => ../../shared/types
 )

@@ -3,9 +3,10 @@ package defense
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
+	"os/exec"
+	"runtime"
+	"strings"
 )
 
 type BlueForgeEngine struct {
@@ -61,10 +62,11 @@ func (bf *BlueForgeEngine) MarkUsed(techniqueID string) {
 }
 
 func (bf *BlueForgeEngine) SimulateDetection() {
-	rand.Seed(time.Now().UnixNano())
+	edrProcesses := bf.detectEDRProcesses()
+
 	for i := range bf.Techniques {
 		if bf.Techniques[i].Used {
-			detected := rand.Float64() < 0.15
+			detected := len(edrProcesses) > 0
 			bf.Techniques[i].Detected = detected
 			if detected {
 				bf.Detected = append(bf.Detected, bf.Techniques[i].ID)
@@ -75,12 +77,57 @@ func (bf *BlueForgeEngine) SimulateDetection() {
 	}
 	usedCount := 0
 	for _, t := range bf.Techniques {
-		if t.Used { usedCount++ }
+		if t.Used {
+			usedCount++
+		}
 	}
 	if usedCount > 0 {
 		bf.CoveragePct = float64(len(bf.Undetected)) / float64(usedCount) * 100
 	}
 	bf.Score = bf.CoveragePct
+}
+
+func (bf *BlueForgeEngine) detectEDRProcesses() []string {
+	var detected []string
+
+	var cmd *exec.Cmd
+	var edrNames []string
+
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("tasklist")
+		edrNames = []string{
+			"MsSense.exe", "CSFalconService.exe", "SentinelAgent.exe",
+			"SentinelServiceHost.exe", "CylanceSvc.exe", "cb.exe",
+			"CbDefense.exe", "RepMgr.exe", "xagt.exe", "TaniumClient.exe",
+			"SophosAgent.exe", "WRSA.exe", "ekrn.exe", "MBAMService.exe",
+			"WinDefend", "MsMpEng.exe",
+		}
+	} else {
+		cmd = exec.Command("ps", "aux")
+		edrNames = []string{
+			"wazuh-agentd", "osqueryd", "falco", "auditbeat", "aide",
+			"tripwire", "crowdstrike", "sentinelone", "elastic-endpoint",
+			"falcon-sensor", "cbagentd", "cylancesvc", "taniumclient",
+		}
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		return detected
+	}
+
+	processOutput := strings.ToLower(string(output))
+	for _, edr := range edrNames {
+		if strings.Contains(processOutput, strings.ToLower(edr)) {
+			detected = append(detected, edr)
+		}
+	}
+
+	return detected
+}
+
+func (bf *BlueForgeEngine) DetectedEDRs() []string {
+	return bf.detectEDRProcesses()
 }
 
 func (bf *BlueForgeEngine) GenerateReport() string {

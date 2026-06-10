@@ -15,8 +15,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ruby570bocadito/x404x/core/appstate"
-	"github.com/ruby570bocadito/x404x/shared/config"
+	"github.com/ruby570bocadito/x404x/internal/appstate"
+	"github.com/ruby570bocadito/x404x/pkg/shared/config"
 )
 
 var globalState *appstate.AppState

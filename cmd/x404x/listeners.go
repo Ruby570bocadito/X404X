@@ -3,8 +3,25 @@ package main
 import (
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/spf13/cobra"
+)
+
+type ActiveListener struct {
+	ID       int
+	Type     string
+	Host     string
+	Port     int
+	Status   string
+	Protocol string
+	Listener net.Listener
+}
+
+var (
+	activeListeners   []*ActiveListener
+	listenersMu       sync.Mutex
+	listenerIDCounter int
 )
 
 func listenersCmd() *cobra.Command {
@@ -12,10 +29,11 @@ func listenersCmd() *cobra.Command {
 		Use:   "listeners",
 		Short: "Manage C2 transport listeners",
 		Long: `Manage C2 listeners for agent communication.
-Supports: HTTP, HTTPS, DNS, ICMP, SMB, WebSocket, TCP.
+Supports: TCP, HTTP, HTTPS, DNS, ICMP, SMB, WebSocket, DoH.
 
 Examples:
   x404x listeners list
+  x404x listeners add --type tcp --port 8443
   x404x listeners add --type https --port 443 --cert cert.pem --key key.pem
   x404x listeners remove 1
   x404x listeners start 1`,
@@ -25,15 +43,35 @@ Examples:
 		Use:   "list",
 		Short: "List active listeners",
 		Run: func(cmd *cobra.Command, args []string) {
+			listenersMu.Lock()
+			defer listenersMu.Unlock()
+
 			fmt.Println()
+			if len(activeListeners) == 0 {
+				fmt.Println("  No active listeners.")
+				fmt.Println()
+				fmt.Println("  Available transports:")
+				fmt.Println("    tcp, http, https, dns, icmp, smb, ws, doh")
+				fmt.Println()
+				fmt.Println("  Add one: x404x listeners add --type tcp --port 8443")
+				return
+			}
+
 			fmt.Println("Active Listeners:")
-			fmt.Println("──────────────────────────────────────────────────────────────")
-			fmt.Printf("  #  Type      Address           Status    Agents  Protocol\n")
-			fmt.Printf("  ── ────────  ────────────────  ────────  ──────  ────────\n")
-			fmt.Printf("  1  TCP       %s:8443    active   5       gRPC+XChaCha20\n", getLocalIP())
+			fmt.Println("--------------------------------------------------------------")
+			fmt.Printf("  #  Type       Address              Status    Agents  Proto\n")
+			fmt.Printf("  -- ---------  -------------------  --------  ------  -----\n")
+			for i, l := range activeListeners {
+				agentCount := 0
+				state := GetOrCreateState()
+				if state != nil {
+					agentCount = len(state.GetAgents())
+				}
+				fmt.Printf("  %d  %-9s  %-19s  %-8s  %-6d  gRPC+XChaCha20\n",
+					i+1, l.Type, fmt.Sprintf("%s:%d", l.Host, l.Port),
+					l.Status, agentCount)
+			}
 			fmt.Println()
-			fmt.Println("Available transports (Pulse-C2):")
-			fmt.Println("  http, https, dns, icmp, smb, websocket, tcp, doh")
 		},
 	})
 
@@ -44,36 +82,60 @@ Examples:
 			ltype, _ := cmd.Flags().GetString("type")
 			port, _ := cmd.Flags().GetInt("port")
 			host, _ := cmd.Flags().GetString("host")
-			cert, _ := cmd.Flags().GetString("cert")
 
 			if ltype == "" {
-				return fmt.Errorf("--type is required (http, https, dns, icmp, smb, tcp, ws, doh)")
+				return fmt.Errorf("--type is required (tcp, http, https, dns, icmp, smb, ws, doh)")
+			}
+			if port == 0 {
+				switch ltype {
+				case "tcp":
+					port = 8443
+				case "http":
+					port = 8080
+				case "https":
+					port = 443
+				case "dns":
+					port = 53
+				default:
+					port = 8443
+				}
 			}
 
+			listenersMu.Lock()
+			defer listenersMu.Unlock()
+
+			listenerIDCounter++
+			l := &ActiveListener{
+				ID:       listenerIDCounter,
+				Type:     ltype,
+				Host:     host,
+				Port:     port,
+				Status:   "stopped",
+				Protocol: "gRPC+XChaCha20",
+			}
+
+			// Try to actually bind the port
 			addr := fmt.Sprintf("%s:%d", host, port)
-			fmt.Printf("[+] Listener added: %s %s", ltype, addr)
-			if cert != "" {
-				fmt.Printf(" (mTLS: %s)", cert)
-			}
-			fmt.Println()
+			var ln net.Listener
+			var err error
 
-			switch ltype {
-			case "https":
-				fmt.Println("[*] HTTPS listener: X25519 key exchange + XChaCha20 session")
-				fmt.Println("[*] mTLS: client certificate authentication enabled")
-			case "dns":
-				fmt.Println("[*] DNS covert channel: TXT record beaconing")
-				fmt.Println("[*] Configurable polling interval for stealth")
-			case "icmp":
-				fmt.Println("[*] ICMP tunnel: bi-directional C2 over raw ICMP Echo")
-				fmt.Println("[*] Requires root/cap_net_raw on agent side")
-			case "doh":
-				fmt.Println("[*] DNS-over-HTTPS: covert channel via Cloudflare/Google TXT records")
-				fmt.Println("[*] Blends with legitimate DoH traffic")
-			case "smb":
-				fmt.Println("[*] SMB named pipe listener (Windows internal networks)")
-				fmt.Println("[*] No external connectivity required")
+			if ltype == "tcp" || ltype == "http" || ltype == "https" || ltype == "ws" {
+				ln, err = net.Listen("tcp", addr)
+				if err == nil {
+					l.Listener = ln
+					l.Status = "active"
+				}
 			}
+
+			activeListeners = append(activeListeners, l)
+
+			if l.Status == "active" {
+				fmt.Printf("[+] Listener %d added and started: %s %s (%s)\n", l.ID, ltype, addr, l.Protocol)
+			} else {
+				fmt.Printf("[+] Listener %d registered: %s %s (bind: %v) — use 'start %d' to activate\n",
+					l.ID, ltype, addr, err, l.ID)
+			}
+
 			return nil
 		},
 	})
@@ -82,7 +144,22 @@ Examples:
 		Use:   "remove",
 		Short: "Remove a listener",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("[+] Listener removed")
+			listenersMu.Lock()
+			defer listenersMu.Unlock()
+
+			if len(activeListeners) == 0 {
+				fmt.Println("[-] No listeners to remove.")
+				return
+			}
+
+			// Remove the last listener if no ID specified
+			idx := len(activeListeners) - 1
+			l := activeListeners[idx]
+			if l.Listener != nil {
+				l.Listener.Close()
+			}
+			activeListeners = activeListeners[:idx]
+			fmt.Printf("[+] Listener %d removed\n", l.ID)
 		},
 	})
 
@@ -90,7 +167,33 @@ Examples:
 		Use:   "start",
 		Short: "Start a listener",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("[+] Listener started")
+			listenersMu.Lock()
+			defer listenersMu.Unlock()
+
+			targetID := 0
+			if len(args) > 0 {
+				fmt.Sscanf(args[0], "%d", &targetID)
+			}
+
+			for _, l := range activeListeners {
+				if targetID == 0 || l.ID == targetID {
+					if l.Status == "active" {
+						fmt.Printf("[i] Listener %d already active on %s:%d\n", l.ID, l.Host, l.Port)
+						return
+					}
+					addr := fmt.Sprintf("%s:%d", l.Host, l.Port)
+					ln, err := net.Listen("tcp", addr)
+					if err != nil {
+						fmt.Printf("[-] Cannot bind %s: %v\n", addr, err)
+						return
+					}
+					l.Listener = ln
+					l.Status = "active"
+					fmt.Printf("[+] Listener %d started: %s %s (%s)\n", l.ID, l.Type, addr, l.Protocol)
+					return
+				}
+			}
+			fmt.Println("[-] Listener not found. Use 'listeners list' to see IDs.")
 		},
 	})
 
@@ -98,11 +201,30 @@ Examples:
 		Use:   "stop",
 		Short: "Stop a listener",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("[+] Listener stopped")
+			listenersMu.Lock()
+			defer listenersMu.Unlock()
+
+			targetID := 0
+			if len(args) > 0 {
+				fmt.Sscanf(args[0], "%d", &targetID)
+			}
+
+			for _, l := range activeListeners {
+				if targetID == 0 || l.ID == targetID {
+					if l.Listener != nil {
+						l.Listener.Close()
+						l.Listener = nil
+					}
+					l.Status = "stopped"
+					fmt.Printf("[+] Listener %d stopped\n", l.ID)
+					return
+				}
+			}
+			fmt.Println("[-] Listener not found.")
 		},
 	})
 
-	cmd.PersistentFlags().String("type", "", "Listener type (http, https, dns, icmp, smb, tcp, ws, doh)")
+	cmd.PersistentFlags().String("type", "", "Listener type (tcp, http, https, dns, icmp, smb, ws, doh)")
 	cmd.PersistentFlags().Int("port", 0, "Listener port")
 	cmd.PersistentFlags().String("host", "0.0.0.0", "Listener host")
 	cmd.PersistentFlags().String("cert", "", "TLS certificate path")
@@ -111,11 +233,13 @@ Examples:
 	return cmd
 }
 
-func getLocalIP() string {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		return "0.0.0.0"
+func ShutdownListeners() {
+	listenersMu.Lock()
+	defer listenersMu.Unlock()
+	for _, l := range activeListeners {
+		if l.Listener != nil {
+			l.Listener.Close()
+		}
 	}
-	defer conn.Close()
-	return conn.LocalAddr().(*net.UDPAddr).IP.String()
+	activeListeners = nil
 }

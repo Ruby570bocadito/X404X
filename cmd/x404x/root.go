@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ruby570bocadito/x404x/shared/config"
-	"github.com/ruby570bocadito/x404x/shared/logger"
+	"github.com/ruby570bocadito/x404x/pkg/shared/config"
+	"github.com/ruby570bocadito/x404x/pkg/shared/logger"
 )
 
 var (

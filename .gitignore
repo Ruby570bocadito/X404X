@@ -77,5 +77,19 @@ checkpoints/
 *.onnx
 *.npz
 
+# === X404X Binary ===
+x404x
+x404x.sig
+session.txt
+
+# === Database Journal ===
+*.db-journal
+*.db-wal
+*.db-shm
+
+# === Reports ===
+reports/*.json
+!reports/.gitkeep
+
 # === OpenCode ===
 .opencode/

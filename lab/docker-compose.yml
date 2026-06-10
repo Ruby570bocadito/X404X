@@ -30,6 +30,12 @@ services:
     command: ["sleep", "infinity"]
     depends_on:
       - dashboard
+    healthcheck:
+      test: ["CMD-SHELL", "test -d /opt/x404x && test -x /opt/x404x/x404x"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   target1:
     build:
@@ -47,6 +53,12 @@ services:
     security_opt:
       - seccomp:unconfined
     command: ["sleep", "infinity"]
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 22"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   target2:
     build:
@@ -60,6 +72,12 @@ services:
     volumes:
       - target2_data:/data
     command: ["sleep", "infinity"]
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 22"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   dashboard:
     image: node:20-alpine
@@ -74,6 +92,12 @@ services:
     command: ["npx", "serve", "-l", "3000", "--no-clipboard"]
     volumes:
       - dashboard_data:/app
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   ollama:
     image: ollama/ollama:latest
@@ -89,6 +113,12 @@ services:
     environment:
       - OLLAMA_KEEP_ALIVE=24h
       - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:11434 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   lab_net:

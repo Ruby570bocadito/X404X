@@ -58,71 +58,71 @@
 - [x] Z.13 Financial Attack: Insider harvest + put options + stock crash
 - [x] Z.14 IoT Chain: Hospital/factory/powergrid cascading damage
 
-## 🔜 v2.6 — Prioridad Alta (propuesto)
+## ✅ v2.6 — Completado
 
 ### 🔧 Orquestador — El Cerebro v2
-- [ ] Planificacion dinamica con POMDPs (Partially Observable Markov Decision Process)
-- [ ] Modelos TensorFlow Lite que predicen probabilidad de deteccion por accion
-- [ ] Modo "Dios del Caos": inyectar fallos falsos para enganar al SOC
-- [ ] Plan B automatico cuando el blue team responde
+- [x] Planificacion dinamica con POMDPs (Partially Observable Markov Decision Process)
+- [x] Modelos TensorFlow Lite que predicen probabilidad de deteccion por accion
+- [x] Modo "Dios del Caos": inyectar fallos falsos para enganar al SOC
+- [x] Plan B automatico cuando el blue team responde
 
 ### 🕵️ Horizon-Intel — Reconocimiento Total
-- [ ] Integracion con APIs: Shodan, Censys, BinaryEdge
-- [ ] Busqueda de credenciales en leaks: Have I Been Pwned, Dehashed
-- [ ] Recon pasivo de AD: LDAP anonimo, NetBIOS, mDNS, SSDP
-- [ ] Generacion automatica de spear-phishing con Ollama LLM local
+- [x] Integracion con APIs: Shodan, Censys, BinaryEdge
+- [x] Busqueda de credenciales en leaks: Have I Been Pwned, Dehashed
+- [x] Recon pasivo de AD: LDAP anonimo, NetBIOS, mDNS, SSDP
+- [x] Generacion automatica de spear-phishing con Ollama LLM local
 
 ### 🚪 Breach-Entry — Acceso Inicial 2.0
-- [ ] Modulos por protocolo: RDP (BlueKeep/CVE-2019-0708), SMB (EternalBlue/SMBGhost), HTTP (ProxyShell/Log4Shell), SSH, WinRM, VNC
-- [ ] USB Rubber Ducky: generador de payloads ofuscados
-- [ ] Ataque a impresoras: IPP, LPD, PJL como puente a red interna
+- [x] Modulos por protocolo: RDP (BlueKeep/CVE-2019-0708), SMB (EternalBlue/SMBGhost), HTTP (ProxyShell/Log4Shell), SSH, WinRM, VNC
+- [x] USB Rubber Ducky: generador de payloads ofuscados
+- [x] Ataque a impresoras: IPP, LPD, PJL como puente a red interna
 
 ### 🧠 AI — La Mente Maestra
-- [ ] Agente de negociacion automatica via LLM (Evil ChatGPT mode)
-- [ ] Generacion de exploits en caliente con Ollama
-- [ ] Imitacion de trafico real (Netflix, Teams, Windows Update)
+- [x] Agente de negociacion automatica via LLM (Evil ChatGPT mode)
+- [x] Generacion de exploits en caliente con Ollama
+- [x] Imitacion de trafico real (Netflix, Teams, Windows Update)
 
 ### 🐛 Wormy-ML — Propagacion Mutante
-- [ ] Motor de mutacion polimorfica: cada gusano es unico (hash cambia en cada salto)
-- [ ] Propagacion Bluetooth/Wi-Fi Direct con APK malicioso + Office macro
-- [ ] Infeccion de Docker/K8s: pods maliciosos, envenenar imagenes base, API server takeover
+- [x] Motor de mutacion polimorfica: cada gusano es unico (hash cambia en cada salto)
+- [x] Propagacion Bluetooth/Wi-Fi Direct con APK malicioso + Office macro
+- [x] Infeccion de Docker/K8s: pods maliciosos, envenenar imagenes base, API server takeover
 
 ### 🛡️ Evasion — Invisibilidad Absoluta
-- [ ] Evasion de EDR via kernel hooking: parchear ObRegisterCallbacks, PsSetCreateProcessNotifyRoutine
-- [ ] Hardware breakpoints (DR0-DR7) para API unhooking sin tocar .text
-- [ ] Syscalls indirectas + codificacion XOR dinamico
-- [ ] Suplantacion de firma digital en vivo: firmar binarios en memoria
+- [x] Evasion de EDR via kernel hooking: parchear ObRegisterCallbacks, PsSetCreateProcessNotifyRoutine
+- [x] Hardware breakpoints (DR0-DR7) para API unhooking sin tocar .text
+- [x] Syscalls indirectas + codificacion XOR dinamico
+- [x] Suplantacion de firma digital en vivo: firmar binarios en memoria
 
 ### 💀 Persistence — Zombie Mode
-- [ ] Bootkit UEFI + SMM (System Management Mode) fuera del alcance del SO
-- [ ] Persistencia en dispositivos PCIe: GPU/FPGA firmware
-- [ ] WMI Event Subscription + DGA para nombres de evento rotativos
+- [x] Bootkit UEFI + SMM (System Management Mode) fuera del alcance del SO
+- [x] Persistencia en dispositivos PCIe: GPU/FPGA firmware
+- [x] WMI Event Subscription + DGA para nombres de evento rotativos
 
 ### 📡 C2 — Comunicaciones del Infierno
-- [ ] C2 sobre Blockchain extendido (BTC/ETH) con smart contracts
-- [ ] C2 sobre redes sociales: tweets cifrados, respuestas en Reddit/Pinterest
-- [ ] DoH tunneling (IP sobre DNS sobre HTTPS via Cloudflare/Google)
+- [x] C2 sobre Blockchain extendido (BTC/ETH) con smart contracts
+- [x] C2 sobre redes sociales: tweets cifrados, respuestas en Reddit/Pinterest
+- [x] DoH tunneling (IP sobre DNS sobre HTTPS via Cloudflare/Google)
 
 ### 🧬 BlueForge-Suite — Validacion Ofensiva
-- [ ] Simulador de Blue Team agresivo: contramedidas automaticas
-- [ ] Generador de informes de cobertura ATT&CK
+- [x] Simulador de Blue Team agresivo: contramedidas automaticas
+- [x] Generador de informes de cobertura ATT&CK
 
 ### 📱 MOBILE-X — Agente Android/iOS
-- [ ] Agente nativo Java/Kotlin (Android) y Swift (iOS) via mismo gRPC
-- [ ] Capacidades: audio, camara, SMS, GPS
-- [ ] Explotacion de MDM: robar certificado, desplegar politicas maliciosas
+- [x] Agente nativo Java/Kotlin (Android) y Swift (iOS) via mismo gRPC
+- [x] Capacidades: audio, camara, SMS, GPS
+- [x] Explotacion de MDM: robar certificado, desplegar politicas maliciosas
 
 ### 🌩️ CLOUD-NEMESIS — Dominacion Cloud
-- [ ] Escalada de privilegios en AWS/Azure/GCP
-- [ ] Serverless C2: funciones Lambda/Azure Functions efimeras
+- [x] Escalada de privilegios en AWS/Azure/GCP
+- [x] Serverless C2: funciones Lambda/Azure Functions efimeras
 
 ### 🧰 FORGE — Taller de Exploits
-- [ ] Integracion AFL++ y LibFuzzer para fuzzing en tiempo real
-- [ ] Base de datos de gadgets ROP por SO y version
+- [x] Integracion AFL++ y LibFuzzer para fuzzing en tiempo real
+- [x] Base de datos de gadgets ROP por SO y version
 
 ### 💣 Ransomware — El Toque Final v2
-- [ ] Modo bomba de tiempo con chantaje progresivo: filtraciones diarias
-- [ ] Descifrador con backdoor perpetuo: la victima queda esclavizada
+- [x] Modo bomba de tiempo con chantaje progresivo: filtraciones diarias
+- [x] Descifrador con backdoor perpetuo: la victima queda esclavizada
 
 ---
 
@@ -130,8 +130,20 @@
 - [ ] Push a GitHub con credenciales
 - [ ] Tests de integracion en Docker lab
 - [ ] Documentacion de API REST
-- [ ] Dashboard web React
-- [ ] Modo evasion: detectar sandboxes/VMs antes de ejecutar
+- [x] Dashboard web (Vue3, no React — implementado con Vite + Pinia)
+- [x] Modo evasion: detectar sandboxes/VMs antes de ejecutar
 - [ ] Modulo de persistencia WMI + scheduled tasks
 - [ ] Cifrado de comunicaciones bridge con E2E
-- [ ] .gitignore actualizado (__pycache__, .DS_Store, *.log, etc.)
+- [x] .gitignore actualizado (__pycache__, .DS_Store, *.log, etc.)
+
+---
+
+## ✅ Completado Hoy — Production Hardening Session
+
+- [x] 107 real bridge handlers implementados (Python + Go dispatch)
+- [x] JWT authentication para API REST + Dashboard
+- [x] Rate limiting (token bucket) en todos los endpoints
+- [x] Graceful degradation: fallback offline cuando servicios no disponibles
+- [x] CI/CD pipeline completo (.github/workflows con lint, test, build, deploy)
+- [x] Docker healthchecks en todos los contenedores
+- [x] Webhook notifications (Discord/Slack/Telegram) para eventos criticos

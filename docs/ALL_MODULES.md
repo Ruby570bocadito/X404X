@@ -1,6 +1,6 @@
-# X404X — Complete Module Catalog (v2.8)
+# X404X — Complete Module Catalog (v3.0)
 
-> **125 modules across 9 versions.** Autonomous Red Team Platform.
+> **154+ modules across 12 versions.** Autonomous Red Team Platform.
 > Build: 26.6MB ELF x86-64 · Go 1.25 · Python 3.14
 
 ---
@@ -132,14 +132,65 @@
 | 15* | v28/emotional_encrypt | Sentimental file encryption |
 | 16* | v28/false_redemption | Fake decryptor + permanent backdoor |
 
+## v2.9: Hardware Destruction + Stealth Arsenal (27 modules)
+
+| # | Module | Description |
+|---|--------|-------------|
+| 1 | v29/hdd_firmware_destroy | HDD firmware corruption + brick |
+| 2 | v29/vrm_overvoltage | VRM overvoltage CPU/GPU destruction |
+| 3 | v29/acoustic_resonance | Acoustic resonance HDD platters |
+| 4 | v29/psu_corrupt | PSU firmware overload |
+| 5 | v29/usb_killer | USB electrical surge attack |
+| 6 | v29/robot_sabotage | Industrial robot command injection |
+| 7 | v29/centrifuge_resonance | Centrifuge resonance (Stuxnet-class) |
+| 8 | v29/ui_shell_fake | Fake OS shell UI overlay |
+| 9 | v29/deepfake_hallucinate | AI hallucination injection in LLMs |
+| 10 | v29/network_ghosts | Ghost hosts on network segments |
+| 11 | v29/medical_tamper | Medical device calibration tamper |
+| 12 | v29/intel_me_flash | Intel ME firmware flash backdoor |
+| 13 | v29/smm_handler | SMM interrupt handler implant |
+| 14 | v29/microcode_corrupt | CPU microcode update corruption |
+| 15 | v29/nic_persist | NIC firmware persistence |
+| 16 | v29/mft_bitmap | NTFS MFT bitmap corruption |
+| 17 | v29/backup_prune | Silent backup rotation pruning |
+| 18 | v29/journal_poison | Filesystem journal poisoning |
+| 19 | v29/dns_poison | Recursive DNS cache poisoning |
+| 20 | v29/bgp_phantom | BGP phantom route injection |
+| 21 | v29/ldap_intermittent | LDAP intermittent auth failures |
+| 22 | v29/digital_thermite | Multi-layer data destruction |
+| 23 | v29/honey_token | Honey token deployment + tracking |
+| 24 | v29/access_log_wipe | Selective access log sanitization |
+| 25 | v29/tpm_unseal | TPM unseal + key extraction |
+| 26 | v29/dram_rowhammer | DRAM rowhammer bit-flip privesc |
+| 27 | v29/supply_chain_hw | Hardware supply chain interdiction |
+
+## v2.10: Endgame (2 modules)
+
+| # | Module | Description |
+|---|--------|-------------|
+| 1 | v210/apocalipsis | Full infrastructure annihilation sequence |
+| 2 | v210/phantom_evasion | Total forensic trace elimination |
+
+## v3.0: Orchestrator v3 + Platform Core (5 modules)
+
+| # | Module | Description |
+|---|--------|-------------|
+| 1 | v3/orchestrator | Orchestrator v3 with POMDP + ML pipeline |
+| 2 | v3/dispatcher | Event dispatcher with priority queues |
+| 3 | v3/registry | Dynamic module registry + hot-reload |
+| 4 | v3/spiffe | SPIFFE/SPIRE mTLS identity framework |
+| 5 | v3/fingerprint | Host fingerprint + environment profiling |
+
+---
+
 ## Deployment via Dashboard
 
-All 125 modules are available via the Vue3 Dashboard at `/api/modules`. Each module can be pushed to any connected victim agent via the dashboard UI or CLI:
+All 154+ modules are available via the Vue3 Dashboard at `/api/modules`. Each module can be pushed to any connected victim agent via the dashboard UI or CLI:
 
 ```
 x404x deploy victim01 ransomware/execute,blockz/genetic_evolve,v27/uefi_bootkit
 x404x c2 listen  # listen-only mode
-x404x modules list  # list all 125 modules
+x404x modules list  # list all 154 modules
 x404x victims list  # list registered victims
 ```
 
@@ -148,13 +199,13 @@ x404x victims list  # list registered victims
 ```
 CLI / TUI / Dashboard (Vue3)
         │
-   Orchestrator (POMDPs + Decision Engine)
+   Orchestrator v3 (POMDPs + ML + Decision Engine)
         │
    C2 Server (gRPC AgentService + C2Service)
         │
    Agent (Go binary 26.6MB)
-   ├── Module Registry (125 modules)
+   ├── Module Registry (154+ modules)
    ├── Deployment Manager (per-victim)
-   ├── Python Bridge (20+ handlers)
+   ├── Python Bridge (107 handlers)
    └── Kernel Modules (eBPF, BYOVD, SMM)
 ```

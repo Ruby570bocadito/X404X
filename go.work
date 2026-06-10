@@ -1,20 +1,25 @@
-go 1.25.0
+go 1.24
 
 use (
 	./cmd/x404x
-	./core/agent
-	./core/api
-	./core/appstate
-	./core/crypto
-	./core/orchestrator
-	./core/proto/gen/agent
-	./core/proto/gen/bridge
-	./core/proto/gen/c2
-	./core/proto/gen/common
-	./core/ransomware
+	./internal/agent
+	./internal/api
+	./internal/appstate
+	./internal/crypto
+	./internal/orchestrator
+	./internal/c2server
 	./internal/dispatch
+	./internal/ransomware
 	./internal/registry
-	./shared/config
-	./shared/logger
-	./shared/types
+	./pkg/proto/gen/agent
+	./pkg/proto/gen/bridge
+	./pkg/proto/gen/c2
+	./pkg/proto/gen/common
+	./pkg/shared/config
+	./pkg/shared/logger
+	./pkg/shared/types
+	./plugins/pulse-c2
+	./plugins/privesc
+	./plugins/kernel
+	./plugins/breach
 )

@@ -2,7 +2,7 @@ package registry
 
 import (
 	"context"
-	"github.com/ruby570bocadito/x404x/shared/types"
+	"github.com/ruby570bocadito/x404x/pkg/shared/types"
 )
 
 type ModuleFactory struct {

