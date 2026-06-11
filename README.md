@@ -65,62 +65,6 @@
 
 Built as a **Go** core with a **Python** bridge layer and **WASM** extension support, X404X integrates 45 offensive modules across 4 development phases — all compiled, tested, and ready for authorized red team engagements.
 
-<br/>
-
-```mermaid
-graph TB
-    subgraph "PHASE 1: EVASION"
-        A1[BYOVD Loader] --> A2[DKOM]
-        A2 --> A3[Anti-Reversing]
-        A3 --> A4[Anti-Forensics]
-        A4 --> A5[WER Persistence]
-        A5 --> A6[MFT Slack]
-        A6 --> A7[WFP DNS Poison]
-        A7 --> A8[Blue Pill HV]
-        A8 --> A9[LOLBin Chain]
-        A9 --> A10[Kernel DNS]
-    end
-
-    subgraph "PHASE 2: C2"
-        B1[SPIFFE mTLS] --> B2[Multi-Channel]
-        B2 --> B3[Ed25519 Signing]
-        B3 --> B4[Dashboard Ops]
-        B4 --> B5[Kyber Hybrid KEM]
-        B5 --> B6[Proto Obfuscation]
-    end
-
-    subgraph "PHASE 3: PROPAGATION"
-        C1[Ultrasound QPSK] --> C2[Powerline PLC]
-        C2 --> C3[USB ADB]
-        C3 --> C4[DNS Rebinding]
-        C4 --> C5[CI/CD Webhooks]
-        C5 --> C6[VLAN Jump]
-        C6 --> C7[QR Worm]
-        C7 --> C8[PJL Worm]
-        C8 --> C9[Chronos NTP]
-        C9 --> C10[Reflective DLL]
-        C10 --> C11[Kerberos Deleg]
-        C11 --> C12[IMDSv2 Bypass]
-    end
-
-    subgraph "PHASE 4: AI + CROSS"
-        D1[Cross-Platform Loader] --> D2[JIT Polymorphism]
-        D2 --> D3[AI FSM Orchestrator]
-        D3 --> D4[Federated Learning]
-        D4 --> D5[Autofactory Fuzzer]
-        D5 --> D6[Wazero Bridge]
-        D6 --> D7[RF Contagion]
-        D7 --> D8[EDR Test Lab]
-        D8 --> D9[Deepfake Vishing]
-    end
-
-    A10 --> B1
-    B6 --> C1
-    C12 --> D1
-```
-
-<br/>
-
 ---
 
 ## Architecture
@@ -316,32 +260,109 @@ FASE 4  ████████████████████████
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 <br/>
 
+### Prerequisites
+
 ```bash
-# ─── Clone ──────────────────────────────────────────────────
+# Required
+go >= 1.22        # Core engine (Go)
+python >= 3.11    # Bridge + handlers (Python)
+git               # Version control
+
+# Optional
+docker >= 27.0    # EDR lab + containerized deployment
+node >= 22.0      # Dashboard frontend (Vue 3)
+```
+
+### One-Click Deploy
+
+```bash
+# Full stack deployment (Linux/macOS)
+bash deploy/deploy.sh
+
+# This will:
+#  1. Install Go & Python dependencies
+#  2. Build the C2 server
+#  3. Start the Python bridge
+#  4. Launch the dashboard on port 9090
+#  5. Start the worm engine in dry-run mode
+```
+
+### Manual Setup
+
+```bash
+# 1. Clone & enter
 git clone https://github.com/Ruby570bocadito/X404X.git
 cd X404X
 
-# ─── Dependencies ────────────────────────────────────────────
+# 2. Install dependencies
 pip install -r requirements.txt
 cd internal/ransomware && go mod tidy && cd ../..
 
-# ─── Demo (dry-run — no real actions) ────────────────────────
-bash scripts/run_demo.sh
+# 3. Start the Python Bridge
+cd modules/bridge && python3 bridge.py &
+cd ../..
 
-# ─── Worm Simulation ─────────────────────────────────────────
-# Windows:  cd plugins/worm && python worm_core.py --config configs/config_simulation.yaml
-# Linux:    cd plugins/worm && python3 worm_core.py --config configs/config_simulation.yaml
-
-# ─── Dashboard ───────────────────────────────────────────────
-cd plugins/pulse-c2/src/go && go run ./cmd/dashboard -port 9090
+# 4. Build & launch C2 Dashboard
+cd plugins/pulse-c2/src/go
+go build -o x404x-dashboard ./cmd/dashboard
+./x404x-dashboard -port 9090 &
+cd ../../..
 # → Open http://localhost:9090
 
-# ─── EDR Test Lab ────────────────────────────────────────────
+# 5. Launch interactive console
+cd cmd/x404x
+go run . console
+# → Type 'help' for available commands
+```
+
+### Run Modes
+
+```bash
+# ─── Dry-Run Demo (safe — no real exploits) ─────────────
+bash scripts/run_demo.sh
+
+# ─── Worm Simulation ────────────────────────────────────
+cd plugins/worm
+# Windows
+python worm_core.py --config configs/config_simulation.yaml
+# Linux/macOS
+python3 worm_core.py --config configs/config_simulation.yaml
+
+# ─── Live Campaign (⚠️ authorized targets only) ──────────
+cd cmd/x404x
+go run . campaign start --name "Operation Nightfall" --targets targets.json
+
+# ─── EDR Test Lab ────────────────────────────────────────
 docker-compose -f lab/docker-compose.edr.yml up -d
+# → Windows Server 2022 + Defender ATP + ELK + Sysmon
+# → Automated evasion test suite runs on boot
+```
+
+### Console Commands
+
+```bash
+# Inside the X404X interactive console:
+help              # List all commands
+modules           # Show available modules (45 total)
+campaign start    # Start a new campaign (FSM-driven)
+recon             # Run reconnaissance module
+exploit           # Execute exploit chain
+privesc           # Privilege escalation
+persist           # Install persistence mechanisms
+lateral           # Lateral movement
+exfil             # Data exfiltration
+dashboard         # Open dashboard URL
+deploy            # One-click full deploy
+status            # Show campaign status
+killchain         # Display kill chain progress
+ransomware        # Launch ransomware engine
+propagate         # Start worm propagation
+listeners         # List active C2 listeners
+webhook           # Configure webhook notifications
 ```
 
 <br/>
