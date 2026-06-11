@@ -1,21 +1,18 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://readme-typing-svg.herokuapp.com?font=Share+Tech+Mono&weight=600&size=64&duration=1&pause=1&color=FF3366&center=true&vCenter=true&repeat=false&width=800&lines=%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88" />
-    <img src="https://readme-typing-svg.herokuapp.com?font=Share+Tech+Mono&weight=600&size=48&duration=1&pause=1&color=FF3366&center=true&vCenter=true&repeat=false&width=800&lines=X+4+0+4+X" alt="X404X"/>
-  </picture>
+  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=700&size=48&duration=2000&pause=500&color=ff3366&center=true&vCenter=true&width=800&lines=X+4+0+4+X" alt="X404X" />
 </p>
 
 <p align="center">
-  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=500&size=16&duration=2400&pause=800&color=00d4ff&center=true&vCenter=true&width=720&lines=%C2%BB%20Autonomous%20Red%20Team%20Platform%20%C2%AB;%C2%BB%20Full-spectrum%20offensive%20operations%20%C2%AB;%C2%BB%20From%20recon%20to%20post-exploitation%20%C2%AB;%C2%BB%20Go%20%E2%80%A2%20Python%20%E2%80%A2%2045%20M%C3%B3dulos%20%C2%AB" />
+  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=500&size=16&duration=2400&pause=800&color=00d4ff&center=true&vCenter=true&width=720&lines=%C2%BB+Autonomous+Red+Team+Platform+%C2%AB;%C2%BB+Full-spectrum+offensive+operations+%C2%AB;%C2%BB+From+recon+to+post-exploitation+%C2%AB;%C2%BB+Go+%E2%80%A2+Python+%E2%80%A2+45+M%C3%B3dulos+%C2%AB" />
 </p>
 
 <br/>
 
 <p align="center">
-  <a href="#-architecture"><img src="https://img.shields.io/badge/%E2%96%BA_ARCHITECTURE-ff3366?style=for-the-badge&logo=diagramsdotnet&logoColor=white&labelColor=1a1a2e" /></a>
-  <a href="#-modules"><img src="https://img.shields.io/badge/%E2%96%BA_MODULES-00d4ff?style=for-the-badge&logo=target&logoColor=white&labelColor=1a1a2e" /></a>
-  <a href="#-quick-start"><img src="https://img.shields.io/badge/%E2%96%BA_QUICKSTART-00ff88?style=for-the-badge&logo=rocket&logoColor=white&labelColor=1a1a2e" /></a>
-  <a href="#-license"><img src="https://img.shields.io/badge/%E2%96%BA_LICENSE-ff6b35?style=for-the-badge&logo=bookstack&logoColor=white&labelColor=1a1a2e" /></a>
+  <a href="#-what-is-x404x"><img src="https://img.shields.io/badge/About-ff3366?style=for-the-badge&logo=readthedocs&logoColor=white&labelColor=1a1a2e" /></a>
+  <a href="#-architecture"><img src="https://img.shields.io/badge/Architecture-00d4ff?style=for-the-badge&logo=diagramsdotnet&logoColor=white&labelColor=1a1a2e" /></a>
+  <a href="#-modules"><img src="https://img.shields.io/badge/Modules-00ff88?style=for-the-badge&logo=target&logoColor=white&labelColor=1a1a2e" /></a>
+  <a href="#-quick-start"><img src="https://img.shields.io/badge/QuickStart-ff6b35?style=for-the-badge&logo=rocket&logoColor=white&labelColor=1a1a2e" /></a>
 </p>
 
 <br/>
@@ -24,48 +21,12 @@
 
 <br/>
 
-```
-     ▄   ██   ▄▄█▀▀   ▄   ██
-     █   ██  ▄█▀▀██   █   ██           THE AUTONOMOUS
-    ██▄▄▄▄██▄██▄▄███  ██▄▄██           RED TEAM PLATFORM
-    █▀▀▀▀██▀ ▀▀▀ ▀▀   █▀▀██           45 MODULES · 12K+ LOC
-```
-
-<br/>
-
-<table>
-<tr>
-<td width="25%" align="center">
-  <img src="https://img.icons8.com/fluency/96/000000/hacker.png" width="64" />
-  <br/><b>KERNEL<br/>EVASION</b>
-  <br/><sub>BYOVD · DKOM · Blue Pill</sub>
-</td>
-<td width="25%" align="center">
-  <img src="https://img.icons8.com/fluency/96/000000/key.png" width="64" />
-  <br/><b>POST-QUANTUM<br/>C2</b>
-  <br/><sub>Kyber-1024 · Ed25519 · SPIFFE</sub>
-</td>
-<td width="25%" align="center">
-  <img src="https://img.icons8.com/fluency/96/000000/virus.png" width="64" />
-  <br/><b>EXOTIC<br/>PROPAGATION</b>
-  <br/><sub>Ultrasound · PLC · QR · PJL</sub>
-</td>
-<td width="25%" align="center">
-  <img src="https://img.icons8.com/fluency/96/000000/brain.png" width="64" />
-  <br/><b>AI<br/>ORCHESTRATOR</b>
-  <br/><sub>Q-Learning · FedAvg · Deepfake</sub>
-</td>
-</tr>
-</table>
-
-<br/>
-
 <p align="center">
-  <a href="https://github.com/Ruby570bocadito/X404X"><img src="https://img.shields.io/badge/GO-v1.22+-00ADD8?style=flat-square&logo=go&logoColor=white" /></a>
-  <a href="https://github.com/Ruby570bocadito/X404X"><img src="https://img.shields.io/badge/PYTHON-v3.11+-3776AB?style=flat-square&logo=python&logoColor=white" /></a>
-  <a href="https://github.com/Ruby570bocadito/X404X"><img src="https://img.shields.io/badge/MODULES-45-ff3366?style=flat-square&logo=target&logoColor=white" /></a>
-  <a href="https://github.com/Ruby570bocadito/X404X"><img src="https://img.shields.io/badge/LINES-12,685-00d4ff?style=flat-square&logo=codecrafters&logoColor=white" /></a>
-  <a href="https://github.com/Ruby570bocadito/X404X"><img src="https://img.shields.io/badge/PHASES-4-00ff88?style=flat-square&logo=checkmarx&logoColor=white" /></a>
+  <img src="https://img.shields.io/badge/Go-v1.22+-00ADD8?style=flat-square&logo=go&logoColor=white" />
+  <img src="https://img.shields.io/badge/Python-v3.11+-3776AB?style=flat-square&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Modules-45-ff3366?style=flat-square&logo=target&logoColor=white" />
+  <img src="https://img.shields.io/badge/Lines-12,685-00d4ff?style=flat-square&logo=codecrafters&logoColor=white" />
+  <img src="https://img.shields.io/badge/Phases-4-00ff88?style=flat-square&logo=checkmarx&logoColor=white" />
 </p>
 
 <p align="center">
@@ -73,7 +34,30 @@
   <a href="https://github.com/Ruby570bocadito/X404X/network"><img src="https://img.shields.io/github/forks/Ruby570bocadito/X404X?style=social&logo=github" /></a>
 </p>
 
----
+<br/>
+
+<table align="center">
+<tr>
+<td align="center" width="25%">
+  <h3>🛡️ KERNEL<br/>EVASION</h3>
+  <sub>BYOVD · DKOM · Blue Pill</sub>
+</td>
+<td align="center" width="25%">
+  <h3>🔐 POST-QUANTUM<br/>C2</h3>
+  <sub>Kyber-1024 · Ed25519 · SPIFFE</sub>
+</td>
+<td align="center" width="25%">
+  <h3>🦠 EXOTIC<br/>PROPAGATION</h3>
+  <sub>Ultrasound · PLC · QR · PJL</sub>
+</td>
+<td align="center" width="25%">
+  <h3>🧠 AI<br/>ORCHESTRATOR</h3>
+  <sub>Q-Learning · FedAvg · Deepfake</sub>
+</td>
+</tr>
+</table>
+
+<br/>
 
 ## What is X404X?
 
