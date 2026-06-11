@@ -3,7 +3,6 @@ package orchestrator
 import (
 	"context"
 	"fmt"
-	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -60,7 +59,12 @@ func (de *DecisionEngine) Evaluate(ctx context.Context, campaign *types.Campaign
 	}
 
 	de.log.Infof("decision engine produced %d ranked decisions (top=%.2f)", len(fused),
-		func() float64 { if len(fused) > 0 { return fused[0].Confidence }; return 0 }())
+		func() float64 {
+			if len(fused) > 0 {
+				return fused[0].Confidence
+			}
+			return 0
+		}())
 
 	return fused, nil
 }
@@ -68,7 +72,14 @@ func (de *DecisionEngine) Evaluate(ctx context.Context, campaign *types.Campaign
 func (de *DecisionEngine) applyProfileModifiers(d *types.Decision, profile string) {
 	switch profile {
 	case "stealth":
-		d.Confidence *= 1.0 // prioritize stealthier options
+		// Penalize noisy, high-detection-risk tactics to push them down the ranking.
+		// Recon and C2 are fine; exploitation and lateral movement get a hit.
+		switch d.Tactic {
+		case "Initial Access", "Execution", "Lateral Movement", "Privilege Escalation":
+			d.Confidence *= 0.70 // deprioritize loud tactics
+		case "Reconnaissance", "Command and Control", "Collection":
+			d.Confidence *= 1.10 // favor quiet information gathering
+		}
 	case "aggressive":
 		d.Confidence *= 1.1 // favor higher-risk, faster results
 	case "audit":
@@ -174,14 +185,14 @@ func (re *RulesEngine) Evaluate(ctx context.Context, campaign *types.Campaign) [
 	if len(nodes) == 0 {
 		re.log.Debug("rules engine: no nodes in world graph, returning base recon rule")
 		d := &types.Decision{
-			ID:         generateID("rule"),
-			CampaignID: campaign.ID,
-			Tactic:     "Reconnaissance",
-			Technique:  "Network Scan",
-			MITREID:    "T1046",
-			Confidence: 0.95,
-			Reasoning:  "No hosts discovered yet. Run network scan to populate the world graph.",
-			Source:     "rules",
+			ID:               generateID("rule"),
+			CampaignID:       campaign.ID,
+			Tactic:           "Reconnaissance",
+			Technique:        "Network Scan",
+			MITREID:          "T1046",
+			Confidence:       0.95,
+			Reasoning:        "No hosts discovered yet. Run network scan to populate the world graph.",
+			Source:           "rules",
 			RequiresApproval: !campaign.AutoApproval,
 		}
 		return []*types.Decision{d}
@@ -215,15 +226,15 @@ func (re *RulesEngine) matchRules(decisions *[]*types.Decision, campaign *types.
 		}
 
 		d := &types.Decision{
-			ID:         generateID("rule"),
-			CampaignID: campaign.ID,
-			Tactic:     rule.Tactic,
-			Technique:  rule.Technique,
-			MITREID:    rule.MITREID,
-			Target:     node.IP,
-			Confidence: rule.Confidence,
-			Reasoning:  fmt.Sprintf("Rule match: %s on %s:%d — %s", svc.Name, node.IP, svc.Port, rule.Description),
-			Source:     "rules",
+			ID:               generateID("rule"),
+			CampaignID:       campaign.ID,
+			Tactic:           rule.Tactic,
+			Technique:        rule.Technique,
+			MITREID:          rule.MITREID,
+			Target:           node.IP,
+			Confidence:       rule.Confidence,
+			Reasoning:        fmt.Sprintf("Rule match: %s on %s:%d — %s", svc.Name, node.IP, svc.Port, rule.Description),
+			Source:           "rules",
 			RequiresApproval: rule.Risk == types.RiskHigh || rule.Risk == types.RiskDanger,
 		}
 		*decisions = append(*decisions, d)
@@ -304,14 +315,14 @@ func (ap *AStarPlanner) Evaluate(ctx context.Context, campaign *types.Campaign) 
 				cost := float64(len(neighbors) + 1)
 
 				decision := &types.Decision{
-					ID:         generateID("path"),
-					CampaignID: campaign.ID,
-					Tactic:     "Lateral Movement",
-					Technique:  edge.Type,
-					Target:     neighborIP,
-					Confidence: edge.Success * (1.0 + assetValue/cost),
-					Reasoning:  fmt.Sprintf("A* path: %s → %s via %s (hops=%d, success=%.2f)", node.IP, neighborIP, edge.Type, len(neighbors), edge.Success),
-					Source:     "planner",
+					ID:               generateID("path"),
+					CampaignID:       campaign.ID,
+					Tactic:           "Lateral Movement",
+					Technique:        edge.Type,
+					Target:           neighborIP,
+					Confidence:       edge.Success * (1.0 + assetValue/cost),
+					Reasoning:        fmt.Sprintf("A* path: %s → %s via %s (hops=%d, success=%.2f)", node.IP, neighborIP, edge.Type, len(neighbors), edge.Success),
+					Source:           "planner",
 					RequiresApproval: edge.Success < 0.7,
 				}
 
@@ -415,7 +426,7 @@ func (ae *AIEngine) offlineHeuristic(campaign *types.Campaign) []*types.Decision
 			ID: generateID("ai"), CampaignID: campaign.ID,
 			Tactic: "Reconnaissance", Technique: "Network Service Discovery", MITREID: "T1046",
 			Confidence: 0.92, Source: "ai",
-			Reasoning: "No hosts in world graph. Begin network discovery via Horizon-Intel scan.",
+			Reasoning:        "No hosts in world graph. Begin network discovery via Horizon-Intel scan.",
 			RequiresApproval: !campaign.AutoApproval,
 		})
 
@@ -473,7 +484,7 @@ func (ae *AIEngine) offlineHeuristic(campaign *types.Campaign) []*types.Decision
 					ID: generateID("ai"), CampaignID: campaign.ID,
 					Tactic: "Persistence", Technique: "Kernel Rootkit", MITREID: "T1547.006",
 					Target: node.IP, Confidence: 0.90, Source: "ai",
-					Reasoning: fmt.Sprintf("Install Vault-Kernel on %s for kernel-level persistence.", node.IP),
+					Reasoning:        fmt.Sprintf("Install Vault-Kernel on %s for kernel-level persistence.", node.IP),
 					RequiresApproval: true,
 				})
 			}
@@ -506,57 +517,55 @@ const (
 )
 
 func fuseDecisions(rulesResult, plannerResult, aiResult []*types.Decision) []*types.Decision {
-	// Deduplicate and score with weights
-	// Use a map keyed by (tactic+target) to merge duplicates
-	seen := make(map[string]*types.Decision)
+	// Each source contributes its weighted confidence to a shared map keyed by
+	// (tactic:target). Duplicate decisions from different engines are merged by
+	// ACCUMULATING their weighted scores so the fusion is additive, not just max.
+	type entry struct {
+		d           *types.Decision
+		bestContrib float64 // highest single-source weighted contribution so far
+	}
+	seen := make(map[string]*entry)
 
-	// Process rules (weight 25%)
+	merge := func(d *types.Decision, weight float64) {
+		key := fmt.Sprintf("%s:%s", d.Tactic, d.Target)
+		weightedConf := d.Confidence * weight
+
+		if e, ok := seen[key]; ok {
+			// Accumulate: the final score reflects all engines that agree on this action.
+			e.d.Confidence += weightedConf
+			// Update reasoning to the source with the single biggest contribution.
+			if weightedConf > e.bestContrib {
+				e.bestContrib = weightedConf
+				e.d.Reasoning = d.Reasoning
+				e.d.Source = d.Source
+			}
+		} else {
+			// First time we see this (tactic, target) pair.
+			copy := *d
+			copy.Confidence = weightedConf
+			seen[key] = &entry{d: &copy, bestContrib: weightedConf}
+		}
+	}
+
 	for _, d := range rulesResult {
-		key := fmt.Sprintf("%s:%s", d.Tactic, d.Target)
-		if existing, ok := seen[key]; ok {
-			// Merge: average confidence with weight consideration
-			existing.Confidence = math.Max(existing.Confidence, d.Confidence*weightRules)
-			if d.Confidence*weightRules > existing.Confidence {
-				existing.Reasoning = d.Reasoning
-			}
-		} else {
-			d.Confidence *= weightRules
-			seen[key] = d
-		}
+		merge(d, weightRules)
 	}
-
-	// Process planner (weight 35%)
 	for _, d := range plannerResult {
-		key := fmt.Sprintf("%s:%s", d.Tactic, d.Target)
-		if existing, ok := seen[key]; ok {
-			existing.Confidence = math.Max(existing.Confidence, d.Confidence*weightPlanner)
-		} else {
-			d.Confidence *= weightPlanner
-			seen[key] = d
-		}
+		merge(d, weightPlanner)
 	}
-
-	// Process AI (weight 40%)
 	for _, d := range aiResult {
-		key := fmt.Sprintf("%s:%s", d.Tactic, d.Target)
-		if existing, ok := seen[key]; ok {
-			existing.Confidence = math.Max(existing.Confidence, d.Confidence*weightAI)
-			if d.Confidence*weightAI > existing.Confidence {
-				existing.Reasoning = d.Reasoning
-				existing.Source = d.Source
-			}
-		} else {
-			d.Confidence *= weightAI
-			seen[key] = d
-		}
+		merge(d, weightAI)
 	}
 
-	// Convert map to slice
+	// Cap confidence at 1.0 (accumulation can exceed it when multiple engines agree)
+	// and filter decisions below the noise floor.
 	var fused []*types.Decision
-	for _, d := range seen {
-		// Only include decisions with meaningful confidence
-		if d.Confidence > 0.1 {
-			fused = append(fused, d)
+	for _, e := range seen {
+		if e.d.Confidence > 1.0 {
+			e.d.Confidence = 1.0
+		}
+		if e.d.Confidence > 0.1 {
+			fused = append(fused, e.d)
 		}
 	}
 

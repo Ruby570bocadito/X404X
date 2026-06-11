@@ -26,9 +26,9 @@ require (
 replace (
 	github.com/ruby570bocadito/x404x/internal/agent => ../agent
 	github.com/ruby570bocadito/x404x/internal/orchestrator => ../orchestrator
-	github.com/ruby570bocadito/x404x/pkg/shared/config => ../../shared/config
-	github.com/ruby570bocadito/x404x/pkg/shared/logger => ../../shared/logger
-	github.com/ruby570bocadito/x404x/pkg/shared/types => ../../shared/types
+	github.com/ruby570bocadito/x404x/pkg/shared/config => ../../pkg/shared/config
+	github.com/ruby570bocadito/x404x/pkg/shared/logger => ../../pkg/shared/logger
+	github.com/ruby570bocadito/x404x/pkg/shared/types => ../../pkg/shared/types
 )
 require github.com/ruby570bocadito/x404x/internal/dispatch v0.0.0
 replace github.com/ruby570bocadito/x404x/internal/dispatch => ../../internal/dispatch

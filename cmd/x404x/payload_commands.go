@@ -71,12 +71,12 @@ func init() {
 func runDeploy(cmd *cobra.Command, args []string) {
 	state := GetOrCreateState()
 	if state == nil {
-		fmt.Println("AppState not initialized")
+		fmt.Fprintln(ConsoleOut, "AppState not initialized")
 		return
 	}
 	if len(args) < 1 {
-		fmt.Println("Usage: x404x deploy <victim_id> [modules]")
-		fmt.Println("  modules: comma-separated or 'all'")
+		fmt.Fprintln(ConsoleOut, "Usage: x404x deploy <victim_id> [modules]")
+		fmt.Fprintln(ConsoleOut, "  modules: comma-separated or 'all'")
 		return
 	}
 
@@ -98,11 +98,11 @@ func runDeploy(cmd *cobra.Command, args []string) {
 
 	plan, err := dm.CreateDeploymentPlan(vp.ID, moduleFilter)
 	if err != nil {
-		fmt.Printf("ERROR: %v\n", err)
+		fmt.Fprintf(ConsoleOut, "ERROR: %v\n", err)
 		return
 	}
 
-	fmt.Printf("DEPLOYMENT PLAN: Victim=%s Strategy=%s Modules=%v ListenOnly=%v\n",
+	fmt.Fprintf(ConsoleOut, "DEPLOYMENT PLAN: Victim=%s Strategy=%s Modules=%v ListenOnly=%v\n",
 		vp.Hostname, strategy, plan.Modules, listenOnly)
 
 	if !listenOnly {
@@ -112,12 +112,12 @@ func runDeploy(cmd *cobra.Command, args []string) {
 			if strings.Contains(result, "FAILED") {
 				status = "FAIL"
 			}
-			fmt.Printf("  %s -> %s\n", mod, status)
+			fmt.Fprintf(ConsoleOut, "  %s -> %s\n", mod, status)
 		}
 	} else {
-		fmt.Println("  [listen-only] Modules queued. C2 will relay but not execute.")
+		fmt.Fprintln(ConsoleOut, "  [listen-only] Modules queued. C2 will relay but not execute.")
 		for _, mod := range plan.Modules {
-			fmt.Printf("  queued: %s\n", mod)
+			fmt.Fprintf(ConsoleOut, "  queued: %s\n", mod)
 		}
 	}
 }
@@ -130,9 +130,9 @@ func runModulesList(cmd *cobra.Command, args []string) {
 	dm := state.NewDeploymentManager()
 	categories := dm.GetModuleCategories()
 	for cat, mods := range categories {
-		fmt.Printf("[%s] %d modules:\n", cat, len(mods))
+		fmt.Fprintf(ConsoleOut, "[%s] %d modules:\n", cat, len(mods))
 		for _, m := range mods {
-			fmt.Printf("  %s\n", m)
+			fmt.Fprintf(ConsoleOut, "  %s\n", m)
 		}
 	}
 }
@@ -144,9 +144,9 @@ func runCategories(cmd *cobra.Command, args []string) {
 	}
 	dm := state.NewDeploymentManager()
 	cats := dm.GetModuleCategories()
-	fmt.Println("Module categories:")
+	fmt.Fprintln(ConsoleOut, "Module categories:")
 	for cat, mods := range cats {
-		fmt.Printf("  %-20s : %d modules\n", cat, len(mods))
+		fmt.Fprintf(ConsoleOut, "  %-20s : %d modules\n", cat, len(mods))
 	}
 }
 
@@ -158,11 +158,11 @@ func runVictimsList(cmd *cobra.Command, args []string) {
 	dm := state.NewDeploymentManager()
 	victims := dm.ListVictims()
 	if len(victims) == 0 {
-		fmt.Println("No victims registered.")
+		fmt.Fprintln(ConsoleOut, "No victims registered.")
 		return
 	}
 	for _, vp := range victims {
-		fmt.Printf("  %s | %s | risk=%.2f | %d modules\n",
+		fmt.Fprintf(ConsoleOut, "  %s | %s | risk=%.2f | %d modules\n",
 			vp.ID, vp.Status, vp.RiskScore, len(vp.ActiveModules))
 	}
 }
@@ -172,7 +172,7 @@ func runC2Listen(cmd *cobra.Command, args []string) {
 	if state == nil {
 		return
 	}
-	fmt.Println("C2 LISTEN-ONLY MODE - relaying heartbeats, not orchestrating")
+	fmt.Fprintln(ConsoleOut, "C2 LISTEN-ONLY MODE - relaying heartbeats, not orchestrating")
 	_ = state
 	<-make(chan struct{})
 }

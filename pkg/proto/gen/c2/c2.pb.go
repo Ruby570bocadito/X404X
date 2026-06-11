@@ -1318,7 +1318,7 @@ const file_c2_proto_rawDesc = "" +
 	"\x0eResumeCampaign\x12\x1f.x404x.v1.ResumeCampaignRequest\x1a\x12.x404x.v1.Campaign\x12C\n" +
 	"\fDecisionFeed\x12\x18.x404x.v1.DecisionUpdate\x1a\x15.x404x.v1.DecisionAck(\x010\x01\x12A\n" +
 	"\n" +
-	"GetMetrics\x12\x18.x404x.v1.MetricsRequest\x1a\x19.x404x.v1.MetricsResponseB9Z7github.com/ruby570bocadito/x404x/pkg/proto/gen/c2;c2v1b\x06proto3"
+	"GetMetrics\x12\x18.x404x.v1.MetricsRequest\x1a\x19.x404x.v1.MetricsResponseB9Z7github.com/ruby570bocadito/x404x/core/proto/gen/c2;c2v1b\x06proto3"
 
 var (
 	file_c2_proto_rawDescOnce sync.Once

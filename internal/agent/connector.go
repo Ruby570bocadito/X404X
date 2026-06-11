@@ -193,6 +193,7 @@ func (c *gRPCConnector) EstablishSession(serverPublicKey [32]byte) error {
 		return fmt.Errorf("establishing crypto session: %w", err)
 	}
 	c.session = session
+	SetDNSTunnelKey(session.SharedKey())
 	c.log.Infof("encrypted session established (X25519 + XChaCha20-Poly1305)")
 	return nil
 }

@@ -60,6 +60,8 @@ func main() {
 }
 
 func runConsoleMode(cfg *config.Config, args []string) {
+	cfg.Logging.Output = "file"
+	cfg.Logging.File = "x404x.log" // Redirect logs to file to keep console clean
 	ctx := context.Background()
 	state, err := appstate.New(cfg)
 	if err != nil {
@@ -81,6 +83,8 @@ func runConsoleMode(cfg *config.Config, args []string) {
 
 func runTUI() {
 	cfg := config.Default()
+	cfg.Logging.Output = "file"
+	cfg.Logging.File = "x404x.log" // Redirect logs to file to keep TUI clean
 	state, err := appstate.New(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create state: %v\n", err)

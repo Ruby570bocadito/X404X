@@ -21,7 +21,7 @@ require (
 replace (
 	github.com/ruby570bocadito/x404x/internal/appstate => ../appstate
 	github.com/ruby570bocadito/x404x/internal/orchestrator => ../orchestrator
-	github.com/ruby570bocadito/x404x/pkg/shared/config => ../../shared/config
-	github.com/ruby570bocadito/x404x/pkg/shared/logger => ../../shared/logger
-	github.com/ruby570bocadito/x404x/pkg/shared/types => ../../shared/types
+	github.com/ruby570bocadito/x404x/pkg/shared/config => ../../pkg/shared/config
+	github.com/ruby570bocadito/x404x/pkg/shared/logger => ../../pkg/shared/logger
+	github.com/ruby570bocadito/x404x/pkg/shared/types => ../../pkg/shared/types
 )

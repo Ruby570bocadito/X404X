@@ -16,6 +16,7 @@ package orchestrator
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -199,7 +200,7 @@ func (am *AutoMode) isRiskAcceptable(d *types.Decision) bool {
 		"docker escape", "nfs no_root_squash",
 	}
 	for _, hrt := range highRiskTechniques {
-		if contains(d.Technique, hrt) || contains(technique, hrt) {
+		if strings.Contains(strings.ToLower(d.Technique), hrt) || strings.Contains(strings.ToLower(technique), hrt) {
 			riskStr = "high"
 			break
 		}
@@ -249,22 +250,7 @@ func (am *AutoMode) executeDecision(ctx context.Context, campaign *types.Campaig
 		}
 	}
 
-	switch d.Tactic {
-	case "Reconnaissance":
-		am.killChain.ReconComplete(campaign.ID, 1)
-	case "Initial Access":
-		am.killChain.DeliveryComplete(campaign.ID, d.Target)
-	case "Privilege Escalation":
-		am.killChain.ExploitComplete(campaign.ID, d.Technique)
-	case "Persistence":
-		am.killChain.InstallComplete(campaign.ID, []string{d.Technique})
-	case "Command and Control":
-		am.killChain.C2Complete(campaign.ID)
-	case "Lateral Movement", "Collection", "Exfiltration":
-		if campaign.Phase == types.PhaseActionsOnObjective {
-			am.killChain.ObjectiveComplete(campaign.ID)
-		}
-	}
+	am.advanceViaKillchain(campaign, d)
 
 	am.log.Infof("AutoMode: campaign %s now at phase %s (progress %.0f%%)",
 		campaign.ID, campaign.Phase, campaign.Progress*100)
@@ -302,7 +288,7 @@ func (am *AutoMode) advanceViaKillchain(campaign *types.Campaign, d *types.Decis
 		am.killChain.InstallComplete(campaign.ID, []string{d.Technique})
 	case "Command and Control":
 		am.killChain.C2Complete(campaign.ID)
-	case "Actions on Objective":
+	case "Actions on Objective", "Lateral Movement", "Collection", "Exfiltration":
 		am.killChain.ObjectiveComplete(campaign.ID)
 	}
 }
@@ -316,8 +302,3 @@ func (am *AutoMode) RecentActions() []string {
 	return log
 }
 
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr ||
-		(len(s) > len(substr) && (s[:len(substr)] == substr ||
-			s[len(s)-len(substr):] == substr)))
-}

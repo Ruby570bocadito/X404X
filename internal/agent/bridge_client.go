@@ -61,7 +61,11 @@ type BridgeClient struct {
 // If bridgePath is empty, connects to an already-running bridge server.
 // If bridgePath is set, starts the bridge as a subprocess.
 func NewBridgeClient(cfg *config.Config, log *logger.Logger) *BridgeClient {
-	addr := fmt.Sprintf("127.0.0.1:%d", 9100)
+	port := 9100
+	if cfg != nil && cfg.Agent.BridgePort > 0 {
+		port = cfg.Agent.BridgePort
+	}
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
 
 	return &BridgeClient{
 		cfg:     cfg,
@@ -97,9 +101,14 @@ func (bc *BridgeClient) Connect(ctx context.Context) error {
 func (bc *BridgeClient) StartBridge(ctx context.Context, bridgeScript string) error {
 	bc.log.Infof("starting Python bridge: %s", bridgeScript)
 
+	port := 9100
+	if bc.cfg != nil && bc.cfg.Agent.BridgePort > 0 {
+		port = bc.cfg.Agent.BridgePort
+	}
+
 	bc.cmd = exec.CommandContext(ctx, "python3", bridgeScript,
 		"--host", "127.0.0.1",
-		"--port", "9100",
+		"--port", fmt.Sprintf("%d", port),
 	)
 
 	bc.cmd.Stderr = nil // discard stderr in production

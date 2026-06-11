@@ -46,32 +46,32 @@ Examples:
 			listenersMu.Lock()
 			defer listenersMu.Unlock()
 
-			fmt.Println()
+			fmt.Fprintln(ConsoleOut, )
 			if len(activeListeners) == 0 {
-				fmt.Println("  No active listeners.")
-				fmt.Println()
-				fmt.Println("  Available transports:")
-				fmt.Println("    tcp, http, https, dns, icmp, smb, ws, doh")
-				fmt.Println()
-				fmt.Println("  Add one: x404x listeners add --type tcp --port 8443")
+				fmt.Fprintln(ConsoleOut, "  No active listeners.")
+				fmt.Fprintln(ConsoleOut, )
+				fmt.Fprintln(ConsoleOut, "  Available transports:")
+				fmt.Fprintln(ConsoleOut, "    tcp, http, https, dns, icmp, smb, ws, doh")
+				fmt.Fprintln(ConsoleOut, )
+				fmt.Fprintln(ConsoleOut, "  Add one: x404x listeners add --type tcp --port 8443")
 				return
 			}
 
-			fmt.Println("Active Listeners:")
-			fmt.Println("--------------------------------------------------------------")
-			fmt.Printf("  #  Type       Address              Status    Agents  Proto\n")
-			fmt.Printf("  -- ---------  -------------------  --------  ------  -----\n")
+			fmt.Fprintln(ConsoleOut, "Active Listeners:")
+			fmt.Fprintln(ConsoleOut, "--------------------------------------------------------------")
+			fmt.Fprintf(ConsoleOut, "  #  Type       Address              Status    Agents  Proto\n")
+			fmt.Fprintf(ConsoleOut, "  -- ---------  -------------------  --------  ------  -----\n")
 			for i, l := range activeListeners {
 				agentCount := 0
 				state := GetOrCreateState()
 				if state != nil {
 					agentCount = len(state.GetAgents())
 				}
-				fmt.Printf("  %d  %-9s  %-19s  %-8s  %-6d  gRPC+XChaCha20\n",
+				fmt.Fprintf(ConsoleOut, "  %d  %-9s  %-19s  %-8s  %-6d  gRPC+XChaCha20\n",
 					i+1, l.Type, fmt.Sprintf("%s:%d", l.Host, l.Port),
 					l.Status, agentCount)
 			}
-			fmt.Println()
+			fmt.Fprintln(ConsoleOut, )
 		},
 	})
 
@@ -130,9 +130,9 @@ Examples:
 			activeListeners = append(activeListeners, l)
 
 			if l.Status == "active" {
-				fmt.Printf("[+] Listener %d added and started: %s %s (%s)\n", l.ID, ltype, addr, l.Protocol)
+				fmt.Fprintf(ConsoleOut, "[+] Listener %d added and started: %s %s (%s)\n", l.ID, ltype, addr, l.Protocol)
 			} else {
-				fmt.Printf("[+] Listener %d registered: %s %s (bind: %v) — use 'start %d' to activate\n",
+				fmt.Fprintf(ConsoleOut, "[+] Listener %d registered: %s %s (bind: %v) — use 'start %d' to activate\n",
 					l.ID, ltype, addr, err, l.ID)
 			}
 
@@ -148,7 +148,7 @@ Examples:
 			defer listenersMu.Unlock()
 
 			if len(activeListeners) == 0 {
-				fmt.Println("[-] No listeners to remove.")
+				fmt.Fprintln(ConsoleOut, "[-] No listeners to remove.")
 				return
 			}
 
@@ -159,7 +159,7 @@ Examples:
 				l.Listener.Close()
 			}
 			activeListeners = activeListeners[:idx]
-			fmt.Printf("[+] Listener %d removed\n", l.ID)
+			fmt.Fprintf(ConsoleOut, "[+] Listener %d removed\n", l.ID)
 		},
 	})
 
@@ -178,22 +178,22 @@ Examples:
 			for _, l := range activeListeners {
 				if targetID == 0 || l.ID == targetID {
 					if l.Status == "active" {
-						fmt.Printf("[i] Listener %d already active on %s:%d\n", l.ID, l.Host, l.Port)
+						fmt.Fprintf(ConsoleOut, "[i] Listener %d already active on %s:%d\n", l.ID, l.Host, l.Port)
 						return
 					}
 					addr := fmt.Sprintf("%s:%d", l.Host, l.Port)
 					ln, err := net.Listen("tcp", addr)
 					if err != nil {
-						fmt.Printf("[-] Cannot bind %s: %v\n", addr, err)
+						fmt.Fprintf(ConsoleOut, "[-] Cannot bind %s: %v\n", addr, err)
 						return
 					}
 					l.Listener = ln
 					l.Status = "active"
-					fmt.Printf("[+] Listener %d started: %s %s (%s)\n", l.ID, l.Type, addr, l.Protocol)
+					fmt.Fprintf(ConsoleOut, "[+] Listener %d started: %s %s (%s)\n", l.ID, l.Type, addr, l.Protocol)
 					return
 				}
 			}
-			fmt.Println("[-] Listener not found. Use 'listeners list' to see IDs.")
+			fmt.Fprintln(ConsoleOut, "[-] Listener not found. Use 'listeners list' to see IDs.")
 		},
 	})
 
@@ -216,11 +216,11 @@ Examples:
 						l.Listener = nil
 					}
 					l.Status = "stopped"
-					fmt.Printf("[+] Listener %d stopped\n", l.ID)
+					fmt.Fprintf(ConsoleOut, "[+] Listener %d stopped\n", l.ID)
 					return
 				}
 			}
-			fmt.Println("[-] Listener not found.")
+			fmt.Fprintln(ConsoleOut, "[-] Listener not found.")
 		},
 	})
 

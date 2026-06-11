@@ -35,6 +35,8 @@ package orchestrator
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -356,5 +358,7 @@ func getTacticForPhase(phase types.KillChainPhase) string {
 }
 
 func generateID(prefix string) string {
-	return fmt.Sprintf("%s-%d", prefix, time.Now().UnixNano())
+	b := make([]byte, 4)
+	rand.Read(b)
+	return fmt.Sprintf("%s-%d-%s", prefix, time.Now().UnixNano(), hex.EncodeToString(b))
 }

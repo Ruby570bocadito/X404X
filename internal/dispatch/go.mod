@@ -6,5 +6,5 @@ require (
 )
 replace (
 	github.com/ruby570bocadito/x404x/internal/registry => ../registry
-	github.com/ruby570bocadito/x404x/pkg/shared/types => ../../shared/types
+	github.com/ruby570bocadito/x404x/pkg/shared/types => ../../pkg/shared/types
 )

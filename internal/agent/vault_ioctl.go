@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package agent provides the Vault-Kernel IOCTL wrapper.
 //
 // Vault-Kernel is the Linux LKM rootkit engine. This wrapper communicates

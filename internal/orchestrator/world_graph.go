@@ -58,7 +58,13 @@ func (wg *WorldGraph) AddHost(ip, hostname, os string) {
 	wg.mu.Lock()
 	defer wg.mu.Unlock()
 
-	if _, exists := wg.nodes[ip]; exists {
+	if node, exists := wg.nodes[ip]; exists {
+		if hostname != "" {
+			node.Hostname = hostname
+		}
+		if os != "" && os != "unknown" {
+			node.OS = os
+		}
 		return
 	}
 
@@ -108,14 +114,17 @@ func (wg *WorldGraph) AddEdge(from, to, edgeType string, success float64) {
 
 	wg.edges[from] = append(wg.edges[from], edge)
 
-	// Also add reverse edge
-	reverse := &WorldEdge{
-		From:    to,
-		To:      from,
-		Type:    edgeType,
-		Success: success,
+	// Only add reverse edge for bidirectional connectivity (e.g., "network")
+	// Exploits and other unidirectional edges shouldn't have a reverse path added automatically.
+	if edgeType == "network" || edgeType == "route" {
+		reverse := &WorldEdge{
+			From:    to,
+			To:      from,
+			Type:    edgeType,
+			Success: success,
+		}
+		wg.edges[to] = append(wg.edges[to], reverse)
 	}
-	wg.edges[to] = append(wg.edges[to], reverse)
 }
 
 func (wg *WorldGraph) AddExploitEdge(from, to, exploit string, success float64) {

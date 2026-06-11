@@ -82,12 +82,12 @@ func (m model) View() string {
 
 func (m model) renderHeader() string {
 	banner := titleStyle.Render(`
-██╗  ██╗ ██╗  ██╗  ██████╗  ██╗  ██╗ ██╗  ██╗
-╚██╗██╔╝ ██║  ██║ ██╔═══██╗ ██║  ██║ ╚██╗██╔╝
- ╚███╔╝  ███████║ ██║   ██║ ███████║  ╚███╔╝
- ██╔██╗  ╚════██║ ██║   ██║ ╚════██║  ██╔██╗
-██╔╝ ██╗     ██╔╝ ╚██████╔╝     ██╔╝ ██╔╝ ██╗
-╚═╝  ╚═╝     ╚═╝   ╚═════╝      ╚═╝  ╚═╝  ╚═╝`)
+  ▄▄▄   ▄▄▄  ▄▄   ▄▄   ▄▄▄▄▄▄   ▄▄   ▄▄  ▄▄▄   ▄▄▄ 
+  ▀██▄ ▄██▀  ██   ██  ██▀  ▀██  ██   ██  ▀██▄ ▄██▀ 
+    ▀███▀    ███████  ██    ██  ███████    ▀███▀   
+  ▄██▀ ▀██▄       ██  ██▄  ▄██       ██  ▄██▀ ▀██▄ 
+  ██▀   ▀██       ██   ▀████▀        ██  ██▀   ▀██ 
+  ▀▀     ▀▀       ▀▀                 ▀▀  ▀▀     ▀▀ `)
 
 	info := mutedStyle.Render(fmt.Sprintf("v1.0 | %dx%d | [CTRL+C] Quit | [Tab] Switch", m.width, m.height))
 	return lipgloss.JoinHorizontal(lipgloss.Top, banner, "   ", info)
@@ -380,26 +380,6 @@ func StartTUI(state *appstate.AppState) error {
 	return err
 }
 
-func countOnline(agents []*types.Agent) int {
-	n := 0
-	for _, a := range agents {
-		if a.Status == types.AgentStatusOnline || a.Status == types.AgentStatusActive {
-			n++
-		}
-	}
-	return n
-}
 
-func bridgeStatus(connected bool) string {
-	if connected {
-		return accentStyle.Render("connected")
-	}
-	return mutedStyle.Render("disconnected")
-}
 
-func truncX(s string, max int) string {
-	if len(s) <= max {
-		return s
-	}
-	return s[:max]
-}
+

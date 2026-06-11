@@ -31,6 +31,7 @@ type AgentConfig struct {
 	Name             string `yaml:"name"`
 	C2Server         string `yaml:"c2_server"`
 	C2Port           int    `yaml:"c2_port"`
+	BridgePort       int    `yaml:"bridge_port"`
 	HeartbeatSeconds int    `yaml:"heartbeat_seconds"`
 	StealthMode      bool   `yaml:"stealth_mode"`
 }
@@ -143,6 +144,8 @@ func Load(path string) (*Config, error) {
 func Default() *Config {
 	return &Config{
 		Agent: AgentConfig{
+			C2Port:           8443,
+			BridgePort:       9100,
 			HeartbeatSeconds: 30,
 			StealthMode:      false,
 		},

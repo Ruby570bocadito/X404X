@@ -1417,7 +1417,7 @@ const file_agent_proto_rawDesc = "" +
 	"\rCommandStream\x12\x16.x404x.v1.AgentMessage\x1a\x17.x404x.v1.ServerMessage(\x010\x01\x12D\n" +
 	"\tHeartbeat\x12\x1a.x404x.v1.HeartbeatRequest\x1a\x1b.x404x.v1.HeartbeatResponse\x128\n" +
 	"\n" +
-	"Exfiltrate\x12\x14.x404x.v1.ExfilChunk\x1a\x12.x404x.v1.ExfilAck(\x01B?Z=github.com/ruby570bocadito/x404x/pkg/proto/gen/agent;agentv1b\x06proto3"
+	"Exfiltrate\x12\x14.x404x.v1.ExfilChunk\x1a\x12.x404x.v1.ExfilAck(\x01B?Z=github.com/ruby570bocadito/x404x/core/proto/gen/agent;agentv1b\x06proto3"
 
 var (
 	file_agent_proto_rawDescOnce sync.Once

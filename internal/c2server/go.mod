@@ -11,7 +11,7 @@ require (
 	github.com/ruby570bocadito/x404x/pkg/shared/logger v0.0.0
 	github.com/ruby570bocadito/x404x/pkg/shared/types v0.0.0
 	google.golang.org/grpc v1.64.0
-	google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
@@ -29,10 +29,10 @@ require (
 replace (
 	github.com/ruby570bocadito/x404x/internal/appstate => ../appstate
 	github.com/ruby570bocadito/x404x/internal/crypto => ../crypto
-	github.com/ruby570bocadito/x404x/pkg/proto/gen/agent => ../proto/gen/agent
-	github.com/ruby570bocadito/x404x/pkg/proto/gen/c2 => ../proto/gen/c2
-	github.com/ruby570bocadito/x404x/pkg/proto/gen/common => ../proto/gen/common
-	github.com/ruby570bocadito/x404x/pkg/shared/config => ../../shared/config
-	github.com/ruby570bocadito/x404x/pkg/shared/logger => ../../shared/logger
-	github.com/ruby570bocadito/x404x/pkg/shared/types => ../../shared/types
+	github.com/ruby570bocadito/x404x/pkg/proto/gen/agent => ../../pkg/proto/gen/agent
+	github.com/ruby570bocadito/x404x/pkg/proto/gen/c2 => ../../pkg/proto/gen/c2
+	github.com/ruby570bocadito/x404x/pkg/proto/gen/common => ../../pkg/proto/gen/common
+	github.com/ruby570bocadito/x404x/pkg/shared/config => ../../pkg/shared/config
+	github.com/ruby570bocadito/x404x/pkg/shared/logger => ../../pkg/shared/logger
+	github.com/ruby570bocadito/x404x/pkg/shared/types => ../../pkg/shared/types
 )

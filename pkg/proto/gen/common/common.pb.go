@@ -601,7 +601,7 @@ const file_common_proto_rawDesc = "" +
 	"\x17CAMPAIGN_STATUS_RUNNING\x10\x02\x12\x1a\n" +
 	"\x16CAMPAIGN_STATUS_PAUSED\x10\x03\x12\x1d\n" +
 	"\x19CAMPAIGN_STATUS_COMPLETED\x10\x04\x12\x1a\n" +
-	"\x16CAMPAIGN_STATUS_FAILED\x10\x05BAZ?github.com/ruby570bocadito/x404x/pkg/proto/gen/common;commonv1b\x06proto3"
+	"\x16CAMPAIGN_STATUS_FAILED\x10\x05BAZ?github.com/ruby570bocadito/x404x/core/proto/gen/common;commonv1b\x06proto3"
 
 var (
 	file_common_proto_rawDescOnce sync.Once

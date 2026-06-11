@@ -1,14 +1,14 @@
-go 1.24
+go 1.25.0
 
 use (
 	./cmd/x404x
 	./internal/agent
 	./internal/api
 	./internal/appstate
-	./internal/crypto
-	./internal/orchestrator
 	./internal/c2server
+	./internal/crypto
 	./internal/dispatch
+	./internal/orchestrator
 	./internal/ransomware
 	./internal/registry
 	./pkg/proto/gen/agent
@@ -18,8 +18,4 @@ use (
 	./pkg/shared/config
 	./pkg/shared/logger
 	./pkg/shared/types
-	./plugins/pulse-c2
-	./plugins/privesc
-	./plugins/kernel
-	./plugins/breach
 )
