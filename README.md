@@ -1,379 +1,486 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:ff3366,100:00d4ff&height=220&section=header&text=X404X&fontSize=72&fontColor=ffffff&animation=twinkling&desc=Autonomous+Red+Team+Platform+%7C+Full+Attack+Chain+%7C+Post-Quantum+C2&descSize=16&descAlignY=65&fontAlignY=35" alt="X404X Header" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://readme-typing-svg.herokuapp.com?font=Share+Tech+Mono&weight=600&size=64&duration=1&pause=1&color=FF3366&center=true&vCenter=true&repeat=false&width=800&lines=%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88%E2%96%88" />
+    <img src="https://readme-typing-svg.herokuapp.com?font=Share+Tech+Mono&weight=600&size=48&duration=1&pause=1&color=FF3366&center=true&vCenter=true&repeat=false&width=800&lines=X+4+0+4+X" alt="X404X"/>
+  </picture>
 </p>
 
-<div align="center">
-
-[![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=600&size=20&pause=1500&color=ff3366&center=true&vCenter=true&width=750&lines=Autonomous+Red+Team+Platform;Kernel+Evasion+%7C+Post-Quantum+C2+%7C+AI+Orchestrator;45+Offensive+Modules+%7C+Go+%2B+Python+%2B+WASM;Building+the+Full+Attack+Chain+Since+2025)](https://git.io/typing-svg)
-
-<br/>
-
-[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Lines of Code](https://img.shields.io/badge/Lines-12%2C685-ff3366?style=for-the-badge&logo=codecrafters&logoColor=white)]()
-[![Modules](https://img.shields.io/badge/Modules-45-00d4ff?style=for-the-badge&logo=target&logoColor=white)]()
-[![License](https://img.shields.io/badge/License-Educational-00ff88?style=for-the-badge&logo=bookstack&logoColor=white)]()
-[![Status](https://img.shields.io/badge/Status-Active-00ff88?style=for-the-badge&logo=statuspage&logoColor=white)]()
+<p align="center">
+  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=500&size=16&duration=2400&pause=800&color=00d4ff&center=true&vCenter=true&width=720&lines=%C2%BB%20Autonomous%20Red%20Team%20Platform%20%C2%AB;%C2%BB%20Full-spectrum%20offensive%20operations%20%C2%AB;%C2%BB%20From%20recon%20to%20post-exploitation%20%C2%AB;%C2%BB%20Go%20%E2%80%A2%20Python%20%E2%80%A2%2045%20M%C3%B3dulos%20%C2%AB" />
+</p>
 
 <br/>
 
-[![GitHub stars](https://img.shields.io/github/stars/Ruby570bocadito/X404X?style=flat&color=ff3366&logo=github)](https://github.com/Ruby570bocadito/X404X/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/Ruby570bocadito/X404X?style=flat&color=00d4ff&logo=github)](https://github.com/Ruby570bocadito/X404X/network)
-[![GitHub last commit](https://img.shields.io/github/last-commit/Ruby570bocadito/X404X?style=flat&color=00ff88&logo=git)](https://github.com/Ruby570bocadito/X404X/commits)
+<p align="center">
+  <a href="#-architecture"><img src="https://img.shields.io/badge/%E2%96%BA_ARCHITECTURE-ff3366?style=for-the-badge&logo=diagramsdotnet&logoColor=white&labelColor=1a1a2e" /></a>
+  <a href="#-modules"><img src="https://img.shields.io/badge/%E2%96%BA_MODULES-00d4ff?style=for-the-badge&logo=target&logoColor=white&labelColor=1a1a2e" /></a>
+  <a href="#-quick-start"><img src="https://img.shields.io/badge/%E2%96%BA_QUICKSTART-00ff88?style=for-the-badge&logo=rocket&logoColor=white&labelColor=1a1a2e" /></a>
+  <a href="#-license"><img src="https://img.shields.io/badge/%E2%96%BA_LICENSE-ff6b35?style=for-the-badge&logo=bookstack&logoColor=white&labelColor=1a1a2e" /></a>
+</p>
 
-</div>
+<br/>
+
+---
+
+<br/>
+
+```
+     ▄   ██   ▄▄█▀▀   ▄   ██
+     █   ██  ▄█▀▀██   █   ██           THE AUTONOMOUS
+    ██▄▄▄▄██▄██▄▄███  ██▄▄██           RED TEAM PLATFORM
+    █▀▀▀▀██▀ ▀▀▀ ▀▀   █▀▀██           45 MODULES · 12K+ LOC
+```
+
+<br/>
+
+<table>
+<tr>
+<td width="25%" align="center">
+  <img src="https://img.icons8.com/fluency/96/000000/hacker.png" width="64" />
+  <br/><b>KERNEL<br/>EVASION</b>
+  <br/><sub>BYOVD · DKOM · Blue Pill</sub>
+</td>
+<td width="25%" align="center">
+  <img src="https://img.icons8.com/fluency/96/000000/key.png" width="64" />
+  <br/><b>POST-QUANTUM<br/>C2</b>
+  <br/><sub>Kyber-1024 · Ed25519 · SPIFFE</sub>
+</td>
+<td width="25%" align="center">
+  <img src="https://img.icons8.com/fluency/96/000000/virus.png" width="64" />
+  <br/><b>EXOTIC<br/>PROPAGATION</b>
+  <br/><sub>Ultrasound · PLC · QR · PJL</sub>
+</td>
+<td width="25%" align="center">
+  <img src="https://img.icons8.com/fluency/96/000000/brain.png" width="64" />
+  <br/><b>AI<br/>ORCHESTRATOR</b>
+  <br/><sub>Q-Learning · FedAvg · Deepfake</sub>
+</td>
+</tr>
+</table>
+
+<br/>
+
+<p align="center">
+  <a href="https://github.com/Ruby570bocadito/X404X"><img src="https://img.shields.io/badge/GO-v1.22+-00ADD8?style=flat-square&logo=go&logoColor=white" /></a>
+  <a href="https://github.com/Ruby570bocadito/X404X"><img src="https://img.shields.io/badge/PYTHON-v3.11+-3776AB?style=flat-square&logo=python&logoColor=white" /></a>
+  <a href="https://github.com/Ruby570bocadito/X404X"><img src="https://img.shields.io/badge/MODULES-45-ff3366?style=flat-square&logo=target&logoColor=white" /></a>
+  <a href="https://github.com/Ruby570bocadito/X404X"><img src="https://img.shields.io/badge/LINES-12,685-00d4ff?style=flat-square&logo=codecrafters&logoColor=white" /></a>
+  <a href="https://github.com/Ruby570bocadito/X404X"><img src="https://img.shields.io/badge/PHASES-4-00ff88?style=flat-square&logo=checkmarx&logoColor=white" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Ruby570bocadito/X404X/stargazers"><img src="https://img.shields.io/github/stars/Ruby570bocadito/X404X?style=social&logo=github" /></a>
+  <a href="https://github.com/Ruby570bocadito/X404X/network"><img src="https://img.shields.io/github/forks/Ruby570bocadito/X404X?style=social&logo=github" /></a>
+</p>
 
 ---
 
 ## What is X404X?
 
-> **X404X** is an autonomous red team platform that executes the complete offensive kill chain — from initial reconnaissance to post-exploitation and command & control. Built in **Go** and **Python** with a modular architecture, it combines kernel-level evasion, post-quantum C2 cryptography, 8 exotic propagation vectors, and AI-driven decision making into a single unified framework.
+> **X404X** is an **autonomous red team operations suite** that covers the complete offensive kill chain. From kernel-level evasion to post-quantum command & control — every module is implemented in real code, not simulated stubs.
 
-**Purpose-built for:** Red team operations · Adversarial simulation · Security research · EDR/AV evasion testing
+Built as a **Go** core with a **Python** bridge layer and **WASM** extension support, X404X integrates 45 offensive modules across 4 development phases — all compiled, tested, and ready for authorized red team engagements.
 
-```yaml
-name: X404X
-type: Autonomous Red Team Platform
-architecture: Modular (Go Core + Python Bridge + WASM Extensions)
-version: 3.0.0
-phases: 4 (0-4)
-modules: 45
-languages:
-  core: Go (internal/ransomware/ — 35+ files)
-  bridge: Python (modules/bridge/handlers/ — 12 files, ~170 handlers)
-  plugins: Go, Python, Vue 3, WASM
-capabilities:
-  - Kernel-level evasion (BYOVD, DKOM, Blue Pill hypervisor)
-  - Post-quantum C2 (Kyber-1024 + X25519 + Ed25519 + SPIFFE mTLS)
-  - Exotic propagation (ultrasound audio, powerline PLC, QR codes, printer PJL)
-  - AI decision engine (Q-learning FSM, federated learning, deepfake vishing)
-  - Cross-platform payloads (ELF, Mach-O, APK)
-featured_in:
-  - Red team adversarial simulation
-  - Penetration testing & security assessments
-  - Research into advanced evasion techniques
-  - EDR/AV detection bypass validation
+<br/>
+
+```mermaid
+graph TB
+    subgraph "PHASE 1: EVASION"
+        A1[BYOVD Loader] --> A2[DKOM]
+        A2 --> A3[Anti-Reversing]
+        A3 --> A4[Anti-Forensics]
+        A4 --> A5[WER Persistence]
+        A5 --> A6[MFT Slack]
+        A6 --> A7[WFP DNS Poison]
+        A7 --> A8[Blue Pill HV]
+        A8 --> A9[LOLBin Chain]
+        A9 --> A10[Kernel DNS]
+    end
+
+    subgraph "PHASE 2: C2"
+        B1[SPIFFE mTLS] --> B2[Multi-Channel]
+        B2 --> B3[Ed25519 Signing]
+        B3 --> B4[Dashboard Ops]
+        B4 --> B5[Kyber Hybrid KEM]
+        B5 --> B6[Proto Obfuscation]
+    end
+
+    subgraph "PHASE 3: PROPAGATION"
+        C1[Ultrasound QPSK] --> C2[Powerline PLC]
+        C2 --> C3[USB ADB]
+        C3 --> C4[DNS Rebinding]
+        C4 --> C5[CI/CD Webhooks]
+        C5 --> C6[VLAN Jump]
+        C6 --> C7[QR Worm]
+        C7 --> C8[PJL Worm]
+        C8 --> C9[Chronos NTP]
+        C9 --> C10[Reflective DLL]
+        C10 --> C11[Kerberos Deleg]
+        C11 --> C12[IMDSv2 Bypass]
+    end
+
+    subgraph "PHASE 4: AI + CROSS"
+        D1[Cross-Platform Loader] --> D2[JIT Polymorphism]
+        D2 --> D3[AI FSM Orchestrator]
+        D3 --> D4[Federated Learning]
+        D4 --> D5[Autofactory Fuzzer]
+        D5 --> D6[Wazero Bridge]
+        D6 --> D7[RF Contagion]
+        D7 --> D8[EDR Test Lab]
+        D8 --> D9[Deepfake Vishing]
+    end
+
+    A10 --> B1
+    B6 --> C1
+    C12 --> D1
 ```
+
+<br/>
 
 ---
 
 ## Architecture
 
+<br/>
+
+```mermaid
+flowchart LR
+    subgraph OPERATOR[" Operator Console"]
+        CLI[Go CLI Shell]
+        DASH[Vue 3 Dashboard]
+    end
+
+    subgraph C2[" C2 Infrastructure"]
+        MTLS[SPIFFE mTLS]
+        SIGN[Ed25519 Signer]
+        KYBER[Kyber-1024 KEM]
+        MULTI[5-Channel Stack]
+    end
+
+    subgraph CORE[" Core Engine Go"]
+        RANSOM[Ransomware Engine]
+        EVASION[Evasion Suite]
+        PROPAG[Propagation Vectors]
+        AI[AI Orchestrator]
+    end
+
+    subgraph BRIDGE[" Python Bridge"]
+        RPC[Go↔Python RPC Router]
+        H170[~170 Handlers]
+    end
+
+    subgraph PLUGINS[" Plugin Ecosystem"]
+        WORM[Worm + RL]
+        ARGOS[Argos Operations]
+        BLUE[Bluesky BT]
+        PULSE[Pulse C2]
+        H_MIND[Hivemind AI]
+        RF[RF Contagion SDR]
+    end
+
+    CLI --> MTLS
+    DASH --> MTLS
+    MTLS --> RANSOM
+    MTLS --> EVASION
+    MTLS --> PROPAG
+    MTLS --> AI
+    RANSOM --> RPC
+    EVASION --> RPC
+    PROPAG --> RPC
+    AI --> RPC
+    RPC --> WORM
+    RPC --> ARGOS
+    RPC --> BLUE
+    RPC --> PULSE
+    RPC --> H_MIND
+    RPC --> RF
+
+    style OPERATOR fill:#ff336620,stroke:#ff3366
+    style C2 fill:#00d4ff20,stroke:#00d4ff
+    style CORE fill:#00ff8820,stroke:#00ff88
+    style BRIDGE fill:#ff6b3520,stroke:#ff6b35
+    style PLUGINS fill:#a855f720,stroke:#a855f7
 ```
-                            ┌─────────────────────────────────┐
-                            │        DASHBOARD OPS            │
-                            │   HTTP/WS API · Vue 3 · D3.js   │
-                            │   Agent Map · Propagation Graph │
-                            └──────────────┬──────────────────┘
-                                           │
-┌──────────────────────────────────────────┼──────────────────────────────────────┐
-│                              C2 HARDENED                                        │
-│  ┌────────────┐ ┌──────────┐ ┌────────────┐ ┌──────────┐ ┌──────────────────┐  │
-│  │ SPIFFE     │ │ Ed25519  │ │ Kyber-1024 │ │ 5-Channel│ │ Proto Obfuscator │  │
-│  │ mTLS+SVID  │ │ Signing  │ │ + X25519   │ │ C2 Stack │ │ XOR+AES-CTR+GZIP │  │
-│  └────────────┘ └──────────┘ └────────────┘ └──────────┘ └──────────────────┘  │
-└──────────────────────────────────────────┬──────────────────────────────────────┘
-                                           │
-┌──────────────────────────────────────────┼──────────────────────────────────────┐
-│                              AI ORCHESTRATOR                                    │
-│  ┌────────────┐ ┌──────────┐ ┌────────────┐ ┌──────────┐ ┌──────────────────┐  │
-│  │ Q-Learning │ │ Federated│ │ Autofactory│ │ Deepfake │ │ Wazero Bridge    │  │
-│  │ FSM Engine │ │ Learning │ │ AFL++      │ │ Vishing  │ │ WASM ↔ Go        │  │
-│  └────────────┘ └──────────┘ └────────────┘ └──────────┘ └──────────────────┘  │
-└──────────────────────────────────────────┬──────────────────────────────────────┘
-                                           │
-┌──────────────────────────────────────────┼──────────────────────────────────────┐
-│                              CORE ENGINE (Go)                                   │
-│                                                                                 │
-│  ┌──────────────────────────────┐  ┌──────────────────────────────────────┐    │
-│  │     RANSOMWARE ENGINE        │  │        EVASION SUITE                  │    │
-│  │  ├─ AES-256-GCM Encryption   │  │  ├─ BYOVD Loader (5 drivers)         │    │
-│  │  ├─ Bootkit (MBR/GPT/UEFI)   │  │  ├─ DKOM (process/token hiding)      │    │
-│  │  ├─ SCADA/Modbus Attack      │  │  ├─ Anti-Reversing (HW BP, INT3)     │    │
-│  │  ├─ Blockchain C2 (BTC/ETH)  │  │  ├─ Anti-Forensics (DoD 7-pass)      │    │
-│  │  ├─ Polimorfismo JIT         │  │  ├─ WER Persistence                  │    │
-│  │  ├─ Cross-Platform Loader    │  │  ├─ MFT Slack Storage                │    │
-│  │  ├─ Multi-Channel C2         │  │  ├─ WFP DNS Poisoning                │    │
-│  │  └─ 34 files total           │  │  ├─ Blue Pill Hypervisor             │    │
-│  └──────────────────────────────┘  │  ├─ LOLBin Dynamic Chain             │    │
-│                                     │  └─ Kernel DNS Driver                │    │
-│  ┌──────────────────────────────┐  └──────────────────────────────────────┘    │
-│  │    ADVANCED PROPAGATION      │                                               │
-│  │  ├─ Ultrasound QPSK (19kHz)  │  ┌──────────────────────────────────────┐    │
-│  │  ├─ Powerline PLC            │  │     LATERAL MOVEMENT                  │    │
-│  │  ├─ USB ADB (Android)        │  │  ├─ Kerberos Delegation Abuse        │    │
-│  │  ├─ DNS Rebinding (TTL=0)    │  │  ├─ IMDSv2 AWS Bypass                │    │
-│  │  ├─ CI/CD Webhooks Injection │  │  ├─ Pass-the-Ticket / Silver Ticket  │    │
-│  │  ├─ VLAN Jump (Double Tag)   │  │  ├─ Reflective DLL (100-byte stager)  │    │
-│  │  ├─ QR Dynamic Worm          │  │  ├─ Chronos NTP Manipulation         │    │
-│  │  └─ PJL Printer Worm         │  │  └─ Chronos NTP Manipulation         │    │
-│  └──────────────────────────────┘  └──────────────────────────────────────┘    │
-│                                                                                 │
-└──────────────────────────────────────────┬──────────────────────────────────────┘
-                                           │
-┌──────────────────────────────────────────┼──────────────────────────────────────┐
-│                            PYTHON BRIDGE                                        │
-│  ┌──────────────────────────────────────────────────────────────────────────┐  │
-│  │  12 handler files · ~170 RPC handlers · v26↔v210 · BlockZ · Attacks       │  │
-│  │  Phase 1-4 handlers (36 modules exposed via Go→Python RPC bridge)         │  │
-│  └──────────────────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────┬──────────────────────────────────────┘
-                                           │
-┌──────────────────────────────────────────┼──────────────────────────────────────┐
-│                            PLUGIN ECOSYSTEM                                     │
-│  ┌────────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌──────────┐ ┌──────────────┐  │
-│  │ Worm+RL│ │Operations│ │Bluesky │ │ Pulse  │ │    AI    │ │ RF Contagion │  │
-│  │  35    │ │ Argos    │ │  BT    │ │  C2    │ │ Hivemind │ │  SDR 4G/5G   │  │
-│  │exploits│ │ Cell+UI  │ │ Attack │ │  Go    │ │Fuzzer+TT│ │ Baseband     │  │
-│  └────────┘ └──────────┘ └────────┘ └────────┘ └──────────┘ └──────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+
+<br/>
 
 ---
 
 ## Kill Chain Coverage
 
+<br/>
+
 ```
-  RECON          INITIAL ACCESS      EXECUTION       PERSISTENCE      PRIVESC
-┌─────────┐    ┌──────────────┐   ┌───────────┐   ┌────────────┐   ┌──────────┐
-│ OSINT   │───▶│ Phishing AI  │──▶│LOLBin     │──▶│ WER Hangs  │──▶│ BYOVD    │
-│ DNS Map │    │ CI/CD Inject │   │Chainer    │   │ Triple     │   │ DKOM     │
-│ Recon   │    │ QR Payload   │   │Reflect DLL│   │ Startup    │   │ Token    │
-│ APIs    │    │ USB ADB      │   │WASM Exec  │   │ Schtasks   │   │ Steal    │
-└─────────┘    └──────────────┘   └───────────┘   └────────────┘   └──────────┘
-                                                                         │
-  C2              EXFIL            LATERAL          EVASION              │
-┌──────────┐   ┌───────────┐   ┌────────────┐   ┌────────────┐          │
-│ SPIFFE   │◀──│ MFT Slack │◀──│ Kerberos   │◀──│ WFP DNS    │◀─────────┘
-│ Ed25519  │   │ DNS DoH   │   │ Delegation │   │ Blue Pill  │
-│ Kyber    │   │ Blockchain│   │ IMDSv2 AWS │   │ Anti-Revers│
-│ 5-Chan   │   │ QR Exfil  │   │ VLAN Jump  │   │ Anti-Foren │
-└──────────┘   └───────────┘   └────────────┘   └────────────┘
+  ╔══════════════════════════════════════════════════════════════════════╗
+  ║                        ATTACK KILL CHAIN                           ║
+  ╠═══════╦══════════╦══════════╦══════════╦══════════╦════════════════╣
+  ║ RECON ║ INITIAL  ║  EXEC    ║ PERSIST  ║ PRIVESC  ║   LATERAL     ║
+  ║       ║ ACCESS   ║          ║          ║          ║                ║
+  ╠═══════╬══════════╬══════════╬══════════╬══════════╬════════════════╣
+  ║ OSINT ║ Phish AI ║ LOLBin   ║ WER      ║ BYOVD    ║ Kerberos      ║
+  ║ Recon ║ CI/CD    ║ Chainer  ║ Triple   ║ DKOM     ║ Delegation    ║
+  ║ DNS   ║ QR Worm  ║ Reflect  ║ MFT      ║ Token    ║ IMDSv2 (AWS)  ║
+  ║ APIs  ║ USB ADB  ║ DLL      ║ Slack    ║ Steal    ║ VLAN Jump     ║
+  ║       ║ PJL      ║ WASM     ║ Schtasks ║          ║ Chronos NTP   ║
+  ╚═══════╩══════════╩══════════╩══════════╩══════════╩════════════════╝
+                  │                          │
+  ╔═══════════════╩══════════╦═══════════════╩═════════════╗
+  ║          EVASION         ║         C2 & EXFIL          ║
+  ╠══════════════════════════╬═════════════════════════════╣
+  ║ WFP DNS Poisoning        ║ SPIFFE mTLS + Ed25519      ║
+  ║ Blue Pill Hypervisor     ║ Kyber-1024 Post-Quantum    ║
+  ║ Anti-Reversing Suite     ║ 5-Channel Stack            ║
+  ║ Anti-Forensics (DoD 7p)  ║ Blockchain C2 (BTC/ETH)    ║
+  ║ MFT Slack Hide           ║ MFT Slack Storage          ║
+  ╚══════════════════════════╩═════════════════════════════╝
 ```
+
+<br/>
 
 ---
 
-## Project Status
+## Phase Completion
 
-| Phase | Theme | Modules | Lines | Status |
-|:-----:|-------|:-------:|-------|:------:|
-| **0** | Critical Stubs | 8 | 500 | ✅ Complete |
-| **1** | Evasion + Anti-Forensics | 10 | 3,599 | ✅ Complete |
-| **2** | C2 Hardened | 6 | 2,374 | ✅ Complete |
-| **3** | Advanced Propagation | 12 | 3,274 | ✅ Complete |
-| **4** | AI + Cross-Platform | 9 | 2,938 | ✅ Complete |
-| | **TOTAL** | **45** | **12,685** | **100%** |
+<br/>
+
+```
+FASE 0  ████████████████████████  100%  Critical Stubs Fixed
+FASE 1  ████████████████████████  100%  Evasion + Anti-Forensics
+FASE 2  ████████████████████████  100%  C2 Hardened
+FASE 3  ████████████████████████  100%  Advanced Propagation
+FASE 4  ████████████████████████  100%  AI + Cross-Platform
+        └──────────────────────┘
+        45 Modules · 12,685 Lines
+```
+
+<br/>
+
+| Phase | Theme | 🧩 | 📝 Lines | Status |
+|:-----:|-------|:--:|---------|:------:|
+| **0** | Critical Stubs | 8 | 500 | `█████████░` 100% |
+| **1** | Evasion + Anti-Forensics | 10 | 3,599 | `█████████░` 100% |
+| **2** | C2 Hardened | 6 | 2,374 | `█████████░` 100% |
+| **3** | Advanced Propagation | 12 | 3,274 | `█████████░` 100% |
+| **4** | AI + Cross-Platform | 9 | 2,938 | `█████████░` 100% |
+
+<br/>
 
 ---
 
-## Module Catalog
+## Module Matrix
 
-<details open>
-<summary><b>🔒 FASE 1 — Evasion & Anti-Forensics</b></summary>
+<br/>
 
-| Module | File | Technique |
-|--------|------|-----------|
-| BYOVD Loader | `byovd_loader.go` | 5 vulnerable drivers (WinRing0, Gdrv, RTCore64, kprocesshacker, CPUID) — DeviceIoControl, R/W physical memory, MSR, handle elevation |
-| DKOM | `dkom.go` | Process hiding via ActiveProcessLinks, SYSTEM token stealing, EPROCESS offsets per build |
-| Anti-Reversing | `anti_reversing.go` | HW BP detect (DR0-DR7), INT3 scan, CRC32 integrity, RDTSC timing, virtual MAC sandbox check |
-| Anti-Forensics | `anti_forensics_advanced.go` | DoD 5220.22-M 7-pass wipe, MFT $BITMAP corruption, VAD hide, crash dump/event log/prefetch/USN/Shellbag wipe |
-| WER Persistence | `wer_persistence.go` | Windows Error Reporting Hangs hijack, Silent Process Exit, startup + Run key + schtasks triple persistence |
-| MFT Slack Storage | `mft_slack.go` | NTFS slack space R/W via PowerShell, AES-GCM encrypted fragments, hidden agent/ransom note storage |
-| WFP DNS Poisoning | `wfp_dns_poison.go` | WFP provider + netsh fallback, fake DNS server (UDP 53), hosts file injection, DNS cache flush |
-| Blue Pill Lite | `v27/bluepill.go` | VMXON/VMCS VT-x hypervisor, PatchGuard bypass, CPUID trap, memory hiding |
-| LOLBin Chainer | `lolbin_chainer.go` | 28 LOLBins (20 Windows + 8 Linux), randomized chain per hour, multi-layer base64 encoding |
-| Kernel DNS Driver | `v29/wfp_driver.go` | NDIS filter driver, blocks Defender/Security updates, DNS redirect to C2 |
+### 🔴 FASE 1 — Evasion & Anti-Forensics
 
-</details>
+| # | Module | Capability | OS |
+|:--:|--------|------------|:--:|
+| 1.1 | **BYOVD Loader** | 5 vulnerable drivers (WinRing0, Gdrv, RTCore64, kprocesshacker, CPUID) · IOCTLs · R/W physical memory · MSR · handle elevation | ![Win](https://img.shields.io/badge/Win-0078D6?style=flat-square&logo=windows&logoColor=white) |
+| 1.2 | **DKOM** | Process hiding via ActiveProcessLinks unlink · SYSTEM token steal · EPROCESS offsets per build | ![Win](https://img.shields.io/badge/Win-0078D6?style=flat-square&logo=windows&logoColor=white) |
+| 1.3 | **Anti-Reversing** | HW BP detect (DR0-DR7) · INT3 scan · CRC32 integrity · RDTSC timing · sandbox + virtual MAC check | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 1.4 | **Anti-Forensics** | DoD 5220.22-M 7-pass wipe · MFT $BITMAP corruption · VAD hide · crash dump/event log/prefetch/USN/Shellbag wipe | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 1.5 | **WER Persistence** | Windows Error Reporting Hangs hijack · Silent Process Exit · startup + Run key + schtasks | ![Win](https://img.shields.io/badge/Win-0078D6?style=flat-square&logo=windows&logoColor=white) |
+| 1.6 | **MFT Slack** | NTFS slack space R/W via PowerShell · AES-GCM encrypted fragments · hidden agent/ransom note storage | ![Win](https://img.shields.io/badge/Win-0078D6?style=flat-square&logo=windows&logoColor=white) |
+| 1.7 | **WFP DNS Poison** | WFP provider + netsh fallback · fake DNS server (UDP 53) · hosts file injection · cache flush | ![Win](https://img.shields.io/badge/Win-0078D6?style=flat-square&logo=windows&logoColor=white) |
+| 1.8 | **Blue Pill HV** | VMXON/VMCS VT-x hypervisor · PatchGuard bypass · CPUID trap · memory hiding | ![Win](https://img.shields.io/badge/Win-0078D6?style=flat-square&logo=windows&logoColor=white) |
+| 1.9 | **LOLBin Chainer** | 28 LOLBins (20 Win + 8 Linux) · randomized chain per hour · multi-layer base64 encoding | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 1.10 | **Kernel DNS Driver** | NDIS filter driver · blocks Defender/Security updates · DNS redirect to C2 | ![Win](https://img.shields.io/badge/Win-0078D6?style=flat-square&logo=windows&logoColor=white) |
 
-<details>
-<summary><b>🔐 FASE 2 — C2 Hardened</b></summary>
+### 🔵 FASE 2 — C2 Hardened
 
-| Module | File | Technique |
-|--------|------|-----------|
-| SPIFFE mTLS | `crypto/spiffe.go` | SVID generation, trust bundle, peer SPIFFE ID verification, certificate rotation, server/client mTLS |
-| Multi-Channel C2 | `multi_channel_c2.go` | 5 channels: gRPC→WebSocket→DoH→Twitter→Blockchain, health check, auto-failover, beacon loop |
-| Ed25519 Signing | `crypto/ed25519.go` | Command sign/verify, nonce replay protection, trusted key ring, batch sign/verify operations |
-| Kyber-1024+X25519 | `crypto/kyber.go` | Hybrid KEM (ML-KEM-1024 + X25519), HKDF derivation, AES-256-GCM + HMAC-SHA256 sessions |
-| Dashboard Ops | `c2/dashboard.go` | HTTP+WebSocket API, agent nodes, propagation map, signed command issuance, embedded HTML dashboard |
-| Proto Obfuscation | `proto/loader/obfuscated.go` | XOR+AES-CTR+GZIP, integrity verification, vaporize buffers, memory-only loading |
+| # | Module | Capability | OS |
+|:--:|--------|------------|:--:|
+| 2.1 | **SPIFFE mTLS** | SVID generation · trust bundle · peer SPIFFE ID verification · certificate rotation · mTLS server/client | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 2.2 | **Multi-Channel C2** | 5 channels (gRPC→WebSocket→DoH→Twitter→Blockchain) · health check · auto-failover · beacon loop | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 2.3 | **Ed25519 Signing** | Command sign/verify · nonce replay protection · trusted key ring · batch operations | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 2.4 | **Dashboard Ops** | HTTP+WebSocket API · agent nodes · propagation map · signed command issuance · embedded HTML | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 2.5 | **Kyber-1024** | Hybrid KEM (ML-KEM-1024 + X25519) · HKDF derivation · AES-256-GCM + HMAC-SHA256 sessions | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 2.6 | **Proto Obfuscation** | XOR+AES-CTR+GZIP · integrity verification · vaporize buffers · memory-only loading | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
 
-</details>
+### 🟢 FASE 3 — Advanced Propagation
 
-<details>
-<summary><b>🌊 FASE 3 — Advanced Propagation</b></summary>
+| # | Module | Capability | OS |
+|:--:|--------|------------|:--:|
+| 3.1 | **Ultrasound QPSK** | >18kHz modulation · WAV generation · speaker/mic RX/TX · preamble sync | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 3.2 | **Powerline PLC** | HomePlug device scan · UPnP SSDP · SOAP injection over electrical grid | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 3.3 | **USB ADB** | ADB enumeration · APK install · remote shell exec · SMS/contacts dump | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 3.4 | **DNS Rebinding** | TTL=0 rebind server · SOP bypass JS payload · SSRF lateral via Host headers | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 3.5 | **CI/CD Webhooks** | GitHub Actions · Jenkins · GitLab CI injection · 10 CI scanner | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 3.6 | **VLAN Jump** | Double tagging · DTP negotiation · ARP flood · DHCP per VLAN | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 3.7 | **QR Dynamic Worm** | QR matrix generation · PNG rendering · rotation channel | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 3.8 | **PJL Printer Worm** | Printer job language exploits · NVRAM R/W · firmware infection · PCL ransom note | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 3.9 | **Chronos NTP** | Fake NTP server · time forward/rewind · schtask shift · w32tm hijack | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 3.10 | **Reflective DLL** | NtCreateSection+NtMapViewOfSection · 100-byte NASM stager · remote thread injection | ![Win](https://img.shields.io/badge/Win-0078D6?style=flat-square&logo=windows&logoColor=white) |
+| 3.11 | **Kerberos Deleg** | Unconstrained delegation discovery · coercion · TGT dump · Silver Ticket | ![Win](https://img.shields.io/badge/Win-0078D6?style=flat-square&logo=windows&logoColor=white) |
+| 3.12 | **IMDSv2 Bypass** | AWS token acquisition · IAM extraction · SSRF · AssumeRole · neighbor scan | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
 
-| Module | File | Technique |
-|--------|------|-----------|
-| Ultrasound QPSK | `hydra_vectors/ultrasound.go` | >18kHz QPSK modulation, WAV generation, speaker/mic RX/TX, preamble synchronization |
-| Powerline PLC | `hydra_vectors/powerline.go` | HomePlug device scan, UPnP SSDP discovery, SOAP injection over electrical grid |
-| USB ADB Worm | `hydra_vectors/usb_adb.go` | ADB enumeration, APK install, remote shell exec, SMS/contacts dump, sdcard persistence |
-| DNS Rebinding | `hydra_vectors/dns_rebinding.go` | TTL=0 rebind server, SOP bypass JavaScript payload, SSRF lateral via Host headers |
-| CI/CD Webhooks | `hydra_vectors/cicd_webhooks.go` | GitHub Actions workflow injection, Jenkins/GitLab CI trigger, 10 CI environment scanner |
-| VLAN Jump | `hydra_vectors/vlan_jump.go` | Double tagging, DTP negotiation, ARP flood, DHCP discover per VLAN interface |
-| QR Dynamic Worm | `hydra_vectors/qr_worm.go` | QR matrix generation (finder/timing/alignment patterns), PNG rendering, rotation channel |
-| PJL Printer Worm | `hydra_vectors/pjl_worm.go` | Printer Job Language exploits, NVRAM R/W, firmware infection, PCL ransom note |
-| Chronos NTP | `chronos_ntp.go` | Fake NTP server, time forward/rewind, scheduled task shift, w32tm hijack |
-| Reflective DLL | `stager/reflective_asm.go` | NtCreateSection+NtMapViewOfSection, 100-byte NASM stager, CreateRemoteThread |
-| Kerberos Delegation | `kerberos_delegation.go` | Unconstrained delegation discovery, coercion (printerbug/PetitPotam), TGT dump, Silver Ticket |
-| IMDSv2 Bypass | `imdsv2_bypass.go` | AWS IMDSv2 token acquisition, IAM credential extraction, SSRF exploit, AssumeRole |
+### 🟣 FASE 4 — AI + Cross-Platform
 
-</details>
+| # | Module | Capability | OS |
+|:--:|--------|------------|:--:|
+| 4.1 | **Cross-Platform Loader** | ELF · Mach-O · APK generation · pack+encrypt · syscall hooks | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 4.2 | **JIT Polymorphism** | NOP-sleds · code crossover · register reordering · runtime mutation loop | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 4.3 | **AI FSM Orchestrator** | Q-learning state machine · exploration vs exploitation · risk prediction | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 4.4 | **Federated Learning** | FedAvg aggregation · victim profiling · phishing time prediction · model export | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 4.5 | **Autofactory Fuzzer** | AFL++ integration · 9 mutation strategies · crash detection · exploit candidates | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 4.6 | **Wazero Bridge** | WASM module parsing · TinyGo compilation · Python→WASM migration | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
+| 4.7 | **RF Contagion** | SDR detection (RTL-SDR/HackRF) · ModemManager · baseband injection · IMSI · SS7 | ![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black) |
+| 4.8 | **EDR Test Lab** | Docker Compose · Windows Server 2022 · ELK Stack · Sysmon · automated tests | ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white) |
+| 4.9 | **Deepfake Vishing** | Coqui TTS (tacotron2-DDC) · VoIP · SMS phishing · SE profiling | ![All](https://img.shields.io/badge/All-333?style=flat-square&logo=linux&logoColor=white) |
 
-<details>
-<summary><b>🧠 FASE 4 — AI + Cross-Platform + Lab</b></summary>
-
-| Module | File | Technique |
-|--------|------|-----------|
-| Cross-Platform Loader | `loader/cross.go` | ELF/Mach-O/APK generation, pack+encrypt, syscall hooks, anti-sandbox detection |
-| JIT Polymorphism | `jit_polymorphism.go` | NOP-sleds, constant obfuscation, code crossover, register reordering, runtime mutation loop |
-| AI FSM Orchestrator | `appstate/ai_orchestrator.go` | Q-learning state machine, exploration vs exploitation, risk prediction, Q-table import/export |
-| Federated Learning | `ai/hivemind/federated.go` | FedAvg aggregation, victim profiling, optimal phishing time prediction, model export |
-| Autofactory Fuzzer | `ai/autofactory/fuzzer.go` | AFL++ integration, 9 mutation strategies (bit/byte flip, arithmetic, splice, etc), crash detection |
-| Wazero Bridge | `bridge/wazero_loader.go` | WASM module parsing, TinyGo compilation, Python handler migration to WASM, stub generation |
-| RF Contagion | `rf_contagion/baseband.go` | SDR detection (RTL-SDR/HackRF), ModemManager, baseband injection, IMSI capture, SS7 |
-| EDR Test Lab | `lab/docker-compose.edr.yml` | Windows Server 2022 + ELK Stack + Sysmon + automated evasion test suite |
-| Deepfake Vishing | `ai/vishing/deepfake.go` | Coqui TTS voice cloning (tacotron2-DDC), VoIP call placement, SMS phishing, SE profiling |
-
-</details>
+<br/>
 
 ---
 
 ## Quick Start
 
+<br/>
+
 ```bash
-# Clone the repository
+# ─── Clone ──────────────────────────────────────────────────
 git clone https://github.com/Ruby570bocadito/X404X.git
 cd X404X
 
-# Install Python dependencies
+# ─── Dependencies ────────────────────────────────────────────
 pip install -r requirements.txt
-
-# Install Go modules
 cd internal/ransomware && go mod tidy && cd ../..
 
-# Full demo (dry-run — no real exploits)
+# ─── Demo (dry-run — no real actions) ────────────────────────
 bash scripts/run_demo.sh
 
-# Worm in simulation mode (Windows)
-cd plugins/worm && python worm_core.py --config configs/config_simulation.yaml
+# ─── Worm Simulation ─────────────────────────────────────────
+# Windows:  cd plugins/worm && python worm_core.py --config configs/config_simulation.yaml
+# Linux:    cd plugins/worm && python3 worm_core.py --config configs/config_simulation.yaml
 
-# Worm in simulation mode (Linux)
-cd plugins/worm && python3 worm_core.py --config configs/config_simulation.yaml
-
-# Dashboard (port 9090)
+# ─── Dashboard ───────────────────────────────────────────────
 cd plugins/pulse-c2/src/go && go run ./cmd/dashboard -port 9090
+# → Open http://localhost:9090
 
-# EDR test lab
+# ─── EDR Test Lab ────────────────────────────────────────────
 docker-compose -f lab/docker-compose.edr.yml up -d
 ```
 
+<br/>
+
 ---
 
-## Directory Structure
+## Directory Map
+
+<br/>
 
 ```
 X404X/
-├── cmd/                           # CLI + implant agent
-│   ├── x404x/                     # Interactive shell (~400 lines)
-│   └── implant/                   # Go C2 agent
 │
-├── internal/                      # CORE ENGINE (Go)
-│   ├── ransomware/                # 37 files — ransomware + evasion + propagation
-│   │   ├── hydra_vectors/         # 8 exotic worm vectors
-│   │   ├── loader/                # Cross-platform ELF/Mach-O/APK
-│   │   ├── stager/                # Reflective DLL injection
-│   │   ├── v27/, v29/, v210/      # Advanced version modules
-│   │   └── *.go                   # Core engine files
-│   ├── agent/                     # Post-exploitation + priv esc
-│   ├── appstate/                  # FSM + AI orchestrator
-│   ├── bridge/                    # Wazero WASM bridge loader
-│   └── dispatch/                  # Module dispatcher + MITRE mapping
+├── cmd/                           ← CLI + Implant Agent
+│   ├── x404x/console.go           Interactive shell
+│   └── implant/main.go            Go C2 agent
 │
-├── modules/bridge/                # PYTHON BRIDGE
-│   ├── bridge.py                  # RPC router (Go ↔ Python)
-│   └── handlers/                  # 12 files, ~170 RPC handlers
-│       ├── ransomware*.py         # v26-v210, BlockZ
-│       ├── attacks.py, bloodhound.py, cred_dump.py
-│       └── phase_1_4.py           # 36 Phase 1-4 handlers
+├── internal/                      ← CORE ENGINE
+│   ├── ransomware/                Engine principal (37 files)
+│   │   ├── hydra_vectors/         8 vectores exóticos
+│   │   ├── loader/cross.go        ELF · Mach-O · APK
+│   │   ├── stager/reflective_asm  Reflective DLL NASM
+│   │   ├── v27/ v29/ v210/        Versiones avanzadas
+│   │   └── *.go                   Módulos core
+│   ├── agent/                     Post-exploit + privesc
+│   ├── appstate/                  FSM + AI orchestrator
+│   ├── bridge/wazero_loader.go    WASM bridge
+│   └── dispatch/dispatcher.go     MITRE ATT&CK mapper
 │
-├── plugins/                       # MODULAR PLUGINS
-│   ├── worm/                      # Worm with RL (35 exploits)
-│   ├── operations/                # Argos cell/stager agents
-│   ├── blue/bluesky/              # Bluetooth attacks
-│   ├── pulse-c2/                  # C2 with crypto + dashboard
-│   ├── ai/                        # AI plugins
-│   │   ├── hivemind/              # Federated learning
-│   │   ├── autofactory/           # AFL++ fuzzer
-│   │   └── vishing/               # Deepfake voice phishing
-│   └── rf_contagion/              # RF SDR 4G/5G
+├── modules/bridge/                ← PYTHON BRIDGE
+│   ├── bridge.py                  Go↔Python RPC router
+│   └── handlers/                  12 files · ~170 handlers
 │
-├── lab/                           # EDR test environment
-├── pkg/proto/                     # gRPC protobuf definitions
-├── scripts/run_demo.sh            # Cross-platform demo
-├── deploy/deploy.sh               # One-click deployment
-├── ROADMAP.md                     # Complete development roadmap
-└── requirements.txt               # Python dependencies
+├── plugins/                       ← PLUGIN ECOSYSTEM
+│   ├── worm/                      35 exploits + RL engine
+│   ├── operations/                Argos agents + UI
+│   ├── pulse-c2/                  Crypto + Dashboard
+│   ├── ai/                        Hivemind · Fuzzer · Vishing
+│   ├── blue/bluesky/              Bluetooth attacks
+│   └── rf_contagion/              SDR 4G/5G baseband
+│
+├── lab/docker-compose.edr.yml     EDR test environment
+├── deployments/deploy.sh          One-click deploy
+├── scripts/run_demo.sh            Cross-platform demo
+├── ROADMAP.md                     Development roadmap
+└── requirements.txt               Dependencies
 ```
+
+<br/>
 
 ---
 
-## Tech Stack
+## Tech Canvas
 
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=go,python,c,bash,powershell,docker,linux,git,github,vue,nodejs&theme=dark" alt="Core Stack"/>
+  <table>
+    <tr>
+      <td align="center"><b>LANGUAGE</b></td>
+      <td align="center"><b>FRAMEWORK</b></td>
+      <td align="center"><b>CRYPTO</b></td>
+      <td align="center"><b>TOOL</b></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/gRPC-244c5a?style=for-the-badge&logo=google&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/Kyber-PQ-ff3366?style=for-the-badge&logo=letsencrypt&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/Vue.js-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/Ed25519-00d4ff?style=for-the-badge&logo=letsencrypt&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="https://img.shields.io/badge/Bash-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/WASM-654FF0?style=for-the-badge&logo=webassembly&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/X25519-00ff88?style=for-the-badge&logo=letsencrypt&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="https://img.shields.io/badge/PowerShell-5391FE?style=for-the-badge&logo=powershell&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/AFL++-F7931A?style=for-the-badge&logo=bitcoin&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/AES_GCM-ff6b35?style=for-the-badge&logo=letsencrypt&logoColor=white"/></td>
+      <td align="center"><img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white"/></td>
+    </tr>
+  </table>
 </p>
 
+<br/>
+
+---
+
+## Stats
+
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=nmap,metasploit&theme=dark" alt="Security Tools"/>
+  <img src="https://img.shields.io/badge/Total_Files-104-ff3366?style=for-the-badge&logo=files&logoColor=white" />
+  <img src="https://img.shields.io/badge/Go_Files-37-00ADD8?style=for-the-badge&logo=go&logoColor=white" />
+  <img src="https://img.shields.io/badge/Python_Files-48-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Total_Lines-12,685-00d4ff?style=for-the-badge&logo=codecrafters&logoColor=white" />
+  <img src="https://img.shields.io/badge/Handlers-~170-00ff88?style=for-the-badge&logo=target&logoColor=white" />
+  <img src="https://img.shields.io/badge/Hydra_Vectors-8-ff6b35?style=for-the-badge&logo=octopusdeploy&logoColor=white" />
 </p>
+
+<br/>
+
+---
+
+## Legal
+
+> **⚠️ DISCLAIMER:** This project exists exclusively for **educational purposes, authorized security research, and red team operations with explicit written consent**. Unauthorized use against systems you do not own or have permission to test is **illegal** and **strictly prohibited**. The authors and contributors assume **zero liability** for any misuse, damage, or legal consequences resulting from improper use of this codebase.
+>
+> **By using this software, you acknowledge that you are solely responsible for complying with all applicable laws and regulations.**
+
+<br/>
 
 <p align="center">
   <sub>
-    <b>Go:</b> SPIFFE · Ed25519 · Kyber-1024 · gRPC · Wazero · TinyGo · AFL++ ·
-    <b>Python:</b> cryptography · Rich · fpdf2 · python-docx · Coqui TTS · pyVoIP ·
-    <b>Security:</b> Nmap · Metasploit · BloodHound · Mimikatz · Impacket · CrackMapExec
+    <a href="https://github.com/Ruby570bocadito">RBYHACK</a> © 2025-2026 ·
+    Built in Málaga, Spain ·
+    <a href="https://github.com/Ruby570bocadito/X404X/blob/main/ROADMAP.md">Roadmap</a> ·
+    <a href="https://github.com/Ruby570bocadito/X404X/issues">Report Issue</a>
   </sub>
 </p>
 
----
-
-## Development Roadmap
-
-See [`ROADMAP.md`](ROADMAP.md) for the complete development plan including:
-
-- **Future Phases:** Enhanced AI capabilities, hardware-level attacks, satellite/SCADA integration
-- **Module Specifications:** Detailed descriptions of all 45 modules
-- **Integration Plan:** 12 proposed new modules (Kernel DNS WFP, Hypervisor stealth, etc.)
-- **Code Conventions:** Go/Python style guides and naming conventions
-
----
-
-## Legal Disclaimer
-
-This project is developed for **educational purposes and authorized security testing only**. Unauthorized use against systems you do not own or have explicit permission to test is illegal. The authors assume no liability for misuse.
-
-**Use only in:**
-- Authorized penetration tests with written consent
-- Academic research environments
-- Your own isolated lab infrastructure
-- CTF competitions
-
----
-
-<p align="center">
-  <a href="https://github.com/Ruby570bocadito">
-    <img src="https://img.shields.io/badge/GitHub-Ruby570bocadito-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"/>
-  </a>
-  <a href="https://www.linkedin.com/in/rafael-g%C3%A1lvez-silipo-07445a409/">
-    <img src="https://img.shields.io/badge/LinkedIn-Rafael_Gálvez-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"/>
-  </a>
-</p>
-
-<p align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/Ruby570bocadito">RBYHACK</a> · Málaga, Spain · 2025-2026</sub>
-</p>
-
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:ff3366,100:00d4ff&height=120&section=footer&text=X404X+%7C+Autonomous+Red+Team+Platform&fontSize=14&fontColor=ffffff&animation=fadeIn" alt="X404X Footer"/>
-</p>
+<br/>
