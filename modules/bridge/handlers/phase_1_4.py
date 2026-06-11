@@ -14,6 +14,7 @@ HANDLERS = {}
 
 def register_routes(router):
     """Register all Phase 1-4 handlers with the bridge router."""
+    is_dict = isinstance(router, dict)
     handlers = [
         ("evasion/byovd_loader", handle_byovd_loader),
         ("evasion/dkom", handle_dkom),
@@ -53,7 +54,11 @@ def register_routes(router):
         ("ai/deepfake_vishing", handle_deepfake_vishing),
     ]
     for name, handler in handlers:
-        router.register(name, handler)
+        if is_dict:
+            groups = router.setdefault("phase_1_4", {})
+            groups[name] = handler
+        else:
+            router.register(name, handler)
         HANDLERS[name] = handler
     return len(handlers)
 

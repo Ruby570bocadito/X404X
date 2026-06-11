@@ -101,9 +101,15 @@ def handle_apocalipsis(params: dict) -> dict:
 def _trigger_worm_apocalypse(params: dict) -> dict:
     """Trigger worm propagation in apocalypse mode."""
     result = {"propagation_active": False, "targets_discovered": 0}
+    simulation = params.get("simulation", True)
     subnet = params.get("subnet", "192.168.1.0/24")
 
-    # Actually scan for live hosts
+    if simulation:
+        result["propagation_active"] = True
+        result["targets_discovered"] = random.randint(10, 50)
+        result["vulnerable_hosts"] = [{"ip": f"192.168.1.{i}", "port": 445, "service": "SMB"} for i in range(1, 6)]
+        return result
+
     try:
         parts = subnet.split(".")
         base = f"{parts[0]}.{parts[1]}.{parts[2]}"
@@ -122,7 +128,7 @@ def _trigger_worm_apocalypse(params: dict) -> dict:
             result["targets_discovered"] = len(targets)
             result["vulnerable_hosts"] = targets[:20]
     except Exception:
-        result["propagation_active"] = True  # Attempt anyway
+        result["propagation_active"] = True
         result["targets_discovered"] = 25
 
     return result
@@ -131,10 +137,16 @@ def _trigger_worm_apocalypse(params: dict) -> dict:
 def _enroll_botnet(params: dict) -> dict:
     """Enroll this node in the botnet."""
     result = {"enrolled": False, "node_count": 0}
+    simulation = params.get("simulation", True)
     c2 = params.get("c2_endpoint", "x404x-c2.online:8443")
 
+    if simulation:
+        result["enrolled"] = True
+        result["standalone_botnet"] = True
+        result["node_count"] = random.randint(50, 500)
+        return result
+
     try:
-        # Try to resolve C2
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(3)
         host, port = c2.split(":") if ":" in c2 else (c2, 8443)

@@ -307,62 +307,57 @@ def handle_scada_covert(params: dict) -> dict:
 
 
 def handle_firmware_worm(params: dict) -> dict:
-    """Real firmware worm — scan network for flashable devices."""
+    """Firmware worm — scan network for flashable devices."""
     result = {"success": True}
+    simulation = params.get("simulation", True)
 
-    # Scan network for flashable devices
     infected_routers = 0
     infected_switches = 0
     infected_firewalls = 0
 
-    # Common management ports for network devices
     mgmt_ports = {80: "HTTP", 443: "HTTPS", 22: "SSH", 23: "Telnet",
                   161: "SNMP", 8443: "HTTPS-mgmt", 8080: "HTTP-mgmt",
                   4786: "Cisco Smart Install", 7547: "TR-069"}
 
-    # Scan common gateway IPs
-    scan_targets = []
-    for i in range(1, 254, 10):
-        for j in range(1, 254, 10):
-            ip = f"10.{i}.{j}.1"
-            scan_targets.append(ip)
+    if not simulation:
+        scan_targets = []
+        for i in range(1, 254, 10):
+            for j in range(1, 254, 10):
+                ip = f"10.{i}.{j}.1"
+                scan_targets.append(ip)
+                if len(scan_targets) >= 20:
+                    break
             if len(scan_targets) >= 20:
                 break
-        if len(scan_targets) >= 20:
-            break
 
-    for ip in scan_targets[:10]:
-        for port, _ in mgmt_ports.items():
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(0.2)
-                if sock.connect_ex((ip, port)) == 0:
-                    if port in (80, 443, 8080, 8443):
-                        infected_routers += 1
-                    elif port == 22:
-                        infected_switches += 1
-                    elif port in (161, 7547):
-                        infected_firewalls += 1
-                    break
-                sock.close()
-            except Exception:
-                pass
+        for ip in scan_targets[:10]:
+            for port, _ in mgmt_ports.items():
+                try:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(0.2)
+                    if sock.connect_ex((ip, port)) == 0:
+                        if port in (80, 443, 8080, 8443):
+                            infected_routers += 1
+                        elif port == 22:
+                            infected_switches += 1
+                        elif port in (161, 7547):
+                            infected_firewalls += 1
+                        break
+                    sock.close()
+                except Exception:
+                    pass
 
-    # Generate magic packet (WoL / firmware trigger)
     magic_packet = os.urandom(8)
 
-    # Check for flashrom capability
     flashrom = False
-    try:
-        subprocess.run(["flashrom", "--version"], capture_output=True, timeout=3)
-        flashrom = True
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        pass
+    if not simulation:
+        try:
+            subprocess.run(["flashrom", "--version"], capture_output=True, timeout=3)
+            flashrom = True
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
 
-    # Hidden partition (create actual hidden partition metadata)
-    hidden_bytes = 0
-    if flashrom:
-        hidden_bytes = 262144  # 256KB firmware region
+    hidden_bytes = 262144 if flashrom else 0
 
     result.update({
         "routers_infected": max(infected_routers, 8),
@@ -372,7 +367,7 @@ def handle_firmware_worm(params: dict) -> dict:
         "magic_packet_size": len(magic_packet),
         "hidden_partition_bytes": hidden_bytes,
         "flashrom_available": flashrom,
-        "worm_protocol": "Cisco_Smart_Install" if infected_routers > 0 else "TR-069",
+        "worm_protocol": "TR-069",
         "total_devices": infected_routers + infected_switches + infected_firewalls,
     })
     return result
@@ -1024,14 +1019,13 @@ def handle_financial_crash(params: dict) -> dict:
 
 
 def handle_iot_chain(params: dict) -> dict:
-    """Real IoT chain attack — scan IoT devices, build botnet chain."""
+    """IoT chain attack — scan IoT devices, build botnet chain."""
     result = {"success": True}
+    simulation = params.get("simulation", True)
 
-    # Scan for IoT devices
     iot_devices = []
     iot_scan_results = []
 
-    # Common IoT protocols and ports
     iot_services = {80: "HTTP", 443: "HTTPS", 8080: "HTTP-alt", 8888: "HTTP-alt",
                     554: "RTSP (cameras)", 8554: "RTSP-alt",
                     1883: "MQTT", 8883: "MQTT-SSL",
@@ -1043,27 +1037,27 @@ def handle_iot_chain(params: dict) -> dict:
                     7547: "TR-069 CWMP",
                     8443: "HTTPS-admin"}
 
-    # Scan local subnet
-    try:
-        import socket
-        for i in range(1, 254):
-            ip = f"192.168.1.{i}"
-            for port in [80, 443, 554, 8080, 1883, 47808]:
-                try:
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.settimeout(0.1)
-                    if sock.connect_ex((ip, port)) == 0:
-                        iot_scan_results.append({
-                            "ip": ip, "port": port,
-                            "service": iot_services.get(port, "unknown"),
-                        })
-                    sock.close()
-                except Exception:
-                    pass
-            if len(iot_scan_results) >= 50:
-                break
-    except Exception:
-        pass
+    if not simulation:
+        try:
+            import socket
+            for i in range(1, 254):
+                ip = f"192.168.1.{i}"
+                for port in [80, 443, 554, 8080, 1883, 47808]:
+                    try:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.settimeout(0.1)
+                        if sock.connect_ex((ip, port)) == 0:
+                            iot_scan_results.append({
+                                "ip": ip, "port": port,
+                                "service": iot_services.get(port, "unknown"),
+                            })
+                        sock.close()
+                    except Exception:
+                        pass
+                if len(iot_scan_results) >= 50:
+                    break
+        except Exception:
+            pass
 
     # IoT devices categories
     zones = []

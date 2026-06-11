@@ -12,7 +12,7 @@ import struct
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 try:
@@ -556,9 +556,10 @@ def handle_network_poison(params: dict) -> dict:
         from cryptography.hazmat.primitives import hashes
         key = rsa.generate_private_key(65537, 4096)
         subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "X404X Root CA")])
+        now = datetime.now(timezone.utc)
         cert = x509.CertificateBuilder().subject_name(subject).issuer_name(issuer).public_key(
-            key.public_key()).serial_number(0x404).not_valid_before(datetime.utcnow()).not_valid_after(
-            datetime.utcnow() + timedelta(days=3650)).add_extension(
+            key.public_key()).serial_number(0x404).not_valid_before(now).not_valid_after(
+            now + timedelta(days=3650)).add_extension(
             x509.BasicConstraints(ca=True, path_length=None), critical=True).sign(key, hashes.SHA256())
         ca_generated = True
         ca_path = os.path.join(tempfile.gettempdir(), "x404x_root_ca.crt")

