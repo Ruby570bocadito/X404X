@@ -13,8 +13,6 @@
 package ransomware
 
 import (
-	"bytes"
-	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hmac"
@@ -31,7 +29,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -771,10 +768,3 @@ func (sp *StringProtector) ProtectStrings(strings []string) map[string]string {
 	}
 	return result
 }
-
-var (
-	nullBuf [4096]byte
-	_       = nullBuf
-	_       = bytes.Buffer{}
-	_       = context.Background()
-)
