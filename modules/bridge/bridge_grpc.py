@@ -12,11 +12,15 @@ Usage:
 """
 
 import argparse
+import ipaddress
 import json
+import logging
 import os
+import re
+import signal
+import subprocess
 import sys
 import time
-import logging
 from concurrent import futures
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
@@ -37,6 +41,58 @@ import bridge_pb2_grpc
 
 logging.basicConfig(level=logging.INFO, format="[Bridge-gRPC] %(message)s")
 log = logging.getLogger("x404x.bridge")
+
+
+# ============================================================
+# SECURITY HELPERS
+# ============================================================
+
+def validate_target(target: str) -> str:
+    """Validate and sanitize a target (IP or hostname) to prevent command injection."""
+    if not target or not isinstance(target, str):
+        raise ValueError("Target must be a non-empty string")
+    target = target.strip()
+    try:
+        ipaddress.ip_address(target)
+        return target
+    except ValueError:
+        pass
+    if re.match(r'^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$', target):
+        return target
+    raise ValueError(f"Invalid target format: {target}")
+
+
+def safe_run(cmd: List[str], timeout: int = 30) -> subprocess.CompletedProcess:
+    """Run a subprocess safely, killing the entire process group on timeout."""
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           start_new_session=True, text=True)
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+        return subprocess.CompletedProcess(cmd, proc.returncode, stdout, stderr)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except (ProcessLookupError, OSError):
+            pass
+        proc.wait()
+        raise
+
+
+class SensitiveString:
+    """Wrapper that prevents sensitive data from appearing in logs."""
+    __slots__ = ("_value",)
+
+    def __init__(self, value: str):
+        self._value = value
+
+    def __str__(self) -> str:
+        return "***REDACTED***"
+
+    def __repr__(self) -> str:
+        return "SensitiveString(***)"
+
+    def raw(self) -> str:
+        return self._value
 
 # ============================================================
 # MODULE REGISTRY
@@ -162,9 +218,28 @@ registry = ModuleRegistry()
 
 @registry.register("recon", "Network reconnaissance", "1.0", "recon")
 def recon_handler(params):
-    target = params.get("target", "127.0.0.1")
+    try:
+        target = validate_target(params.get("target", "127.0.0.1"))
+    except ValueError as e:
+        return {"success": False, "error": str(e)}
+
     mode = params.get("mode", "basic")
-    return {"target": target, "mode": mode, "hosts_found": 0, "ports_open": [], "services": []}
+    tools = params.get("tools", ["nmap"])
+    result = {"target": target, "mode": mode, "hosts_found": 0, "ports_open": [], "services": []}
+
+    if "nmap" in tools and not params.get("simulation", True):
+        try:
+            cmd = ["nmap", "-sV", "-F", "-T4", "--max-retries", "2", target]
+            if mode == "stealth":
+                cmd = ["nmap", "-sS", "-T2", "--max-retries", "1", "--max-rtt-timeout", "500ms", target]
+            proc = safe_run(cmd, timeout=20)
+            result["raw_output"] = proc.stdout[:2000]
+        except subprocess.TimeoutExpired:
+            result["error"] = "nmap timed out"
+        except FileNotFoundError:
+            pass
+
+    return result
 
 
 @registry.register("ai_analyze", "AI analysis via local Ollama", "1.0", "c2")

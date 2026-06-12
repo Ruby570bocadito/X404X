@@ -1,12 +1,15 @@
 package ransomware
 
 import (
+	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type RegexEngine struct {
@@ -140,16 +143,30 @@ func (re *RegexEngine) ScanFile(path string) (*ScanResult, []SensitiveData) {
 	return result, sensitiveData
 }
 
-func (re *RegexEngine) ScanDirectory(root string, excludePaths []string, results chan<- ScanResult, sensitive chan<- SensitiveData) error {
+func (re *RegexEngine) ScanDirectory(ctx context.Context, root string, excludePaths []string, results chan<- ScanResult, sensitive chan<- SensitiveData) error {
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, re.workers)
 
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	fileLimit := 10000
+	scanned := atomic.Int64{}
+
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
-		if info.IsDir() {
-			name := strings.ToLower(info.Name())
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		if scanned.Load() >= int64(fileLimit) {
+			return filepath.SkipAll
+		}
+
+		if d.IsDir() {
+			name := strings.ToLower(d.Name())
 			if name == "windows" || name == "system32" || name == "$recycle.bin" ||
 				name == "boot" || name == "recovery" || strings.HasPrefix(name, "$") {
 				return filepath.SkipDir
@@ -161,30 +178,48 @@ func (re *RegexEngine) ScanDirectory(root string, excludePaths []string, results
 			}
 			return nil
 		}
+
 		if !isSensitiveExtension(path) {
 			return nil
 		}
-		if info.Size() > 200*1024*1024 {
+
+		info, infoErr := d.Info()
+		if infoErr != nil || info.Size() > 200*1024*1024 {
 			return nil
 		}
 
+		scanned.Add(1)
 		wg.Add(1)
-		sem <- struct{}{}
+		select {
+		case sem <- struct{}{}:
+		case <-time.After(5 * time.Second):
+			wg.Done()
+			return nil
+		}
 		go func() {
 			defer wg.Done()
 			defer func() { <-sem }()
 			r, sd := re.ScanFile(path)
 			if r != nil {
-				results <- *r
+				select {
+				case results <- *r:
+				case <-time.After(2 * time.Second):
+				}
 			}
 			for _, d := range sd {
-				sensitive <- d
+				select {
+				case sensitive <- d:
+				case <-time.After(1 * time.Second):
+					break
+				}
 			}
 		}()
 		return nil
 	})
 
 	wg.Wait()
+	close(results)
+	close(sensitive)
 	return err
 }
 

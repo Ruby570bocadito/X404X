@@ -217,8 +217,8 @@ func (a *Agent) Stop() {
 	close(a.stopCh)
 }
 
-// ExecuteModule invokes a registered module by name.
-func (a *Agent) ExecuteModule(ctx context.Context, name string, params map[string]string) (string, error) {
+// ExecuteModule invokes a registered module by name with panic recovery.
+func (a *Agent) ExecuteModule(ctx context.Context, name string, params map[string]string) (result string, err error) {
 	a.moduleManager.mu.RLock()
 	mod, ok := a.moduleManager.modules[name]
 	a.moduleManager.mu.RUnlock()
@@ -227,19 +227,23 @@ func (a *Agent) ExecuteModule(ctx context.Context, name string, params map[strin
 		return "", fmt.Errorf("module not found: %s", name)
 	}
 
-	a.log.Infof("executing module: %s with params: %v", name, params)
+	a.log.Infof("executing module: %s", name)
 
 	start := time.Now()
-	result, err := mod.Execute(ctx, params)
-	elapsed := time.Since(start)
+	defer func() {
+		elapsed := time.Since(start)
+		if r := recover(); r != nil {
+			err = fmt.Errorf("module %s panicked after %v: %v", name, elapsed, r)
+			a.log.Errorf("module %s panicked: %v", name, r)
+		} else if err != nil {
+			a.log.Errorf("module %s failed after %v: %v", name, elapsed, err)
+		} else {
+			a.log.Infof("module %s completed in %v", name, elapsed)
+		}
+	}()
 
-	if err != nil {
-		a.log.Errorf("module %s failed after %v: %v", name, elapsed, err)
-		return "", err
-	}
-
-	a.log.Infof("module %s completed in %v", name, elapsed)
-	return result, nil
+	result, err = mod.Execute(ctx, params)
+	return
 }
 
 // moduleList returns registered module names.

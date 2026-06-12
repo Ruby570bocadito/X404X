@@ -136,3 +136,23 @@ func buildWriter(cfg Config) zapcore.WriteSyncer {
 		return zapcore.AddSync(os.Stdout)
 	}
 }
+
+// SensitiveString wraps a sensitive value and redacts it in logs.
+// Use to prevent keys, tokens, passwords from being written to disk or stdout.
+type SensitiveString string
+
+func (s SensitiveString) String() string {
+	if s == "" {
+		return ""
+	}
+	return "***REDACTED***"
+}
+
+func (s SensitiveString) Raw() string {
+	return string(s)
+}
+
+func (s SensitiveString) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddString("value", "***REDACTED***")
+	return nil
+}

