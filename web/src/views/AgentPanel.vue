@@ -28,7 +28,7 @@
           <td class="py-2 text-neon">{{ agent.id }}</td>
           <td class="text-gray-300">{{ agent.hostname }}</td>
           <td class="text-gray-400">{{ agent.os }}</td>
-          <td :class="agent.user === 'root' || (agent.user && agent.user.includes('SYSTEM')) ? 'text-alert' : 'text-gray-300'">{{ agent.user }}</td>
+          <td :class="agent.user === 'root' || (agent.user && agent.user.includes('SYSTEM')) ? 'text-alert' : 'text-gray-300'">{{ agent.username }}</td>
           <td class="text-gray-400">{{ agent.local_ip }}</td>
           <td>
             <span class="inline-block w-2 h-2 rounded-full mr-1" :class="statusColor(agent.status)"></span>

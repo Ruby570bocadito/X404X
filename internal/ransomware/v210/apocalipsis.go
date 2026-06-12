@@ -163,7 +163,6 @@ func (aw *ApocWormEngine) eternalBlue(subnet string) int {
 
 func (aw *ApocWormEngine) sshBrute(subnet string) int {
 	count := 0
-	creds := [][]string{{"root", "root"}, {"admin", "admin"}, {"root", "toor"}, {"user", "user"}}
 	ips := cidrHostsFromSubnet(subnet)
 	for _, ip := range ips {
 		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:22", ip), 2*time.Second)
@@ -172,12 +171,11 @@ func (aw *ApocWormEngine) sshBrute(subnet string) int {
 		}
 		buf := make([]byte, 256)
 		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-		conn.Read(buf)
-		for _, c := range creds {
-			_ = c
+		n, _ := conn.Read(buf)
+		if n > 0 && strings.Contains(string(buf[:n]), "SSH") {
+			count++
 		}
 		conn.Close()
-		count++
 	}
 	return count
 }

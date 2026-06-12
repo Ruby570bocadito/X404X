@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -148,7 +149,7 @@ del /f /q "%%~f0" 2>nul
 	os.WriteFile(batPath, []byte(batContent), 0644)
 	exec.Command("cmd", "/c", batPath).Start()
 
-	os.Exit(0)
+	runtime.Goexit()
 }
 
 func overwriteSelf(path string) {

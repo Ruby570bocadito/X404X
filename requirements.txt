@@ -6,6 +6,11 @@
 # Core Runtimes
 go>=1.22.0
 python>=3.11
+
+# gRPC Bridge (critical - Go<->Python IPC)
+grpcio>=1.64.0
+grpcio-tools>=1.64.0
+protobuf>=5.26.0
 node>=22.0
 
 # Python — Bridge Core

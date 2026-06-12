@@ -1,6 +1,6 @@
 module github.com/ruby570bocadito/x404x/pkg/proto/gen/c2
 
-go 1.25.0
+go 1.24.0
 
 require (
 	google.golang.org/grpc v1.64.0

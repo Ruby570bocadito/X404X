@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -173,6 +174,22 @@ func runC2Listen(cmd *cobra.Command, args []string) {
 		return
 	}
 	fmt.Fprintln(ConsoleOut, "C2 LISTEN-ONLY MODE - relaying heartbeats, not orchestrating")
-	_ = state
-	<-make(chan struct{})
+	fmt.Fprintln(ConsoleOut, "C2 listener active. Press Ctrl+C to stop.")
+
+	listener, err := net.Listen("tcp", ":8443")
+	if err != nil {
+		fmt.Fprintf(ConsoleOut, "  ERROR: %v\n", err)
+		return
+	}
+	defer listener.Close()
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			continue
+		}
+		fmt.Fprintf(ConsoleOut, "  [heartbeat] connection from %s\n", conn.RemoteAddr())
+		conn.Write([]byte(`{"status":"ok","version":"3.2"}`))
+		conn.Close()
+	}
 }

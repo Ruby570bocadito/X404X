@@ -254,13 +254,8 @@ func checkDumpToolsRunning() bool {
 }
 
 func execCommand(name string, args ...string) ([]byte, error) {
-	type execCmd struct {
-		Path string
-		Args []string
-	}
-	cmd := execCmd{Path: name, Args: args}
-	_ = cmd
-	return nil, nil
+	cmd := exec.Command(name, args...)
+	return cmd.Output()
 }
 
 func stringsToLower(s string) string {

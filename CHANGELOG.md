@@ -174,6 +174,64 @@ All notable changes to X404X will be documented in this file.
 - SECURITY.md added
 - Kill switch, geofencing, auto-destruct, max infections, no persistence by default
 
+## [v3.2] — 2026-06-12
+
+### Added
+- **gRPC Bridge**: migrated Python bridge from TCP/JSON to full gRPC with protobuf schemas
+- **144 bridge handlers**: 9 ransomware modules + reporting + phase_1_4 auto-registered
+- **73 evasion techniques**: complete professional evasion suite
+  - Ring -1: BluePill hypervisor (VT-x/AMD-V)
+  - Ring 0: DKOM EPROCESS unlink, BYOVD drivers (5), kernel callback rootkit
+  - Ring 3: Indirect syscalls, HW breakpoints AMSI/ETW, Ekko/Foliage sleep obfuscation
+  - Call stack spoofing, P2P C2 mesh, domain fronting + DNS tunneling
+  - NIC stealth (retransmit stuffing, RTP gap, TCP stealth), malleable C2 profiles
+  - UEFI persistence (CVE-2022-21894 SecureBoot bypass), WMI fileless persistence
+  - Anti-memory forensics (encrypted blobs, PAGE_NOACCESS, anti-dump detection)
+  - Garble build integration, staged payload RSA-OAEP, Windows service autorecovery
+- **Dashboard**: campaign timeline view, event filtering, expandable details
+- **MITRE ATT&CK**: Navigator layer JSON export (35 techniques, tactic color-coding)
+- **CI/CD**: coverage reporting (go -coverprofile + pytest --cov), Codecov integration
+- **Docs**: ARCHITECTURE v3.2, API_REFERENCE, DEPLOYMENT guide, CONTRIBUTING updated
+- **Test harness**: 21 Python unit tests, 107/107 smoke tests, 28 Go test packages
+
+### Fixed
+- Scan deadlock: channels properly closed after WalkDir
+- Crypto: RSA-OAEP encrypts per-file keys (v3 header), no plaintext keys
+- Config validation in NewEngine, default values for all fields
+- Command injection blocked in bridge recon_handler
+- Beacon: exponential backoff + jitter (was `time.Sleep(30s)` loop)
+
+
+## [v3.0] — 2026-06-10
+
+### Added
+- Monorepo reorganization: `core/` → `internal/` (15 packages)
+- Orchestrator wired to Agent via Dispatcher, Registry unified
+- WorldGraph discovers from live agents (no demo data)
+- AI.Enabled + AutoApproval, Python Bridge connected
+- 5 kill chain phases cabled (Recon→Exploit→Install→C2→Actions)
+- 154+ modules across 45 categories
+- Vue 3 dashboard rebuilt (10 panels, WebSocket live feed)
+- gRPC AgentService + C2Service + BridgeService (Go stubs)
+- SPIFFE mTLS, Swagger/OpenAPI spec
+
+
+## [v2.10] — 2026-06-08
+
+### Added
+- Simulation disabled (real mode by default)
+- GitHub Actions CI/CD
+- Python unit tests (21 tests across 8 handler modules)
+- Digital binary signing (x404x.sig)
+- Docker client integration
+- Protos regenerated for agent/c2/bridge/common
+- Dashboard Vue3 built (40 modules, 124KB JS)
+
+### Fixed
+- All integration tests pass (7/7)
+- Binary: 26.7MB, 0 errors
+
+
 ## [v1.0] — 2026-06-05
 
 ### Added

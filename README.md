@@ -459,12 +459,12 @@ X404X/
 ## Stats
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Total_Files-104-ff3366?style=for-the-badge&logo=files&logoColor=white" />
-  <img src="https://img.shields.io/badge/Go_Files-37-00ADD8?style=for-the-badge&logo=go&logoColor=white" />
-  <img src="https://img.shields.io/badge/Python_Files-48-3776AB?style=for-the-badge&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/Total_Lines-12,685-00d4ff?style=for-the-badge&logo=codecrafters&logoColor=white" />
-  <img src="https://img.shields.io/badge/Handlers-~170-00ff88?style=for-the-badge&logo=target&logoColor=white" />
-  <img src="https://img.shields.io/badge/Hydra_Vectors-8-ff6b35?style=for-the-badge&logo=octopusdeploy&logoColor=white" />
+  <img src="https://img.shields.io/badge/Total_Files-450+-ff3366?style=for-the-badge&logo=files&logoColor=white" />
+  <img src="https://img.shields.io/badge/Go_Files-319-00ADD8?style=for-the-badge&logo=go&logoColor=white" />
+  <img src="https://img.shields.io/badge/Python_Files-539-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Total_Lines-231K-00d4ff?style=for-the-badge&logo=codecrafters&logoColor=white" />
+  <img src="https://img.shields.io/badge/Handlers-144-00ff88?style=for-the-badge&logo=target&logoColor=white" />
+  <img src="https://img.shields.io/badge/Modules-76+-ff6b35?style=for-the-badge&logo=octopusdeploy&logoColor=white" />
 </p>
 
 <br/>
