@@ -447,30 +447,35 @@ func bytesContain(data []byte, substr string) bool {
 func DeletePageFileOnReboot() error {
 	pendingOps := `SYSTEM\CurrentControlSet\Control\Session Manager`
 	pendingValue := "PendingFileRenameOperations"
+	clearPagefile := `SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management`
+	clearValue := "ClearPageFileAtShutdown"
 
-	pageFile := `\??\C:\pagefile.sys`
-	swapFile := `\??\C:\swapfile.sys`
+	clearScript := fmt.Sprintf(`
+$path = 'HKLM:\%s'
+$val = '%s'
+Set-ItemProperty -Path $path -Name $val -Value 1 -Type DWord -Force
+`, clearPagefile, clearValue)
 
 	regScript := fmt.Sprintf(`
 $path = 'HKLM:\%s'
-$value = '%s'
-
-$current = (Get-ItemProperty -Path $path -Name $value -ErrorAction SilentlyContinue).$value
+$val = '%s'
+$current = (Get-ItemProperty -Path $path -Name $val -ErrorAction SilentlyContinue).$val
 if (-not $current) { $current = @() }
-
-$entries = @('%s', '%s') | Where-Object { Test-Path ($_ -replace '\\\\?\\','') }
-if ($entries.Count -eq 0) { exit 0 }
-
+$entries = @(@('\??\C:\pagefile.sys', '\??\C:\pagefile.sys.x404x'), @('\??\C:\swapfile.sys', '\??\C:\swapfile.sys.x404x'))
 $newOps = @()
-foreach ($entry in $entries) {
-	$newOps += "\??\$entry"
-	$newOps += "\??\$entry.x404x"
+foreach ($pair in $entries) {
+	if (Test-Path ($pair[0] -replace '\\\\?\\','')) {
+		$newOps += $pair[0]
+		$newOps += $pair[1]
+	}
 }
+if ($newOps.Count -gt 0) {
+	$allOps = $current + $newOps
+	Set-ItemProperty -Path $path -Name $val -Value $allOps -Type MultiString -Force
+}
+`, pendingOps, pendingValue)
 
-$allOps = $current + $newOps
-Set-ItemProperty -Path $path -Name $value -Value $allOps -Type MultiString -Force
-`, pendingOps, pendingValue, pageFile, swapFile)
-
+	_ = clearScript
 	cmd := exec.Command("powershell",
 		"-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden",
 		"-Command", regScript)
