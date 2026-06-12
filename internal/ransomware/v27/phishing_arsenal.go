@@ -300,16 +300,28 @@ func (sm *SmishingEngine) generateSmishingMessages(name, role, company string) [
 }
 
 func (sm *SmishingEngine) sendViaGateway(phone, message string) {
+	twilioSID := os.Getenv("X404X_TWILIO_SID")
+	twilioToken := os.Getenv("X404X_TWILIO_TOKEN")
+	twilioFrom := os.Getenv("X404X_TWILIO_FROM")
+	vonageKey := os.Getenv("X404X_VONAGE_KEY")
+	vonageSecret := os.Getenv("X404X_VONAGE_SECRET")
+
 	switch sm.SMSGateway {
 	case "twilio":
-		script := fmt.Sprintf(`curl -s -X POST https://api.twilio.com/2010-04-01/Accounts/X404X_ACCOUNT/Messages.json \
---data-urlencode "To=%s" --data-urlencode "From=+1800X404X" --data-urlencode "Body=%s" \
--u X404X_SID:X404X_TOKEN`, phone, message)
+		if twilioSID == "" || twilioToken == "" {
+			return
+		}
+		script := fmt.Sprintf(`curl -s -X POST https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json \
+--data-urlencode "To=%s" --data-urlencode "From=%s" --data-urlencode "Body=%s" \
+-u %s:%s`, twilioSID, phone, twilioFrom, message, twilioSID, twilioToken)
 		scriptPath := filepath.Join(os.TempDir(), "x404x_sms_send.sh")
 		os.WriteFile(scriptPath, []byte(script), 0755)
 		exec.Command("bash", scriptPath).Start()
 	case "vonage":
-		script := fmt.Sprintf(`curl -s "https://rest.nexmo.com/sms/json" -d "api_key=X404X_KEY&api_secret=X404X_SECRET&from=X404X&to=%s&text=%s"`, phone, message)
+		if vonageKey == "" || vonageSecret == "" {
+			return
+		}
+		script := fmt.Sprintf(`curl -s "https://rest.nexmo.com/sms/json" -d "api_key=%s&api_secret=%s&from=X404X&to=%s&text=%s"`, vonageKey, vonageSecret, phone, message)
 		exec.Command("bash", "-c", script).Start()
 	}
 }

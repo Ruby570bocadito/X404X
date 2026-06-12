@@ -7,8 +7,10 @@ use (
 	./internal/appstate
 	./internal/c2server
 	./internal/crypto
+	./internal/defense
 	./internal/dispatch
 	./internal/orchestrator
+	./internal/plugins
 	./internal/ransomware
 	./internal/registry
 	./pkg/proto/gen/agent

@@ -22,16 +22,27 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useAgentStore, useReconStore } from '../stores/index.js'
 
 const agentStore = useAgentStore()
 const reconStore = useReconStore()
+const credsCount = ref(0)
+
+onMounted(async () => {
+  try {
+    const r = await fetch('/api/creds')
+    if (r.ok) {
+      const data = await r.json()
+      credsCount.value = Array.isArray(data) ? data.length : 0
+    }
+  } catch { credsCount.value = 0 }
+})
 
 const stats = computed(() => ({
   hosts: reconStore.hosts.length || 0,
   vulns: reconStore.vulnerabilities.length || 0,
-  creds: 0,
+  creds: credsCount.value,
   sessions: agentStore.activeAgents.length || 0,
 }))
 </script>
