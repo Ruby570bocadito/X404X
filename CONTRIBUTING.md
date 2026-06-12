@@ -1,4 +1,4 @@
-# Contributing to X404X
+# Contributing to X404X (v3.2)
 
 ## Code of Conduct
 
@@ -11,78 +11,90 @@ X404X is an academic project for cybersecurity education. All contributions must
 ## Getting Started
 
 ```bash
-git clone --recurse-submodules https://github.com/Ruby570bocadito/X404X.git
+git clone https://github.com/Ruby570bocadito/X404X.git
 cd X404X
-make setup
-make build
-make test
+go build -o x404x ./cmd/x404x/
+pip install -r requirements.txt
 ```
 
-## Project Structure
+## Project Structure (Monorepo)
 
 ```
 X404X/
-├── cmd/x404x/        # CLI entry point (Cobra + TUI + Console)
-├── core/
-│   ├── agent/        # Unified Go implant
-│   ├── orchestrator/ # Decision Engine + Campaign Manager
-│   ├── appstate/     # Shared application state
-│   ├── api/          # REST API + WebSocket
-│   ├── c2server/     # C2 listener
-│   ├── crypto/       # X25519 + XChaCha20-Poly1305
-│   └── proto/        # gRPC definitions
-├── modules/          # Python modules + submodules
-├── shared/           # Config, Logger, Types, Database
-├── web/              # Vue 3 Dashboard
-└── lab/              # Docker lab environment
+├── cmd/x404x/           # CLI entry point (Cobra + TUI + Console)
+├── internal/            # Go core packages
+│   ├── agent/           # Unified Go implant + bridge client
+│   ├── api/             # REST API + WebSocket hub
+│   ├── appstate/        # Campaign/agent state management
+│   ├── bridge/          # WASM bridge loader (Wazero)
+│   ├── c2server/        # gRPC C2 server
+│   ├── crypto/          # X25519 + SPIFFE mTLS
+│   ├── defense/         # BlueForge ATT&CK engine
+│   ├── dispatch/        # Module dispatcher
+│   ├── orchestrator/    # Decision engine
+│   ├── ransomware/      # Ransomware modules (12 packages)
+│   └── registry/        # Dynamic module registry
+├── pkg/
+│   ├── proto/           # Protobuf definitions + generated stubs
+│   └── shared/          # Types, database, config
+├── modules/bridge/      # Python bridge (gRPC server + 107 handlers)
+├── plugins/             # Specialized modules (11 plugins)
+├── web/                 # Vue 3 dashboard SPA
+├── test/                # Test harness (7 phases F1-F7)
+└── docs/                # Documentation
 ```
 
 ## Adding a Module
 
-### Go Module
+### Go Module (internal/)
 
 ```go
-package agent
+package ransomware
 
 type MyModule struct{}
 
 func (m *MyModule) Name() string { return "my_module" }
-func (m *MyModule) KillChainPhase() types.KillChainPhase { return types.PhaseExploitation }
-func (m *MyModule) Execute(ctx context.Context, params map[string]string) (string, error) {
-    // Your logic here
-    return "success", nil
+func (m *MyModule) Phase() string { return "exploitation" }
+func (m *MyModule) Execute(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+    return map[string]interface{}{"status": "success"}, nil
 }
-
-// Register:
-agent.RegisterModule(&MyModule{})
 ```
 
-### Python Module
+Register in `internal/ransomware/engine.go` or via the registry.
+
+### Python Bridge Handler (modules/bridge/handlers/)
 
 ```python
-from modules.bridge.bridge import registry
+def register_routes(registry: dict) -> None:
+    registry["my_module"] = {
+        "my_handler": handle_my_handler,
+    }
 
-@registry.register("my_python_module", "Description", "1.0", "recon")
-def my_python_module_handler(params: dict):
-    target = params.get("target", "127.0.0.1")
-    # Your logic here
-    return {"target": target, "status": "ok"}
+def handle_my_handler(params: dict) -> dict:
+    simulation = params.get("simulation", True)
+    result = {"success": True}
+    if not simulation:
+        # real operation
+        pass
+    return result
 ```
 
-### Console Module
-
-Add to `core/appstate/state.go`:
-```go
-ModuleDef{Name: "exploit/my_module", Type: "exploit",
-    Description: "My custom exploit", Rank: "normal", OS: "any"}
-```
+Register by calling `register_routes()` in `modules/bridge/bridge.py`.
 
 ## Testing
 
 ```bash
-go test ./core/... ./shared/...        # Go tests
-pytest modules/                         # Python tests
-npm run build                           # Vue build check
+# Go tests
+go test ./internal/... -timeout 60s
+
+# Python bridge tests
+python3 -m unittest modules.bridge.tests.test_handlers -v
+
+# Smoke test (107 handlers)
+python3 modules/bridge/tests/test_all_handlers.py
+
+# Master test suite (all 7 phases)
+bash test/run_all.sh
 ```
 
 ## Pull Request Process
@@ -90,7 +102,7 @@ npm run build                           # Vue build check
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing`)
 3. Add tests for new functionality
-4. Ensure `make build && make test` passes
+4. Run `bash test/run_all.sh` to verify everything passes
 5. Update documentation if needed
 6. Submit PR with description of changes
 

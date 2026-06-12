@@ -1,91 +1,175 @@
-# X404X — Architecture Documentation
+# X404X — Architecture Documentation (v3.2)
 
 ## System Overview
 
-X404X is a semi-autonomous Red Team platform covering the complete cyber kill chain: reconnaissance → weaponization → delivery → exploitation → installation → C2 → actions on objective → exfiltration.
+X404X is a semi-autonomous Red Team platform covering the complete cyber kill chain:
+Reconnaissance → Weaponization → Delivery → Exploitation → Installation → C2 → Actions on Objective → Exfiltration.
 
-### Updated Architecture (v2.3)
+Built as a monorepo with Go backend, Python gRPC bridge, Vue 3 frontend, and 154+ modules across 45 categories.
 
 ```
-                     ┌─────────────────────────────────┐
-                     │        USER INTERFACES           │
-                     │ CLI · Console · TUI · Dashboard  │
-                     └────────┬───────────────┬─────────┘
-                              │               │
-                     ┌────────▼───────────────▼─────────┐
-                     │          ORCHESTRATOR             │
-                     │  Campaign Mgr │ Decision Engine   │
-                     │  Rules(25%) + A*(35%) + AI(40%)  │
-                     │  WorldGraph · EventBus · KillChain│
-                     └────────┬─────────────────────────┘
-                              │ gRPC (X25519+XChaCha20)
-                     ┌────────▼─────────────────────────┐
-                     │        C2 SERVER (Go/gRPC)       │
-                     │  AgentService · C2Service        │
-                     │  CheckIn · CommandStream · Heart  │
-                     └────────┬─────────────────────────┘
-                              │ gRPC encrypted
-                     ┌────────▼─────────────────────────┐
-                     │        UNIFIED AGENT (Go)        │
-                     │  Connector · BridgeClient        │
-                     └──┬──────┬───────┬──────┬─────────┘
-                        │      │       │      │
-                 ┌──────┐ ┌────┐ ┌────┐ ┌──────────┐
-                 │Rise  │ │Vault│ │Breach│ │Python    │
-                 │Priv  │ │Kernel│ │Entry│ │Bridge    │
-                 └──────┘ └────┘ └────┘ └─────┬─────┘
-                                               │
-                     ┌─────────────────────────┼─────────┐
-                     │                         │         │
-                ┌────▼────┐ ┌────────────┐ ┌──▼─────┐ ┌──▼──────────┐
-                │Horizon  │ │Wormy-ML    │ │Specter │ │BlueForge    │
-                │Intel    │ │(Lateral)   │ │+ Apex  │ │Suite        │
-                │(Recon)  │ │            │ │(AI)    │ │(Metrics)    │
-                └─────────┘ └────────────┘ └────────┘ └─────────────┘
+                         ┌─────────────────────────────────┐
+                         │        USER INTERFACES           │
+                         │  CLI · Console · TUI · Dashboard  │
+                         │  (Vue 3 SPA + WebSocket live)    │
+                         └────────┬───────────────┬─────────┘
+                                  │ HTTP REST + WS│
+                         ┌────────▼───────────────▼─────────┐
+                         │          ORCHESTRATOR             │
+                         │  Campaign / Decision / WorldGraph │
+                         │  Rules Engine + AI Engine         │
+                         │  tactic→module mapping per phase  │
+                         └────────┬─────────────────────────┘
+                                  │ dispatch module calls
+                         ┌────────▼─────────────────────────┐
+                         │        C2 SERVER (Go/gRPC)       │
+                         │  AgentService · C2Service        │
+                         │  BridgeService · WebSocket hub   │
+                         │  REST API (:8443) · Health       │
+                         └────────┬─────────────────────────┘
+                                  │ gRPC (X25519+XChaCha20)
+                         ┌────────▼─────────────────────────┐
+                         │        UNIFIED AGENT (Go)        │
+                         │  internal/agent/                 │
+                         │  BridgeClient · Connector        │
+                         └──┬──────┬───────┬──────┬─────────┘
+                            │      │       │      │
+                     ┌──────┐ ┌────┐ ┌────┐ ┌──────────┐
+                     │Go    │ │Go  │ │Go  │ │Python    │
+                     │Ransom│ │Priv│ │C2  │ │Bridge    │
+                     │ware  │ │Esc │ │    │ │gRPC      │
+                     └──────┘ └────┘ └────┘ └─────┬─────┘
+                                                   │
+                         ┌─────────────────────────┼─────────┐
+                         │                         │         │
+                    ┌────▼────┐ ┌────────────┐ ┌──▼─────┐ ┌──▼──────────┐
+                    │107      │ │Worm        │ │Apex+   │ │BlueForge    │
+                    │Bridge   │ │Propagation │ │Specter │ │ATT&CK       │
+                    │Handlers │ │40+ exploits│ │AI      │ │Coverage     │
+                    └─────────┘ └────────────┘ └────────┘ └─────────────┘
 ```
 
-### gRPC Service Architecture (NEW in v2.3)
+## gRPC Service Architecture (v3.2)
 
-The C2 server now uses two separate gRPC service interfaces:
+All internal communication uses gRPC with protobuf-defined schemas:
 
 **AgentService** (agent ↔ C2):
-- `CheckIn(AgentInfo) → (SessionID, Tasks)`
-- `CommandStream(stream ClientMessage) → stream ServerMessage` — bidirectional streaming for tasking + results
-- `Heartbeat(HeartbeatRequest) → (HeartbeatResponse)`
-- `Exfiltrate(stream Chunk) → (ExfilStatus)`
+- `CheckIn(CheckInRequest) → CheckInResponse` — agent registration
+- `CommandStream(stream AgentMessage) → stream ServerMessage` — bidirectional tasking
+- `Heartbeat(HeartbeatRequest) → HeartbeatResponse` — keepalive
+- `Exfiltrate(stream ExfilChunk) → ExfilAck` — data exfiltration stream
 
-**C2Service** (management console ↔ C2):
+**C2Service** (orchestrator/console ↔ C2):
 - `ListAgents`, `GetAgent`, `KillAgent` — agent lifecycle
 - `CreateCampaign`, `GetCampaign`, `ListCampaigns`, `PauseCampaign`, `ResumeCampaign` — campaign management
-- `DecisionFeed` — AI decisions stream
-- `GetMetrics` — C2 health metrics
+- `DecisionFeed(stream DecisionUpdate) → stream DecisionAck` — bidirectional AI decisions
+- `GetMetrics(MetricsRequest) → MetricsResponse` — C2 health metrics
+
+**BridgeService** (Go ↔ Python):
+- `ExecuteModule(ModuleRequest) → ModuleResponse` — call any Python handler
+- `AIAnalyze(AIAnalyzeRequest) → stream AIAnalyzeResponse` — AI streaming responses
+- `ReconStream(ReconRequest) → stream ReconResponse` — recon data streaming
+- `HealthCheck(HealthCheckRequest) → HealthCheckResponse` — bridge health
 
 All communication uses X25519 ECDH key exchange + XChaCha20-Poly1305 AEAD encryption over gRPC.
 
+## Directory Structure (Monorepo)
+
+```
+X404X/
+├── cmd/                    # Go binaries (x404x CLI, deployment)
+├── internal/               # Go core packages
+│   ├── agent/              # Implant agent + bridge client
+│   ├── api/                # REST API server + WebSocket hub
+│   ├── appstate/           # Campaign/agent state management
+│   ├── bridge/             # WASM bridge loader (Wazero)
+│   ├── c2server/           # gRPC C2 server (AgentService + C2Service)
+│   ├── crypto/             # X25519, SPIFFE mTLS, signing
+│   ├── defense/            # BlueForge ATT&CK coverage engine
+│   ├── dispatch/           # Module dispatcher (registry → handler)
+│   ├── orchestrator/       # Decision engine (Rules + AI)
+│   ├── ransomware/         # Core ransomware engine + 12 module packages
+│   └── registry/           # Dynamic module registry
+├── pkg/
+│   ├── proto/              # Protobuf definitions (agent, bridge, c2, common)
+│   │   └── gen/            # Generated Go gRPC stubs
+│   └── shared/             # Shared types, database models
+├── modules/
+│   └── bridge/             # Python gRPC bridge server
+│       ├── handlers/       # 107 ransomware handlers (12 files)
+│       └── tests/          # Python tests (21 unit + smoke)
+├── plugins/                # Specialized modules
+│   ├── ai/                 # Specter + Apex AI engines
+│   ├── worm/               # Network worm + MITRE mapper
+│   ├── operations/         # Argos C2 (Python gRPC)
+│   ├── pulse-c2/           # Encrypted protobuf C2 (Go+Python)
+│   ├── blue/               # BlueForge defense suite
+│   ├── kernel/             # Vault kernel-level operations
+│   ├── privesc/            # Privilege escalation
+│   ├── breach/             # Exploitation entry points
+│   ├── recon/              # Reconnaissance modules
+│   └── relay/              # C2 relay + IoT vision
+├── web/                    # Vue 3 dashboard SPA
+│   └── src/
+│       ├── views/          # 9 tab-based views
+│       ├── components/     # KillChain, ActivityFeed, etc.
+│       └── stores/         # Pinia state management
+├── test/                   # Test harness (7 phases F1-F7)
+│   ├── go/                 # Go test scripts (10 packages)
+│   ├── python/             # Python test scripts
+│   ├── integration/        # Integration tests
+│   ├── e2e/                # End-to-end kill chain + campaign
+│   ├── security/           # Evasion/AV tests
+│   ├── benchmark/          # Performance benchmarks
+│   ├── ci/                 # GitHub Actions workflow
+│   └── run_all.sh          # Master test suite runner
+├── docs/                   # Documentation
+│   ├── USAGE.md            # Full usage manual (1,393 lines)
+│   ├── MODULES.md          # 107 bridge handler reference
+│   ├── COMMANDS.md         # CLI command reference (843 lines)
+│   ├── ALL_MODULES.md      # Complete module catalog (154+)
+│   ├── ARCHITECTURE.md     # This file
+│   ├── API_REFERENCE.md    # REST/gRPC API reference
+│   ├── DEPLOYMENT.md       # Deployment guide
+│   ├── CREATIVITY.md       # Academic: creative innovations
+│   ├── MEMORIA_TFG.md      # Academic: thesis memory
+│   ├── KILL_CHAIN_MATRIX.md # Kill chain tactic→module matrix
+│   ├── BENCHMARKS.md       # Performance benchmarks
+│   ├── CONSOLE.md          # Interactive console guide
+│   └── TESTING_GUIDE.md    # Testing instructions
+└── reports/                # Campaign output reports
+```
+
 ## Component Map
 
-| Component | Language | Layer | Phase | Status |
-|-----------|----------|-------|-------|--------|
-| **CLI (x404x)** | Go | 1 | All | v2.3 |
-| **Web Dashboard** | Vue 3 | 1 | All | v2.2 |
-| **Orchestrator** | Go | 2 | All | v2.3 |
-| **C2 Server (gRPC)** | Go | 2 | C2 | v2.3 |
-| **Unified Agent** | Go | 3 | All | v2.3 |
-| **core/crypto** | Go | Shared | All | v2.3 |
-| **core/proto** | Protobuf | Shared | All | v2.3 |
-| **Python Bridge** | Python | 3 | IPC | v2.3 |
-| **Evasion Module** | Python + Go | 3 | Evasion | v2.3 |
-| **PhantomWeb** | JS + Python | 1,3 | Browser | v2.2 |
-| **Breach-Entry** | C + Python | 3 | Delivery | [Repo](https://github.com/Ruby570bocadito/Breach-Entry) |
-| **Horizon-Intel** | Python | 3 | Recon | [Repo](https://github.com/Ruby570bocadito/Horizon-Intel) |
-| **Rise-Privilege** | Go | 3 | Exploitation | [Repo](https://github.com/Ruby570bocadito/Rise-Privilege) |
-| **Vault-Kernel** | C + Go | 3 | Installation | [Repo](https://github.com/Ruby570bocadito/Vault-Kernel) |
-| **Specter-Terminal** | Python | 3 | AI Analysis | [Repo](https://github.com/Ruby570bocadito/Specter-Terminal) |
-| **Apex-Automation** | Python | 3 | AI Execution | [Repo](https://github.com/Ruby570bocadito/Apex-Automation) |
-| **Wormy-ML** | Python | 3 | Lateral Movement | [Repo](https://github.com/Ruby570bocadito/Wormy-ML-Network-Worm) |
-| **Link-Relay** | Python | 3 | C2 Relay | [Repo](https://github.com/Ruby570bocadito/Link-Relay) |
-| **Titan-Operations** | Python + Go | 2 | Campaign Mgmt | [Repo](https://github.com/Ruby570bocadito/Titan-Operations) |
-| **BlueForge-Suite** | Python | 3 | Metrics | [Repo](https://github.com/Ruby570bocadito/BlueForge-Suite) |
+| Component | Language | Package | Phase |
+|-----------|----------|---------|-------|
+| CLI / Console | Go | `cmd/` | All |
+| Web Dashboard | Vue 3 + JS | `web/` | All |
+| REST API | Go | `internal/api/` | All |
+| WebSocket Hub | Go | `internal/api/` | All |
+| C2 Server (gRPC) | Go | `internal/c2server/` | C2 |
+| Orchestrator | Go | `internal/orchestrator/` | All |
+| Decision Engine | Go | `internal/orchestrator/` | Decision |
+| Dispatcher | Go | `internal/dispatch/` | Module |
+| Unified Agent | Go | `internal/agent/` | All |
+| Bridge Client | Go | `internal/agent/` | IPC |
+| Crypto / SPIFFE | Go | `internal/crypto/` | Shared |
+| Protobuf | .proto | `pkg/proto/` | Shared |
+| Python Bridge (gRPC) | Python | `modules/bridge/` | IPC |
+| Ransomware Handlers | Python | `modules/bridge/handlers/` | Actions |
+| Worm Propagation | Python | `plugins/worm/` | Lateral |
+| Specter AI | Python | `plugins/ai/specter/` | AI |
+| Apex Automation | Python | `plugins/ai/apex/` | AI |
+| Argos C2 | Python+gRPC | `plugins/operations/` | C2 |
+| Pulse-C2 | Go+Python | `plugins/pulse-c2/` | C2 |
+| BlueForge Defense | Go | `internal/defense/` | Metrics |
+| Kernel Operations | C+Go | `plugins/kernel/` | Install |
+| Privilege Escalation | Go | `plugins/privesc/` | Exploit |
+| Breach Exploits | C+Python | `plugins/breach/` | Delivery |
+| Recon Modules | Python | `plugins/recon/` | Recon |
+| Relay C2 | Python | `plugins/relay/` | C2 |
+| Blue Team | Python | `plugins/blue/` | Defense |
 
 ## Communication Flow
 
@@ -93,28 +177,30 @@ All communication uses X25519 ECDH key exchange + XChaCha20-Poly1305 AEAD encryp
                     ┌──────────────────┐
                     │   Orchestrator   │
                     └────────┬─────────┘
-                             │ gRPC
+                             │ dispatch.Call()
                     ┌────────▼─────────┐
                     │   C2 Server      │
-                    │  (Go/gRPC)       │
+                    │  (Go gRPC)       │
+                    │  :8443 HTTP+WS   │
                     └────────┬─────────┘
                              │ gRPC (X25519 + XChaCha20-Poly1305)
                     ┌────────▼─────────┐
                     │  Unified Agent   │
+                    │  internal/agent/ │
                     └───┬──┬──┬──┬────┘
                         │  │  │  │
               ┌─────────┘  │  │  └────────┐
               ▼            ▼  ▼           ▼
         ┌──────────┐ ┌──────────┐  ┌──────────────┐
-        │ Go Module│ │ C Module │  │Python Bridge │
-        │ (Rise,   │ │ (Vault,  │  │ (TCP JSON)   │
-        │  Crypto) │ │  Breach) │  └──────┬───────┘
+        │ Go Module│ │ Go Module│  │Python Bridge │
+        │ (ransom, │ │ (privesc,│  │ (gRPC)       │
+        │  crypto) │ │  kernel)  │  └──────┬───────┘
         └──────────┘ └──────────┘         │
                                ┌──────────┼──────────┐
                                ▼          ▼          ▼
                           ┌────────┐ ┌────────┐ ┌────────┐
-                          │Horizon │ │Specter │ │ Wormy  │
-                          │Intel   │ │+ Apex  │ │ ML     │
+                          │Recon   │ │AI      │ │Worm    │
+                          │Modules │ │Specter │ │Propag  │
                           └────────┘ └────────┘ └────────┘
 ```
 
@@ -123,14 +209,14 @@ All communication uses X25519 ECDH key exchange + XChaCha20-Poly1305 AEAD encryp
 ```
                     ┌─────────────────────────────┐
                     │       RECON DATA IN         │
-                    │  (Horizon-Intel, Nmap, OSINT)│
+                    │  (Bridge handlers, OSINT)   │
                     └─────────────┬───────────────┘
                                   │
             ┌─────────────────────┼─────────────────────┐
             ▼                     ▼                     ▼
    ┌────────────────┐    ┌────────────────┐    ┌────────────────┐
-   │ Rules Engine   │    │ A* Planner     │    │ AI Engine      │
-   │ (Deterministic)│    │ (Pathfinding)  │    │ (Specter+Apex) │
+   │ Rules Engine   │    │ Pathfinding    │    │ AI Engine      │
+   │ (Deterministic)│    │ (Tactic Map)   │    │ (Ollama local) │
    │ Weight: 25%    │    │ Weight: 35%    │    │ Weight: 40%    │
    └───────┬────────┘    └───────┬────────┘    └───────┬────────┘
            │                     │                     │
@@ -152,22 +238,49 @@ All communication uses X25519 ECDH key exchange + XChaCha20-Poly1305 AEAD encryp
                       └─────────────────────┘
 ```
 
-## Database Schema
+## Data Flow: Go → Python Bridge
 
-See `shared/database/models.py` for the complete SQLAlchemy schema.
-SQLite schema (6 tables) in `core/appstate/state.go`:
+```
+Go Orchestrator
+  │
+  ├─ dispatch.Call("ransomware", "encrypt", params)
+  │
+  ├─ Registry lookup: Go module → found? → execute Go
+  │   └─ NOT found? → BridgeClient.Call("ransomware", "encrypt", params)
+  │
+  └─ BridgeClient (internal/agent/bridge_client.go)
+       │
+       ├─ gRPC call: BridgeService.ExecuteModule(ModuleRequest)
+       │    module: "ransomware", function: "encrypt", params: {...}
+       │
+       └─ Python Bridge Server (modules/bridge/bridge.py)
+            │
+            ├─ Registry.execute("ransomware", "encrypt", params)
+            │
+            ├─ Handler lookup: handlers/ransomware.py → handle_encrypt()
+            │
+            └─ Return: ModuleResponse { success: true, result: {...}, elapsed_ms: 4 }
+```
 
-- **campaigns**: Red team operations
-- **agents**: Implant tracking
-- **targets**: Discovered hosts
-- **vulnerabilities**: CVEs and misconfigurations
-- **credentials**: Captured passwords/hashes
-- **audit_log**: Complete action trail
+## Database
+
+The app state is managed in-memory with optional SQLite persistence via `internal/appstate/state.go`.
+
+Key entities:
+- **Campaigns**: Red team operations with kill chain phase tracking
+- **Agents**: Implant tracking (hostname, OS, status, last checkin)
+- **Targets**: Discovered hosts (IP, ports, services, asset value)
+- **Vulnerabilities**: CVEs and misconfigurations per target
+- **Credentials**: Captured passwords, hashes, tokens
+- **Decisions**: AI-suggested actions with MITRE mappings
+- **KillChainEntries**: Per-campaign phase transitions logged
 
 ## Security Model
 
 1. **End-to-End Encryption**: X25519 ECDH + XChaCha20-Poly1305 AEAD per session
-2. **gRPC Transport**: Service-to-service communication over gRPC
-3. **Offline AI**: Ollama runs locally, no data leaves the lab
-4. **Safety Controls**: Kill switch, geofencing, auto-destruct, max infections
-5. **Audit Trail**: Every action logged with timestamp, agent, campaign, and result
+2. **gRPC Transport**: All service-to-service communication over gRPC with protobuf type safety
+3. **SPIFFE mTLS**: Workload identity via SPIFFE SVIDs (hourly rotation)
+4. **Offline AI**: Ollama runs locally — no data leaves the lab
+5. **Safety Controls**: Kill switch, geofencing, auto-destruct, max infection caps
+6. **Audit Trail**: Every action logged with timestamp, agent ID, campaign ID, and result
+7. **Anti-Forensics**: MFT timestomping, USN journal poisoning, event log wiping

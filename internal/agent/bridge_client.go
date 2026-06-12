@@ -1,37 +1,35 @@
-// Package agent provides the BridgeClient for Go↔Python IPC communication.
+// Package agent provides the BridgeClient for Go↔Python gRPC IPC communication.
 //
-// The BridgeClient connects to a Python BridgeServer over TCP or Unix socket,
-// sending JSON-framed requests and receiving responses. This enables the
-// Go agent to invoke Python modules (Horizon-Intel, Specter-Terminal,
-// Apex-Automation, Wormy-ML, etc.) without embedding Python.
+// The BridgeClient connects to a Python gRPC BridgeServer implementing
+// BridgeService (ExecuteModule, AIAnalyze, ReconStream, HealthCheck).
+// This enables the Go agent to invoke Python modules and 107+ ransomware
+// handlers without embedding Python.
 //
-// Protocol (over TCP or Unix socket):
+// Protocol: gRPC with protobuf schema (pkg/proto/bridge.proto).
+// Python bridge: modules/bridge/bridge_grpc.py (gRPC server on :9100).
 //
-//	Request:  [4-byte MSB length prefix][JSON body]
-//	Response: [4-byte MSB length prefix][JSON body]
+// JSON format for payloads (backward-compatible with handler expectations):
 //
-// JSON format:
-//
-//	Request:  {"module": "recon", "function": "scan", "params": {...}, "timeout_ms": 5000}
-//	Response: {"success": true, "result": {...}, "elapsed_ms": 123}
+//	payload: {"simulation": true, "target": "10.0.0.1", ...}
+//	result:  {"success": true, "encrypted": 42, ...}
 package agent
 
 import (
 	"context"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net"
 	"os/exec"
 	"sync"
 	"time"
 
+	bridgev1 "github.com/ruby570bocadito/x404x/pkg/proto/gen/bridge"
 	"github.com/ruby570bocadito/x404x/pkg/shared/config"
 	"github.com/ruby570bocadito/x404x/pkg/shared/logger"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-// BridgeRequest is a request to the Python bridge.
+// BridgeRequest is a request to the Python bridge (kept for compatibility).
 type BridgeRequest struct {
 	Module    string                 `json:"module"`
 	Function  string                 `json:"function"`
@@ -39,7 +37,7 @@ type BridgeRequest struct {
 	TimeoutMS int64                  `json:"timeout_ms"`
 }
 
-// BridgeResponse is a response from the Python bridge.
+// BridgeResponse is a response from the Python bridge (kept for compatibility).
 type BridgeResponse struct {
 	Success   bool                   `json:"success"`
 	Result    map[string]interface{} `json:"result,omitempty"`
@@ -47,14 +45,15 @@ type BridgeResponse struct {
 	ElapsedMS int64                  `json:"elapsed_ms"`
 }
 
-// BridgeClient communicates with the Python BridgeServer over TCP.
+// BridgeClient communicates with the Python gRPC BridgeServer.
 type BridgeClient struct {
-	cfg      *config.Config
-	log      *logger.Logger
-	address  string
-	conn     net.Conn
-	mu       sync.Mutex
-	cmd      *exec.Cmd
+	cfg     *config.Config
+	log     *logger.Logger
+	address string
+	conn    *grpc.ClientConn
+	stub    bridgev1.BridgeServiceClient
+	mu      sync.Mutex
+	cmd     *exec.Cmd
 }
 
 // NewBridgeClient creates a new bridge client.
@@ -74,7 +73,7 @@ func NewBridgeClient(cfg *config.Config, log *logger.Logger) *BridgeClient {
 	}
 }
 
-// Connect establishes a TCP connection to the Python bridge server.
+// Connect establishes a gRPC connection to the Python bridge server.
 func (bc *BridgeClient) Connect(ctx context.Context) error {
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
@@ -83,23 +82,25 @@ func (bc *BridgeClient) Connect(ctx context.Context) error {
 		return fmt.Errorf("already connected")
 	}
 
-	var d net.Dialer
-	d.Timeout = 5 * time.Second
-
-	conn, err := d.DialContext(ctx, "tcp", bc.address)
+	conn, err := grpc.DialContext(ctx, bc.address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+		grpc.WithTimeout(5*time.Second),
+	)
 	if err != nil {
-		return fmt.Errorf("connecting to bridge at %s: %w", bc.address, err)
+		return fmt.Errorf("connecting to gRPC bridge at %s: %w", bc.address, err)
 	}
 
 	bc.conn = conn
-	bc.log.Infof("bridge connected at %s", bc.address)
+	bc.stub = bridgev1.NewBridgeServiceClient(conn)
+	bc.log.Infof("gRPC bridge connected at %s", bc.address)
 
 	return nil
 }
 
-// StartBridge starts the Python bridge as a subprocess and connects to it.
+// StartBridge starts the Python gRPC bridge as a subprocess and connects to it.
 func (bc *BridgeClient) StartBridge(ctx context.Context, bridgeScript string) error {
-	bc.log.Infof("starting Python bridge: %s", bridgeScript)
+	bc.log.Infof("starting Python gRPC bridge: %s", bridgeScript)
 
 	port := 9100
 	if bc.cfg != nil && bc.cfg.Agent.BridgePort > 0 {
@@ -111,8 +112,6 @@ func (bc *BridgeClient) StartBridge(ctx context.Context, bridgeScript string) er
 		"--port", fmt.Sprintf("%d", port),
 	)
 
-	bc.cmd.Stderr = nil // discard stderr in production
-
 	if err := bc.cmd.Start(); err != nil {
 		return fmt.Errorf("starting bridge process: %w", err)
 	}
@@ -120,77 +119,60 @@ func (bc *BridgeClient) StartBridge(ctx context.Context, bridgeScript string) er
 	// Wait for bridge to be ready
 	time.Sleep(500 * time.Millisecond)
 
-	// Connect
+	// Connect via gRPC
 	if err := bc.Connect(ctx); err != nil {
 		bc.cmd.Process.Kill()
-		return fmt.Errorf("connecting to bridge after start: %w", err)
+		return fmt.Errorf("connecting to gRPC bridge after start: %w", err)
 	}
 
-	bc.log.Info("Python bridge started and connected")
+	bc.log.Info("Python gRPC bridge started and connected")
 	return nil
 }
 
-// Call invokes a module function on the Python bridge.
+// Call invokes a module function on the Python bridge via gRPC.
 func (bc *BridgeClient) Call(ctx context.Context, module, function string, params map[string]interface{}) (*BridgeResponse, error) {
-	bc.mu.Lock()
-	defer bc.mu.Unlock()
-
-	if bc.conn == nil {
-		return nil, fmt.Errorf("not connected to bridge")
+	if bc.stub == nil {
+		return nil, fmt.Errorf("not connected to gRPC bridge")
 	}
 
-	req := BridgeRequest{
-		Module:    module,
-		Function:  function,
-		Params:    params,
-		TimeoutMS: 30000,
-	}
-
-	data, err := json.Marshal(req)
+	payload, err := json.Marshal(params)
 	if err != nil {
-		return nil, fmt.Errorf("marshaling request: %w", err)
+		return nil, fmt.Errorf("marshaling params: %w", err)
 	}
 
-	// Send: 4-byte length prefix + JSON body
-	lengthBuf := make([]byte, 4)
-	binary.BigEndian.PutUint32(lengthBuf, uint32(len(data)))
-
-	if _, err := bc.conn.Write(lengthBuf); err != nil {
-		return nil, fmt.Errorf("writing length: %w", err)
-	}
-	if _, err := bc.conn.Write(data); err != nil {
-		return nil, fmt.Errorf("writing body: %w", err)
+	req := &bridgev1.ModuleRequest{
+		ModuleName:   module,
+		FunctionName: function,
+		Payload:      payload,
+		TimeoutMs:    30000,
 	}
 
-	bc.log.Debugf("bridge call: %s.%s (params=%v)", module, function, params)
+	bc.log.Debugf("bridge call: %s.%s", module, function)
 
-	// Receive: 4-byte length prefix + JSON body
-	respLengthBuf := make([]byte, 4)
-	if _, err := io.ReadFull(bc.conn, respLengthBuf); err != nil {
-		return nil, fmt.Errorf("reading response length: %w", err)
+	resp, err := bc.stub.ExecuteModule(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("gRPC call %s.%s: %w", module, function, err)
 	}
 
-	respLen := binary.BigEndian.Uint32(respLengthBuf)
-	if respLen > 10*1024*1024 { // 10MB max
-		return nil, fmt.Errorf("response too large: %d bytes", respLen)
+	br := &BridgeResponse{
+		Success:   resp.Success,
+		Error:     resp.Error,
+		ElapsedMS: resp.ElapsedMs,
 	}
 
-	respBody := make([]byte, respLen)
-	if _, err := io.ReadFull(bc.conn, respBody); err != nil {
-		return nil, fmt.Errorf("reading response body: %w", err)
+	if len(resp.Result) > 0 {
+		if err := json.Unmarshal(resp.Result, &br.Result); err != nil {
+			// Non-JSON result — wrap it
+			br.Result = map[string]interface{}{"raw": string(resp.Result)}
+		}
 	}
 
-	var resp BridgeResponse
-	if err := json.Unmarshal(respBody, &resp); err != nil {
-		return nil, fmt.Errorf("unmarshaling response: %w", err)
+	if !br.Success {
+		return br, fmt.Errorf("bridge error: %s", br.Error)
 	}
 
-	if !resp.Success {
-		return &resp, fmt.Errorf("bridge error: %s", resp.Error)
-	}
-
-	bc.log.Debugf("bridge response: %s.%s → %v (elapsed=%dms)", module, function, resp.Result, resp.ElapsedMS)
-	return &resp, nil
+	bc.log.Debugf("bridge response: %s.%s → elapsed=%dms", module, function, br.ElapsedMS)
+	return br, nil
 }
 
 // CallModule is a convenience method that calls a module's default handler.
@@ -198,32 +180,41 @@ func (bc *BridgeClient) CallModule(ctx context.Context, module string, params ma
 	return bc.Call(ctx, module, "execute", params)
 }
 
-// HealthCheck verifies the bridge is responsive.
+// HealthCheck verifies the gRPC bridge is responsive.
 func (bc *BridgeClient) HealthCheck(ctx context.Context) (*BridgeResponse, error) {
-	return bc.Call(ctx, "health", "check", nil)
+	if bc.stub == nil {
+		return nil, fmt.Errorf("not connected to gRPC bridge")
+	}
+
+	resp, err := bc.stub.HealthCheck(ctx, &bridgev1.HealthCheckRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("gRPC health check: %w", err)
+	}
+
+	return &BridgeResponse{
+		Success: resp.Ok,
+		Result: map[string]interface{}{
+			"module":  resp.ModuleName,
+			"version": resp.Version,
+		},
+	}, nil
 }
 
 // ListModules returns registered modules from the bridge.
 func (bc *BridgeClient) ListModules(ctx context.Context) ([]string, error) {
-	resp, err := bc.Call(ctx, "health", "list_modules", nil)
+	resp, err := bc.HealthCheck(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if modules, ok := resp.Result["modules"].([]interface{}); ok {
-		names := make([]string, 0, len(modules))
-		for _, m := range modules {
-			if s, ok := m.(string); ok {
-				names = append(names, s)
-			}
-		}
-		return names, nil
+	if module, ok := resp.Result["module"].(string); ok {
+		return []string{module}, nil
 	}
 
 	return nil, nil
 }
 
-// Disconnect closes the bridge connection and stops the subprocess.
+// Disconnect closes the gRPC connection and stops the subprocess.
 func (bc *BridgeClient) Disconnect() error {
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
@@ -231,6 +222,7 @@ func (bc *BridgeClient) Disconnect() error {
 	if bc.conn != nil {
 		bc.conn.Close()
 		bc.conn = nil
+		bc.stub = nil
 	}
 
 	if bc.cmd != nil && bc.cmd.Process != nil {
@@ -238,7 +230,7 @@ func (bc *BridgeClient) Disconnect() error {
 		bc.cmd = nil
 	}
 
-	bc.log.Info("bridge disconnected")
+	bc.log.Info("gRPC bridge disconnected")
 	return nil
 }
 
@@ -254,7 +246,7 @@ func (bc *BridgeClient) IsConnected() bool {
 	return bc.Connected()
 }
 
-// CallRaw calls the bridge and returns the raw response for the dispath interface.
+// CallRaw calls the gRPC bridge and returns the raw result map for the dispatch interface.
 func (bc *BridgeClient) CallRaw(ctx context.Context, module, function string, params map[string]interface{}) (map[string]interface{}, error) {
 	resp, err := bc.Call(ctx, module, function, params)
 	if err != nil {

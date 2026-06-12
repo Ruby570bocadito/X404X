@@ -6,6 +6,7 @@ require (
 	github.com/ruby570bocadito/x404x/internal/crypto v0.0.0
 	github.com/ruby570bocadito/x404x/internal/ransomware v0.0.0
 	github.com/ruby570bocadito/x404x/pkg/proto/gen/agent v0.0.0
+	github.com/ruby570bocadito/x404x/pkg/proto/gen/bridge v0.0.0
 	github.com/ruby570bocadito/x404x/pkg/shared/config v0.0.0
 	github.com/ruby570bocadito/x404x/pkg/shared/logger v0.0.0
 	github.com/ruby570bocadito/x404x/pkg/shared/types v0.0.0
@@ -29,6 +30,7 @@ replace (
 	github.com/ruby570bocadito/x404x/internal/crypto => ../crypto
 	github.com/ruby570bocadito/x404x/internal/ransomware => ../ransomware
 	github.com/ruby570bocadito/x404x/pkg/proto/gen/agent => ../../pkg/proto/gen/agent
+	github.com/ruby570bocadito/x404x/pkg/proto/gen/bridge => ../../pkg/proto/gen/bridge
 	github.com/ruby570bocadito/x404x/pkg/shared/config => ../../pkg/shared/config
 	github.com/ruby570bocadito/x404x/pkg/shared/logger => ../../pkg/shared/logger
 	github.com/ruby570bocadito/x404x/pkg/shared/types => ../../pkg/shared/types

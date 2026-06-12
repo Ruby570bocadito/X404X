@@ -11,18 +11,20 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useAgentStore, useReconStore } from '../stores/index.js'
+import { useAgentStore, useReconStore, useEventStore } from '../stores/index.js'
 
 const props = defineProps({ active: { type: String, default: 'dashboard' } })
 defineEmits(['switch'])
 
 const agentStore = useAgentStore()
 const reconStore = useReconStore()
+const eventStore = useEventStore()
 
 const tabs = computed(() => [
   { id: 'dashboard', label: 'Dashboard', badge: null },
   { id: 'agents', label: 'Agents', badge: agentStore.activeAgents.length },
   { id: 'recon', label: 'Recon', badge: reconStore.hosts.length },
+  { id: 'timeline', label: 'Timeline', badge: eventStore.events.length },
   { id: 'builder', label: 'Payloads', badge: null },
   { id: 'ai', label: 'AI', badge: null },
   { id: 'browser', label: 'Browser', badge: null },

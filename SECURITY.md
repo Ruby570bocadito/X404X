@@ -12,8 +12,11 @@ X404X is an academic project for cybersecurity education. If you discover a secu
 
 | Version | Supported |
 |---------|-----------|
-| v2.0    | ✅ Active |
-| v1.0    | ❌ End of life |
+| v3.2    | ✅ Active |
+| v3.1    | ✅ Active |
+| v3.0    | ✅ Active |
+| v2.x    | ❌ End of life |
+| v1.x    | ❌ End of life |
 
 ## Security Model
 
