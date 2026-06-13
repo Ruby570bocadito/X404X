@@ -40,7 +40,7 @@
 
     <!-- Config Modal -->
     <div v-if="showConfig" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div class="bg-dark border border-gray-800 p-4 rounded w-80 shadow-2xl">
+      <div class="bg-dark border border-gray-800 p-4 rounded w-96 shadow-2xl">
         <div class="flex justify-between items-center mb-4">
           <h4 class="text-purple font-mono text-sm">AI Configuration</h4>
           <button @click="showConfig = false" class="text-gray-500 hover:text-white">✕</button>
@@ -48,12 +48,27 @@
         
         <div class="space-y-3 font-mono text-xs">
           <div>
-            <label class="block text-gray-500 mb-1">Active Model</label>
-            <input v-model="config.model" class="w-full bg-black border border-gray-800 rounded px-2 py-1 text-gray-300 focus:border-purple focus:outline-none" placeholder="e.g. llama3.2" />
+            <label class="block text-gray-500 mb-1">Provider</label>
+            <select v-model="config.provider" class="w-full bg-black border border-gray-800 rounded px-2 py-1 text-gray-300 focus:border-purple focus:outline-none">
+              <option value="ollama">Ollama (Local)</option>
+              <option value="openai">OpenAI (Cloud)</option>
+              <option value="anthropic">Anthropic (Cloud)</option>
+              <option value="azure">Azure OpenAI (Cloud)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-gray-500 mb-1">Model</label>
+            <select v-model="config.model" class="w-full bg-black border border-gray-800 rounded px-2 py-1 text-gray-300 focus:border-purple focus:outline-none">
+              <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
+            </select>
+          </div>
+          <div v-if="config.provider !== 'ollama'">
+            <label class="block text-gray-500 mb-1">API Key</label>
+            <input v-model="config.api_key" type="password" class="w-full bg-black border border-gray-800 rounded px-2 py-1 text-gray-300 focus:border-purple focus:outline-none" placeholder="sk-..." />
           </div>
           <div>
             <label class="block text-gray-500 mb-1">Temperature</label>
-            <input type="number" step="0.1" v-model="config.temperature" class="w-full bg-black border border-gray-800 rounded px-2 py-1 text-gray-300 focus:border-purple focus:outline-none" />
+            <input type="number" step="0.1" min="0" max="2" v-model.number="config.temperature" class="w-full bg-black border border-gray-800 rounded px-2 py-1 text-gray-300 focus:border-purple focus:outline-none" />
           </div>
           <div class="pt-2">
             <button @click="saveConfig" class="btn w-full" :disabled="saving">
@@ -61,7 +76,7 @@
             </button>
           </div>
           <div class="text-[10px] text-gray-600 mt-2 text-center">
-            Ollama running on {{ config.ollama_host }}:{{ config.ollama_port }}
+            {{ config.provider === 'ollama' ? `Ollama ${config.ollama_host}:${config.ollama_port}` : `${config.provider} cloud` }}
           </div>
         </div>
       </div>
@@ -70,7 +85,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useAIStore } from '../stores/index.js'
 
 const store = useAIStore()
@@ -116,13 +131,30 @@ const sendQuick = async (cmd) => {
   await scrollBottom()
 }
 
+const availableModels = computed(() => {
+  const m = {
+    ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3', 'mixtral', 'qwen2.5'],
+    openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+    anthropic: ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'],
+    azure: ['gpt-4o', 'gpt-4-turbo', 'gpt-35-turbo'],
+  }
+  return m[config.value.provider] || m.ollama
+})
+
 const showConfig = ref(false)
 const saving = ref(false)
 const config = ref({
+  provider: 'ollama',
   model: 'llama3.2',
   temperature: 0.7,
   ollama_host: 'localhost',
-  ollama_port: 11434
+  ollama_port: 11434,
+  api_key: '',
+})
+
+// Watch provider changes to reset model
+watch(() => config.value.provider, () => {
+  config.value.model = availableModels.value[0]
 })
 
 // Probe config

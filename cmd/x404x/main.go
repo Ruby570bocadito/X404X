@@ -43,15 +43,19 @@ func main() {
 	// Mode detection
 	switch {
 	case len(args) == 0:
-		runTUI()
+		// No args → launch interactive console (default)
+		runConsoleMode(cfg, nil)
 
 	case args[0] == "console":
 		runConsoleMode(cfg, args[1:])
 
-	case args[0] == "tui":
+	case args[0] == "--console":
+		runConsoleMode(cfg, args[1:])
+
+	case args[0] == "tui" || args[0] == "--tui":
 		runTUI()
 
-	case args[0] == "dashboard":
+	case args[0] == "dashboard" || args[0] == "--dashboard":
 		startDashboard(cfg)
 
 	default:

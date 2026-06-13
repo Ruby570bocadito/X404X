@@ -1,42 +1,65 @@
 <template>
   <div class="glass-panel p-4">
-    <h3 class="text-sm font-mono text-purple mb-3">KILL CHAIN PROGRESS</h3>
-    <div class="flex items-center gap-2 text-xs font-mono">
-      <div v-for="(phase, i) in phases" :key="i" class="flex items-center gap-2">
+    <h3 class="text-sm font-mono text-purple mb-3">KILL CHAIN PHASES</h3>
+    <div class="flex items-center gap-2 text-xs font-mono flex-wrap">
+      <div v-for="(phase, i) in phases" :key="i" class="flex items-center gap-2 transition-all duration-300">
         <span :class="phaseClass(phase.status)">{{ phase.icon }}</span>
         <span :class="phaseTextClass(phase.status)">{{ phase.name }}</span>
         <span v-if="i < phases.length - 1" class="text-gray-700 mx-1">─</span>
       </div>
     </div>
     <div class="mt-3 bg-dark rounded-full h-2 overflow-hidden">
-      <div class="h-full bg-gradient-to-r from-purple to-neon rounded-full transition-all duration-500"
-        :style="{ width: (campaignStore.activeCampaign?.progress || 0) * 100 + '%' }"></div>
+      <div class="h-full bg-gradient-to-r from-purple to-neon rounded-full transition-all duration-700 ease-out"
+        :style="{ width: progressPct + '%' }"></div>
     </div>
-    <span class="text-xs text-gray-600 mt-1 block">
-      {{ Math.round((campaignStore.activeCampaign?.progress || 0) * 100) }}% complete
-      <span v-if="campaignStore.activeCampaign" class="text-purple ml-2">{{ campaignStore.activeCampaign.phase }}</span>
-    </span>
+    <div class="flex justify-between text-xs font-mono mt-1">
+      <span class="text-gray-600">{{ progressPct }}%</span>
+      <span class="text-purple">{{ currentLabel }}</span>
+      <span class="text-gray-600" v-if="lastEvent">⚡ {{ lastEvent }}</span>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
-import { useCampaignStore } from '../stores/index.js'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useCampaignStore, useEventStore } from '../stores/index.js'
 
 const campaignStore = useCampaignStore()
+const eventStore = useEventStore()
+const lastEvent = ref('')
+let wsUnsub = null
 
-onMounted(() => campaignStore.fetchCampaigns().catch(() => {}))
+onMounted(() => {
+  campaignStore.fetchCampaigns().catch(() => {})
+
+  // Subscribe to live events for phase transitions
+  if (!eventStore.connected) eventStore.connect()
+  wsUnsub = setInterval(() => {
+    const phaseEvents = eventStore.events.filter(e =>
+      e.type === 'phase_change' || e.type === 'phase'
+    )
+    if (phaseEvents.length) {
+      lastEvent.value = phaseEvents[0].description || phaseEvents[0].phase || ''
+    }
+  }, 2000)
+})
+
+onUnmounted(() => { if (wsUnsub) clearInterval(wsUnsub) })
+
+const phaseOrder = { recon: 0, weaponization: 1, delivery: 2, exploitation: 3, installation: 4, c2: 5, actions_on_objective: 6, exfiltration: 7 }
+const phaseLabels = ['Recon', 'Weaponize', 'Deliver', 'Exploit', 'Install', 'C2', 'Actions', 'Exfil']
+
+const currentPhase = computed(() => campaignStore.activeCampaign?.phase || 'recon')
+const currentIdx = computed(() => phaseOrder[currentPhase.value] ?? 0)
+const progressPct = computed(() => Math.round(((currentIdx.value + 1) / 8) * 100))
+const currentLabel = computed(() => phaseLabels[currentIdx.value] || currentPhase.value)
 
 const phases = computed(() => {
-  const currentPhase = campaignStore.activeCampaign?.phase || 'recon'
-  const phaseOrder = { recon: 0, weaponization: 1, delivery: 2, exploitation: 3, installation: 4, c2: 5, actions_on_objective: 6, exfiltration: 7 }
-  const currentIdx = phaseOrder[currentPhase] ?? 0
-
-  const allPhases = ['Recon', 'Weaponize', 'Deliver', 'Exploit', 'Install', 'C2', 'Exfil']
-  return allPhases.map((name, i) => ({
+  const idx = currentIdx.value
+  return phaseLabels.slice(0, 7).map((name, i) => ({
     name,
-    icon: i < currentIdx ? '✓' : i === currentIdx ? '◉' : '□',
-    status: i < currentIdx ? 'done' : i === currentIdx ? 'active' : 'pending'
+    icon: i < idx ? '✓' : i === idx ? '◉' : '□',
+    status: i < idx ? 'done' : i === idx ? 'active' : 'pending'
   }))
 })
 

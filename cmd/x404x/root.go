@@ -13,9 +13,11 @@ import (
 )
 
 var (
-	cfg     *config.Config
-	log     *logger.Logger
-	cfgPath string
+	cfg          *config.Config
+	log          *logger.Logger
+	cfgPath      string
+	launchConsole bool
+	launchDashboard bool
 )
 
 var rootCmd = &cobra.Command{
@@ -36,8 +38,30 @@ var rootCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		printBigBanner()
-		printUsageCard()
+		switch {
+		case launchDashboard:
+			if err := startDashboard(cfg); err != nil {
+				printErr("Dashboard error: %v", err)
+				os.Exit(1)
+			}
+		case launchConsole:
+			state := GetOrCreateState()
+			if state != nil {
+				if err := NewConsole(state).Run(); err != nil {
+					printErr("Console error: %v", err)
+					os.Exit(1)
+				}
+			}
+		default:
+			// No flags and no subcommand → launch console by default
+			state := GetOrCreateState()
+			if state != nil {
+				if err := NewConsole(state).Run(); err != nil {
+					printErr("Console error: %v", err)
+					os.Exit(1)
+				}
+			}
+		}
 	},
 }
 
@@ -102,6 +126,8 @@ func printUsageCard() {
 
 func Execute() {
 	rootCmd.PersistentFlags().StringVarP(&cfgPath, "config", "c", "config.yaml", "Path to config file")
+	rootCmd.Flags().BoolVar(&launchConsole, "console", false, "Launch interactive console (default when no subcommand)")
+	rootCmd.Flags().BoolVar(&launchDashboard, "dashboard", false, "Start API server + WebSocket + C2 backend")
 	rootCmd.AddCommand(campaignCmd())
 	rootCmd.AddCommand(reconCmd())
 	rootCmd.AddCommand(agentCmd())

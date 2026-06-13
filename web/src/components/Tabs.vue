@@ -11,7 +11,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useAgentStore, useReconStore, useEventStore } from '../stores/index.js'
+import { useAgentStore, useReconStore, useEventStore, useAIStore } from '../stores/index.js'
 
 const props = defineProps({ active: { type: String, default: 'dashboard' } })
 defineEmits(['switch'])
@@ -19,14 +19,21 @@ defineEmits(['switch'])
 const agentStore = useAgentStore()
 const reconStore = useReconStore()
 const eventStore = useEventStore()
+const aiStore = useAIStore()
 
 const tabs = computed(() => [
   { id: 'dashboard', label: 'Dashboard', badge: null },
+  { id: 'campaign', label: 'Campaigns', badge: null },
+  { id: 'decisions', label: 'Decisions', badge: (aiStore.suggestions || []).filter(d => !d.approved && !d.rejected).length },
   { id: 'agents', label: 'Agents', badge: agentStore.activeAgents.length },
-  { id: 'recon', label: 'Recon', badge: reconStore.hosts.length },
+  { id: 'recon', label: 'Graph', badge: reconStore.hosts.length },
+  { id: 'vulns', label: 'Vulns', badge: reconStore.vulnerabilities.length },
+  { id: 'services', label: 'Services', badge: reconStore.services.length },
+  { id: 'automode', label: 'AutoMode', badge: null },
   { id: 'timeline', label: 'Timeline', badge: eventStore.events.length },
   { id: 'builder', label: 'Payloads', badge: null },
   { id: 'ai', label: 'AI', badge: null },
+  { id: 'creds', label: 'Creds', badge: null },
   { id: 'browser', label: 'Browser', badge: null },
   { id: 'terminal', label: 'Terminal', badge: null },
   { id: 'metrics', label: 'Metrics', badge: null },
