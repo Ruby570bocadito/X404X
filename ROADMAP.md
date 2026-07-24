@@ -109,7 +109,6 @@ X404X/
 └── docs/
     ├── USAGE.md
     ├── COMMANDS.md
-    ├── CONSOLE.md
     ├── MODULES.md
     ├── CREATIVITY.md
     └── README.md
@@ -181,7 +180,7 @@ Cerrar los últimos stubs y código incompleto del proyecto.
 | 2.3 | Ed25519 Signing | `plugins/pulse-c2/.../crypto/ed25519.go` | 288 | Key generation, command signing/verification, nonce replay protection, trusted key ring, batch sign/verify. |
 | 2.4 | Dashboard Ops | `plugins/pulse-c2/.../c2/dashboard.go` | 406 | HTTP+WebSocket API, agent registration, propagation map, signed command issuance, embedded HTML dashboard. |
 | 2.5 | Kyber-1024+X25519 | `plugins/pulse-c2/.../crypto/kyber.go` | 419 | Hybrid KEM (ML-KEM-1024 + X25519), HKDF key derivation, AES-256-GCM + HMAC-SHA256 session encryption. |
-| 2.6 | Proto Obfuscation | `pkg/proto/loader/obfuscated.go` | 360 | XOR + AES-CTR + GZIP, integrity verification, memory-only loading, vaporize buffers, embedded loader generation. |
+| 2.6 | Proto Obfuscation | `internal/crypto/proto_obfuscator.go` | 360 | XOR + AES-CTR + GZIP, integrity verification, memory-only loading, vaporize buffers, embedded loader generation. |
 
 ---
 

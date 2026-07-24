@@ -1380,7 +1380,7 @@ X404X/
 | `ROADMAP.md` | Plan de fases, módulos propuestos |
 | `docs/ARCHITECTURE.md` | Arquitectura detallada |
 | `docs/COMMANDS.md` | Referencia CLI completa |
-| `docs/CONSOLE.md` | Consola interactiva |
+| `docs/USAGE.md` | Documentación completa del framework |
 | `docs/MODULES.md` | Catálogo de bridge handlers |
 | `docs/CREATIVITY.md` | Contribuciones académicas |
 | `docs/TESTING_GUIDE.md` | Guía de testing |

@@ -127,7 +127,7 @@ X404X/
 │   ├── USAGE.md            # Full usage manual (1,393 lines)
 │   ├── MODULES.md          # 107 bridge handler reference
 │   ├── COMMANDS.md         # CLI command reference (843 lines)
-│   ├── ALL_MODULES.md      # Complete module catalog (154+)
+│   ├── MODULES.md            # Complete module catalog
 │   ├── ARCHITECTURE.md     # This file
 │   ├── API_REFERENCE.md    # REST/gRPC API reference
 │   ├── DEPLOYMENT.md       # Deployment guide
@@ -135,7 +135,7 @@ X404X/
 │   ├── MEMORIA_TFG.md      # Academic: thesis memory
 │   ├── KILL_CHAIN_MATRIX.md # Kill chain tactic→module matrix
 │   ├── BENCHMARKS.md       # Performance benchmarks
-│   ├── CONSOLE.md          # Interactive console guide
+│   ├── COMMANDS.md          # CLI command reference
 │   └── TESTING_GUIDE.md    # Testing instructions
 └── reports/                # Campaign output reports
 ```

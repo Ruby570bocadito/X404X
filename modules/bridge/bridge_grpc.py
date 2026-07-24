@@ -23,7 +23,7 @@ import sys
 import time
 from concurrent import futures
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List
 
 import grpc
 
@@ -375,7 +375,7 @@ class BridgeServiceServicer(bridge_pb2_grpc.BridgeServiceServicer):
         handlers = data.get("ransomware_handlers", 0)
         return bridge_pb2.HealthCheckResponse(
             ok=result.get("success", False),
-            module_name=f"x404x-bridge",
+            module_name="x404x-bridge",
             version=f"3.2-grpc ({inline} inline modules, {handlers} handlers)",
         )
 

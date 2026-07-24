@@ -1,3 +1,5 @@
+// Package dispatch maps decisions from the AI orchestrator to concrete modules and agents.
+// It handles both async (DispatchDecision) and sync (DispatchDecisionSync) execution paths.
 package dispatch
 
 import (
@@ -12,6 +14,8 @@ import (
 	"github.com/ruby570bocadito/x404x/pkg/shared/types"
 )
 
+// Dispatcher routes decisions to appropriate modules and agents.
+// It selects the best agent, maps tactics to modules, and executes or bridges them.
 type Dispatcher struct {
 	state         AppStateAccessor
 	log           *log.Logger
@@ -19,6 +23,7 @@ type Dispatcher struct {
 	minConfidence float64
 }
 
+// AppStateAccessor is the interface the dispatcher needs from the application state.
 type AppStateAccessor interface {
 	GetAgents() []*types.Agent
 	GetAgent(id string) *types.Agent
@@ -29,15 +34,18 @@ type AppStateAccessor interface {
 	GetBridgeClient() BridgeCaller
 }
 
+// BridgeCaller abstracts the Python bridge RPC client.
 type BridgeCaller interface {
 	CallRaw(ctx context.Context, module, function string, params map[string]interface{}) (map[string]interface{}, error)
 	IsConnected() bool
 }
 
+// AgentDispatcher abstracts agent command dispatch for lateral movement.
 type AgentDispatcher interface {
 	SendCommand(ctx context.Context, agentID string, module string, target string, params map[string]string) (string, error)
 }
 
+// DispatchResult holds the outcome of a synchronous module execution.
 type DispatchResult struct {
 	Success            bool
 	NewHosts           []registry.Target

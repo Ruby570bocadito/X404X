@@ -77,7 +77,6 @@ class TestBridgeProtocol(unittest.TestCase):
         sys.path.insert(0, handlers_dir)
 
         registry = {}
-        total = 0
 
         modules_to_try = [
             'ransomware', 'ransomware_advanced', 'ransomware_blockz',
@@ -89,17 +88,17 @@ class TestBridgeProtocol(unittest.TestCase):
             try:
                 mod = __import__(mod_name)
                 if hasattr(mod, 'register_routes'):
-                    count = mod.register_routes(registry)
-                    total += count
+                    mod.register_routes(registry)
             except ImportError:
                 pass
 
         try:
             import phase_1_4
-            total += phase_1_4.register_routes(registry)
+            phase_1_4.register_routes(registry)
         except ImportError:
             pass
 
+        total = sum(len(handlers) for handlers in registry.values())
         self.assertGreater(total, 50, f"Expected >50 total handlers, got {total}")
 
     def test_bridge_protocol_compatibility(self):

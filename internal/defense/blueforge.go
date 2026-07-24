@@ -1,3 +1,5 @@
+// Package defense simulates blue-team detection capabilities (BlueForge Engine)
+// for testing evasion techniques against EDR, AV, and logging systems.
 package defense
 
 import (
@@ -9,6 +11,8 @@ import (
 	"strings"
 )
 
+// BlueForgeEngine simulates EDR/AV detection of ATT&CK techniques used by the red team.
+// It tracks which techniques are detected vs undetected and computes coverage metrics.
 type BlueForgeEngine struct {
 	Techniques   []ATTACKTechnique
 	Detected     []string
@@ -17,6 +21,7 @@ type BlueForgeEngine struct {
 	Score        float64
 }
 
+// ATTACKTechnique represents a single MITRE ATT&CK technique with detection status.
 type ATTACKTechnique struct {
 	ID     string
 	Name   string
@@ -48,10 +53,15 @@ var allTechniques = []ATTACKTechnique{
 	{ID: "T1027", Name: "Obfuscated Files", Tactic: "Defense Evasion"},
 }
 
+// NewBlueForgeEngine creates a new BlueForgeEngine with a copy of the default
+// ATT&CK technique list. Each call returns an independent instance.
 func NewBlueForgeEngine() *BlueForgeEngine {
-	return &BlueForgeEngine{Techniques: allTechniques}
+	techniques := make([]ATTACKTechnique, len(allTechniques))
+	copy(techniques, allTechniques)
+	return &BlueForgeEngine{Techniques: techniques}
 }
 
+// MarkUsed marks a technique as used by the red team, enabling detection simulation.
 func (bf *BlueForgeEngine) MarkUsed(techniqueID string) {
 	for i := range bf.Techniques {
 		if bf.Techniques[i].ID == techniqueID {
@@ -61,6 +71,8 @@ func (bf *BlueForgeEngine) MarkUsed(techniqueID string) {
 	}
 }
 
+// SimulateDetection runs EDR detection simulation against all used techniques.
+// It checks for running EDR processes and classifies techniques as detected or undetected.
 func (bf *BlueForgeEngine) SimulateDetection() {
 	edrProcesses := bf.detectEDRProcesses()
 
@@ -126,10 +138,12 @@ func (bf *BlueForgeEngine) detectEDRProcesses() []string {
 	return detected
 }
 
+// DetectedEDRs returns a list of EDR processes detected on the current system.
 func (bf *BlueForgeEngine) DetectedEDRs() []string {
 	return bf.detectEDRProcesses()
 }
 
+// GenerateReport creates a formatted ATT&CK coverage report with detection metrics.
 func (bf *BlueForgeEngine) GenerateReport() string {
 	bf.SimulateDetection()
 	report := fmt.Sprintf("=== X404X ATT&CK COVERAGE REPORT ===\nTechniques Used: %d\nDetected: %d\nUndetected: %d\nCoverage: %.1f%%\n",

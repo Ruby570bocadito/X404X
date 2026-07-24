@@ -25,26 +25,27 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, defineAsyncComponent, onMounted, onUnmounted } from 'vue'
 import Header from './components/Header.vue'
 import Tabs from './components/Tabs.vue'
-import Dashboard from './views/Dashboard.vue'
-import CampaignManager from './views/CampaignManager.vue'
-import DecisionsPanel from './views/DecisionsPanel.vue'
-import AgentPanel from './views/AgentPanel.vue'
-import NetworkMap from './views/NetworkMap.vue'
-import VulnerabilityHeatmap from './views/VulnerabilityHeatmap.vue'
-import ServicePortTable from './views/ServicePortTable.vue'
-import AutoModeMonitor from './views/AutoModeMonitor.vue'
-import AIConsole from './views/AIConsole.vue'
-import PayloadBuilder from './views/PayloadBuilder.vue'
-import TerminalWidget from './views/TerminalWidget.vue'
-import MetricsPanel from './views/MetricsPanel.vue'
-import DocsPanel from './views/DocsPanel.vue'
-import BrowserMesh from './views/BrowserMesh.vue'
-import CredentialVault from './views/CredentialVault.vue'
-import CampaignTimeline from './views/CampaignTimeline.vue'
 import Footer from './components/Footer.vue'
+
+const Dashboard = defineAsyncComponent(() => import('./views/Dashboard.vue'))
+const CampaignManager = defineAsyncComponent(() => import('./views/CampaignManager.vue'))
+const DecisionsPanel = defineAsyncComponent(() => import('./views/DecisionsPanel.vue'))
+const AgentPanel = defineAsyncComponent(() => import('./views/AgentPanel.vue'))
+const NetworkMap = defineAsyncComponent(() => import('./views/NetworkMap.vue'))
+const VulnerabilityHeatmap = defineAsyncComponent(() => import('./views/VulnerabilityHeatmap.vue'))
+const ServicePortTable = defineAsyncComponent(() => import('./views/ServicePortTable.vue'))
+const AutoModeMonitor = defineAsyncComponent(() => import('./views/AutoModeMonitor.vue'))
+const AIConsole = defineAsyncComponent(() => import('./views/AIConsole.vue'))
+const PayloadBuilder = defineAsyncComponent(() => import('./views/PayloadBuilder.vue'))
+const TerminalWidget = defineAsyncComponent(() => import('./views/TerminalWidget.vue'))
+const MetricsPanel = defineAsyncComponent(() => import('./views/MetricsPanel.vue'))
+const DocsPanel = defineAsyncComponent(() => import('./views/DocsPanel.vue'))
+const BrowserMesh = defineAsyncComponent(() => import('./views/BrowserMesh.vue'))
+const CredentialVault = defineAsyncComponent(() => import('./views/CredentialVault.vue'))
+const CampaignTimeline = defineAsyncComponent(() => import('./views/CampaignTimeline.vue'))
 import {
   useAgentStore, useCampaignStore, useReconStore,
   useMetricsStore, useEventStore, useAIStore

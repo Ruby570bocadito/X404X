@@ -14,7 +14,6 @@
 #   - Screenshot capture
 #   - Anti-analysis engine (6 techniques)
 
-import json
 import os
 import platform
 import shutil
@@ -23,9 +22,9 @@ import time
 import urllib.parse
 import urllib.request
 import urllib.error
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict
 
 
 @dataclass
@@ -397,7 +396,7 @@ self.addEventListener('message', (event) => {{
                 bind_sock.bind(("127.0.0.1", target_port))
                 bind_sock.listen(1)
                 bind_success = True
-                actual_port = bind_sock.getsockname()[1]
+                bind_sock.getsockname()[1]
             except OSError as e:
                 return {
                     "status": "bind_failed",

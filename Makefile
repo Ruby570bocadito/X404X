@@ -38,10 +38,10 @@ setup-python:
 
 setup-node:
 	@echo "[*] Installing Node.js dependencies..."
-	cd plugins/pulse-c2/web && npm install 2>/dev/null || true
+	cd web && npm install 2>/dev/null || true
 
 # === Build ===
-build: build-x404x build-agent build-c2
+build: build-x404x build-agent
 	@echo "[+] Build complete"
 
 build-x404x:
@@ -51,9 +51,7 @@ build-x404x:
 
 build-agent:
 	@echo "[*] Building agent..."
-	cd internal/agent && GOOS=linux GOARCH=amd64 go build -o ../../dist/agent-linux-amd64 ./cmd/agent
-	cd internal/agent && GOOS=linux GOARCH=arm64 go build -o ../../dist/agent-linux-arm64 ./cmd/agent
-	cd internal/agent && GOOS=windows GOARCH=amd64 go build -o ../../dist/agent-windows-amd64.exe ./cmd/agent
+	cd internal/agent && go build -o ../../dist/agent ./cmd/agent
 
 build-c2:
 	@echo "[*] Building C2 server..."

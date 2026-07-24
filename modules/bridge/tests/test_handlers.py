@@ -1,5 +1,7 @@
 """X404X Python Bridge Handler Tests — 85 RPCs across 7 versions"""
-import sys, os, json, unittest
+import sys
+import os
+import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'handlers'))
 
 class TestRansomwareBase(unittest.TestCase):

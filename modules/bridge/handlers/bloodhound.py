@@ -3,10 +3,7 @@
 # Collects Active Directory data and maps attack paths.
 # Uses SharpHound (Windows) or Python-based BloodHound collector.
 
-import json
-import os
 import subprocess
-import tempfile
 from pathlib import Path
 
 

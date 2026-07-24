@@ -1,5 +1,5 @@
-// Package types defines shared domain types used across the full X404X Autonomous Red Team Platform
-// components. These types are the canonical representation of core concepts
+// Package types defines shared domain types used across the full X404X platform.
+// These types are the canonical representation of core concepts
 // (agents, campaigns, kill chain phases, etc.) and are used by gRPC, database,
 // and internal logic.
 package types

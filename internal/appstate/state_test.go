@@ -96,7 +96,7 @@ func TestAddVuln(t *testing.T) {
 	cfg := config.Default()
 	s, _ := New(cfg)
 
-	v := &types.Vulnerability{ID: "CVE-2024-1234", Name: "Test Vuln"}
+	v := &types.Vulnerability{ID: "CVE-2024-1234", Description: "Test Vuln"}
 	s.AddVuln(v)
 
 	vulns := s.GetVulns()
@@ -112,7 +112,7 @@ func TestAddCredential(t *testing.T) {
 	cfg := config.Default()
 	s, _ := New(cfg)
 
-	c := &types.Credential{Username: "admin", Secret: "s3cret"}
+	c := &types.Credential{Username: "admin", Password: "s3cret"}
 	s.AddCredential(c)
 
 	creds := s.GetCreds()

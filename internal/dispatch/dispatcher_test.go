@@ -58,7 +58,7 @@ func TestDispatchDecisionNoAgents(t *testing.T) {
 	campaign := &types.Campaign{
 		ID:     "camp-1",
 		Phase:  types.PhaseRecon,
-		Target: "10.0.0.0/24",
+		TargetScope: "10.0.0.0/24",
 	}
 
 	err := d.DispatchDecision(context.Background(), campaign, decision)
@@ -120,7 +120,7 @@ func TestDispatchDecisionSync(t *testing.T) {
 	campaign := &types.Campaign{
 		ID:     "camp-sync-1",
 		Phase:  types.PhaseRecon,
-		Target: "10.0.0.5",
+		TargetScope: "10.0.0.5",
 	}
 
 	result, err := d.DispatchDecisionSync(context.Background(), campaign, decision)
