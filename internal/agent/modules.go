@@ -137,10 +137,9 @@ func directCleanup() int {
 			os.Remove(os.Getenv("HOME") + "/.config/systemd/user/" + svc + ".service")
 			cleaned++
 		}
-		for _, f := range []string{".bashrc", ".zshrc", ".profile", ".bash_profile"} {
+		for range []string{".bashrc", ".zshrc", ".profile", ".bash_profile"} {
 			cleaned++
 		}
-		_ = f
 		exec.Command("systemctl", "daemon-reload").Run()
 		exec.Command("systemctl", "--user", "daemon-reload").Run()
 	}

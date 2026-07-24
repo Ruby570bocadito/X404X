@@ -280,12 +280,6 @@ func generateID() string {
 	return hex.EncodeToString(b)
 }
 
-func generateBTCAddress() string {
-	b := make([]byte, 20)
-	io.ReadFull(rand.Reader, b)
-	return "1" + base58Encode(b)
-}
-
 func generateXMRAddress() string {
 	b := make([]byte, 32)
 	io.ReadFull(rand.Reader, b)

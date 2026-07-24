@@ -1,4 +1,6 @@
-package ransomware
+//go:build windows
+
+package v27
 
 import (
 	"bytes"

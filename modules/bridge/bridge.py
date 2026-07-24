@@ -32,7 +32,6 @@ import threading
 import time
 import platform
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 # Add project root to Python path for imports
@@ -311,10 +310,10 @@ def _offline_ai_response(context: str) -> str:
         return combined
 
     # Generic fallback for unknown context
-    return (f"Unrecognized context. Default methodology: 1) Recon: port scan + service version detection "
-            f"2) Research: search exploit-db/MSF for version-specific CVEs 3) Exploit: attempt default credentials "
-            f"then CVE exploitation 4) Privesc: enumerate OS-specific escalation vectors "
-            f"5) Persist: install via cron/registry/WMI 6) Exfil: tunnel via DNS/HTTPS. Confidence: 0.55.")
+    return ("Unrecognized context. Default methodology: 1) Recon: port scan + service version detection "
+            "2) Research: search exploit-db/MSF for version-specific CVEs 3) Exploit: attempt default credentials "
+            "then CVE exploitation 4) Privesc: enumerate OS-specific escalation vectors "
+            "5) Persist: install via cron/registry/WMI 6) Exfil: tunnel via DNS/HTTPS. Confidence: 0.55.")
 
 
 @registry.register("privesc", "Privilege escalation scanner", "1.0", "exploitation")
@@ -465,7 +464,7 @@ def persist_handler(params: dict):
         try:
             os.makedirs(ssh_dir, exist_ok=True)
             with open(os.path.join(ssh_dir, "authorized_keys"), "a") as f:
-                f.write(f"\n# X404X persistence key\n")
+                f.write("\n# X404X persistence key\n")
             installed.append("ssh_authorized_keys")
         except Exception:
             pass
@@ -706,7 +705,7 @@ def evasion_handler(params: dict):
     level = params.get("level", "stealth")
     action = params.get("action", "apply")
     try:
-        from modules.evasion.unified_evasion import EvasionLevel, get_profile, UnifiedEvasionEngine
+        from modules.evasion.evasion import EvasionLevel, get_profile, UnifiedEvasionEngine
         profile = get_profile(EvasionLevel(level))
         engine = UnifiedEvasionEngine(profile)
         if action == "list_profiles":
@@ -738,15 +737,6 @@ def report_handler(params: dict):
         return {"format": fmt, "file": filename, "status": "generated"}
     except ImportError:
         return {"format": fmt, "file": "reports/demo_report.json", "status": "generated"}
-def exfil_handler(params: dict):
-    """Handle data exfiltration."""
-    path = params.get("path", "")
-    method = params.get("method", "chunked")
-
-    if path and os.path.exists(path):
-        size = os.path.getsize(path)
-        return {"path": path, "bytes": size, "method": method, "status": "ready_to_exfil"}
-    return {"path": path, "bytes": 0, "method": method, "status": "file_not_found"}
 
 
 @registry.register("exfil", "Data exfiltration — chunked encrypted file transfer", "1.0", "exfiltration")
@@ -914,7 +904,7 @@ class BridgeServer:
                 continue
             except Exception:
                 if self._running:
-                    print(f"[Bridge] Accept error", file=sys.stderr, flush=True)
+                    print("[Bridge] Accept error", file=sys.stderr, flush=True)
                 break
 
         server.close()
@@ -1022,7 +1012,7 @@ def main():
     server = BridgeServer(args.host, args.port)
     server.start()
     print(f"[Bridge] X404X Bridge v1.0 — {len(registry.list())} modules registered", flush=True)
-    print(f"[Bridge] Ready for Go agent connections", flush=True)
+    print("[Bridge] Ready for Go agent connections", flush=True)
     try:
         while True:
             time.sleep(1)

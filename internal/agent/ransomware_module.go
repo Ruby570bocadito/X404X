@@ -103,7 +103,7 @@ func (rm *RansomwareScanModule) Execute(ctx context.Context, agentID string, par
 		close(done)
 	}()
 
-	rm.engine.Scanner.ScanDirectory(scanRoot, nil, results, sensitive)
+	rm.engine.Scanner.ScanDirectory(context.Background(), scanRoot, nil, results, sensitive)
 	<-done
 
 	return map[string]interface{}{

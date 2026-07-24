@@ -45,7 +45,7 @@ def dump_credentials(params: dict) -> dict:
 
 
 def _dump_shadow() -> dict:
-    results = {"passwords": [], "hashes": []}
+    results = {"passwords": [], "hashes": [], "errors": []}
     try:
         if os.geteuid() != 0:
             results["errors"].append("Need root to read /etc/shadow")

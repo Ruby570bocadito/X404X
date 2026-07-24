@@ -17,7 +17,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/big"
 	"net"
 	"os"
@@ -796,7 +795,7 @@ func (a *C2P2PAdapter) SendCommand(command []byte) ([]byte, error) {
 	a.mu.Unlock()
 
 	if a.mesh.leader != nil && a.mesh.leader.AgentID != a.mesh.self.AgentID {
-		return a.mesh.RelayCommand(a.mesh.leader.AgentID, command), nil
+		return nil, a.mesh.RelayCommand(a.mesh.leader.AgentID, command)
 	}
 
 	return nil, fmt.Errorf("C2 unreachable, no leader to relay")

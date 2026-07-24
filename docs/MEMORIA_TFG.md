@@ -195,7 +195,7 @@ func (p *PostExploitPipeline) FullChain(ctx context.Context) *PostExploitResult 
 ### 4.1 Estructura del monorepo
 
 ```
-X404X/                           # ~1,160 archivos
+X404X/                           # ~450+ archivos
 ├── cmd/x404x/    (5 .go)        # Entry point: CLI + TUI + Console
 ├── core/
 │   ├── agent/    (7 .go)        # Agent + PostExploit + VaultIOCTL + KillChain + Bridge

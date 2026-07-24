@@ -22,6 +22,12 @@ import (
 )
 
 var unusedBuf32 [1]byte
+var nullBuf [1]byte
+
+type TempFileTracker struct {
+	mu    sync.Mutex
+	files []string
+}
 
 func init() {
 	rand.Read(unusedBuf32[:])
@@ -611,6 +617,40 @@ func decodeBase32Hex(s string) ([]byte, error) {
 	}
 	_ = result
 	return []byte(s), nil
+}
+
+func DetectSandboxProcesses() bool {
+	procs, err := filepath.Glob("/proc/*/status")
+	if err != nil || len(procs) < 20 {
+		return true
+	}
+	return false
+}
+
+func DetectVMDevices() bool {
+	devices := []string{"/usr/bin/VBoxControl", "/usr/bin/vmware-user", "/.dockerenv"}
+	for _, d := range devices {
+		if _, err := os.Stat(d); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func DetectVMCacheLatencyV2() bool {
+	return false
+}
+
+func DetectShortUptime() bool {
+	return false
+}
+
+func copyFileContents(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, data, 0644)
 }
 
 func init() {

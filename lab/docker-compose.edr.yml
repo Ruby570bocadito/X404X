@@ -72,7 +72,7 @@ services:
       echo '[TEST 1] Static detection check...' &&
       python3 -c 'import sys; sys.path.insert(0,\".\"); print(\"[PASS] Python modules load without triggering AV\")' &&
       echo '[TEST 2] AMSI bypass verification...' &&
-      python3 -c 'import os; print(\"[PASS] AMSI bypass module loaded:\", os.path.exists(\"modules/evasion/unified_evasion.py\"))' &&
+      python3 -c 'import os; print(\"[PASS] AMSI bypass module loaded:\", os.path.exists(\"modules/evasion/evasion.py\"))' &&
       echo '[TEST 3] LOLBin chain generation...' &&
       echo '[PASS] LOLBin chainer produces valid commands' &&
       echo '[TEST 4] DNS exfiltration check...' &&

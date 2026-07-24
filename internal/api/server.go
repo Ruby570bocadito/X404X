@@ -534,15 +534,8 @@ func (s *Server) handleReconScan(w http.ResponseWriter, r *http.Request) {
 		// Mock recon results for now since orchestrator doesn't have RunRecon
 		// In a real scenario, this would create a campaign and wait for recon phase
 		results := map[string]interface{}{"status": "started", "target": req.Target}
-		var err error
-		if err != nil {
-			s.log.Warnf("recon scan error: %v", err)
-			s.hub.Broadcast(WSMessage{
-				Type: "recon.scan_error",
-				Data: map[string]string{"target": req.Target, "error": err.Error()},
-			})
-			return
-		}
+		s.log.Infof("recon scan started for %s", req.Target)
+
 		_ = results
 
 		if s.state != nil && s.state.Bridge != nil && s.state.Bridge.Connected() {
@@ -1364,7 +1357,7 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 	for _, a := range agents {
 		resp = append(resp, SessionResponse{
 			ID: a.ID, Hostname: a.Hostname,
-			Username: a.OS, OS: a.OS, State: "active",
+			Username: a.Username, OS: a.OS, State: "active",
 		})
 	}
 	writeJSON(w, http.StatusOK, resp)

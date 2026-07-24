@@ -1,12 +1,12 @@
 package v210
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"os"
@@ -499,3 +499,49 @@ func (ap *ApocalipsisEngine) GetStatusJSON() string {
 }
 
 func init() { _ = rand.Reader; _ = sha256.New(); _ = exec.Command; _ = time.Now; _ = filepath.Glob }
+
+func cidrHostsFromSubnet(subnet string) []string {
+	_, ipnet, err := net.ParseCIDR(subnet)
+	if err != nil {
+		return nil
+	}
+	var ips []string
+	for ip := ipnet.IP.Mask(ipnet.Mask); ipnet.Contains(ip); incIP(ip) {
+		ips = append(ips, ip.String())
+	}
+	if len(ips) > 0 {
+		ips = ips[1:] // skip network address
+	}
+	if len(ips) > 0 {
+		ips = ips[:len(ips)-1] // skip broadcast
+	}
+	return ips
+}
+
+func incIP(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
+	}
+}
+
+type Engine struct{}
+
+func NewEngine(cfg interface{}) *Engine { return &Engine{} }
+func (e *Engine) RunFullChain(ctx context.Context) {}
+
+func findSensitiveFiles(root string, max int) []string {
+	var files []string
+	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil || len(files) >= max {
+			return nil
+		}
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files
+}

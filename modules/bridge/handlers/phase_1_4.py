@@ -2,11 +2,13 @@
 Bridge handlers for X404X Phase 1-4 modules.
 Exposes BYOVD, DKOM, Anti-Reversing, Anti-Forensics, Hydra vectors,
 C2 hardened, AI, and cross-platform modules via RPC.
+
+NOTE: All handlers in this file are stubs/placeholders returning
+hardcoded success values. Real implementations live in the Go core
+(internal/ransomware/) or are planned for future iterations.
+These stubs enable integration testing and pipeline validation.
 """
-import json
 import os
-import sys
-import time
 import platform
 
 HANDLERS = {}

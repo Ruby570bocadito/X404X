@@ -1,3 +1,5 @@
+//go:build windows
+
 // Package ransomware — anti-memory forensics (#55).
 //
 // Techniques that prevent an analyst from dumping process memory

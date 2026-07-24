@@ -18,7 +18,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	ccrypto "github.com/ruby570bocadito/x404x/internal/crypto"
 	"golang.org/x/crypto/chacha20poly1305"

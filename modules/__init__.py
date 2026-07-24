@@ -1,5 +1,5 @@
 # X404X Platform — Modules __init__
 # Python module ecosystem
 
-from modules.bridge.bridge import BridgeServer, ModuleRegistry
-from modules.evasion.evasion import EvasionEngine, EvasionLevel, get_profile
+from modules.bridge.bridge import BridgeServer
+from modules.evasion.evasion import EvasionEngine  # alias of UnifiedEvasionEngine

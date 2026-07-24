@@ -412,8 +412,8 @@ func (sb *SecureBootBypass) mountESP() (string, error) {
 $vol = Get-Volume | Where-Object { $_.FileSystem -eq 'FAT32' -and $_.Size -lt 2GB } | Select-Object -First 1
 if ($vol) {
 	$letter = [char]([int][char]'S')
-	$vol | Get-Partition | Add-PartitionAccessPath -AccessPath "$letter`:"
-	Write-Host "${letter}:"
+	$vol | Get-Partition | Add-PartitionAccessPath -AccessPath "$($letter):"
+	Write-Host "$($letter):"
 	exit 0
 }
 mountvol S: /S 2>$null

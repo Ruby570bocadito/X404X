@@ -63,7 +63,7 @@ X404X/
 │   │       ├── cred_dump.py            # 6 functions
 │   │       └── attacks.py              # 9 functions
 │   ├── evasion/
-│   │   ├── unified_evasion.py    # AMSI/ETW bypass
+│   │   ├── evasion.py            # AMSI/ETW bypass
 │   │   ├── lolbin_delivery.py    # 10 técnicas LOLBin
 │   │   └── evasion.py
 │   ├── notifications/webhook.py

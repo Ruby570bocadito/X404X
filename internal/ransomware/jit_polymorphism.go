@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"math/big"
-	"os"
 	"runtime"
 	"strings"
 	"sync"
