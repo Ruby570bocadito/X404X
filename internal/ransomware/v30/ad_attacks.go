@@ -1,5 +1,5 @@
 package v30
-import ("encoding/json";"fmt";"os";"os/exec";"path/filepath";"runtime";"strings")
+import ("encoding/json";"fmt";"os";"os/exec";"path/filepath";"runtime")
 type ADAttackEngine struct {
 	Config *V30Config; ShadowCredsApplied bool; GoldenSAMLGenerated bool; DomainController string
 }

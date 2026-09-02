@@ -738,10 +738,10 @@ func (c *Console) cmdAccept(args []string) {
 	decisionID := args[0]
 	err := c.state.Orchestrator.ApproveDecision(decisionID)
 	if err != nil {
-		printInfo(fmt.Sprintf("Approve failed: %v", err))
+		printInfo("Approve failed: %v", err)
 		return
 	}
-	printInfo(fmt.Sprintf("Decision %s approved — executing.", decisionID))
+	printInfo("Decision %s approved — executing.", decisionID)
 }
 
 func (c *Console) cmdReject(args []string) {
@@ -756,10 +756,10 @@ func (c *Console) cmdReject(args []string) {
 	decisionID := args[0]
 	err := c.state.Orchestrator.RejectDecision(decisionID)
 	if err != nil {
-		printInfo(fmt.Sprintf("Reject failed: %v", err))
+		printInfo("Reject failed: %v", err)
 		return
 	}
-	printInfo(fmt.Sprintf("Decision %s rejected.", decisionID))
+	printInfo("Decision %s rejected.", decisionID)
 }
 
 // ─── Data views ───────────────────────────────────────────────────────────────

