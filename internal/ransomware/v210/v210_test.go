@@ -148,7 +148,7 @@ func TestPhantomEvasionCheck(t *testing.T) {
 	cfg := DefaultV210Config()
 	pe := NewPhantomEvasionEngine(cfg)
 
-	status := pe.GetStatus()
+	status := pe.GetStatusJSON()
 	if len(status) == 0 {
 		t.Log("Phantom evasion status empty (expected in test env)")
 	} else {

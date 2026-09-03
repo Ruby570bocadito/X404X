@@ -1,10 +1,11 @@
 package ransomware
 
+import rw "github.com/ruby570bocadito/x404x/internal/ransomware"
+
 import (
 	"encoding/hex"
 	"fmt"
 	"net"
-	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -13,14 +14,14 @@ import (
 )
 
 type PowerlineWorm struct {
-	config        *RansomwareConfig
+	config        *rw.RansomwareConfig
 	plcInterface  string
 	carrierFreq   int
 	baudRate      int
 	macPrefixes   []string
 }
 
-func NewPowerlineWorm(cfg *RansomwareConfig) *PowerlineWorm {
+func NewPowerlineWorm(cfg *rw.RansomwareConfig) *PowerlineWorm {
 	return &PowerlineWorm{
 		config:       cfg,
 		plcInterface: "eth0",

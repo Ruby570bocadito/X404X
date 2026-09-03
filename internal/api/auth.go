@@ -400,6 +400,19 @@ func (s *Server) SetupAuth() {
 		jwtSecret = hex.EncodeToString(secret)
 	}
 
+	// Security fix (audit A1): never expose the dashboard API unauthenticated.
+	// If no auth_token is configured, generate an ephemeral token with
+	// crypto/rand and log it prominently so the operator can authenticate.
+	if authToken == "" {
+		ephemeral := make([]byte, 32)
+		if _, err := rand.Read(ephemeral); err != nil {
+			s.log.Errorf("failed to generate ephemeral auth token: %v", err)
+		}
+		authToken = hex.EncodeToString(ephemeral)
+		s.log.Warnf("dashboard auth_token not configured — generated ephemeral token: %s", authToken)
+		fmt.Printf("\n[!] X404X dashboard: auth_token not set. Generated ephemeral token:\n    %s\n\n", authToken)
+	}
+
 	s.auth.authToken = authToken
 	s.auth.jwtSecret = []byte(jwtSecret)
 	s.auth.jwtExpiryHours = jwtExpiry
@@ -409,13 +422,10 @@ func (s *Server) SetupAuth() {
 	s.mux.HandleFunc("/api/logout", s.auth.HandleLogout)
 	s.mux.HandleFunc("/api/me", s.auth.HandleMe)
 
-	if authToken != "" {
-		s.srv.Handler = corsMiddleware(s.auth.jwtAuthMiddleware(s.mux))
-		s.log.Info("JWT authentication enabled for dashboard API")
-	} else {
-		s.srv.Handler = corsMiddleware(s.mux)
-		s.log.Info("Dashboard auth disabled (no auth_token configured)")
-	}
+	// Always enforce JWT authentication (previously auth was disabled when
+	// auth_token was empty, exposing the API on 0.0.0.0 without any check).
+	s.srv.Handler = corsMiddleware(s.auth.jwtAuthMiddleware(s.mux))
+	s.log.Info("JWT authentication enabled for dashboard API")
 }
 
 func init() {

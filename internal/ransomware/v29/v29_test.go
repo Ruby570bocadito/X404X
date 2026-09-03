@@ -187,9 +187,9 @@ func TestNewDNSCachePoisonEngine(t *testing.T) {
 
 func TestNewBGPPhantomISPEengine(t *testing.T) {
 	cfg := DefaultV29Config()
-	engine := NewBGPPhantomISPEengine(cfg)
+	engine := NewBGPPhantomISPEngine(cfg)
 	if engine == nil {
-		t.Fatal("NewBGPPhantomISPEengine() returned nil")
+		t.Fatal("NewBGPPhantomISPEngine() returned nil")
 	}
 }
 

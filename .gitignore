@@ -78,8 +78,8 @@ checkpoints/
 *.npz
 
 # === X404X Binary ===
-x404x
-x404x.sig
+/x404x
+/x404x.sig
 session.txt
 
 # === Database Journal ===

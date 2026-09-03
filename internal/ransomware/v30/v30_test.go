@@ -56,11 +56,11 @@ func TestADAttackEngineDiscoverDelegations(t *testing.T) {
 	cfg := DefaultV30Config()
 	engine := NewADAttackEngine(cfg)
 
-	delegations := engine.DiscoverUnconstrainedDelegation()
-	if len(delegations) == 0 {
-		t.Log("No unconstrained delegations found (expected in test env)")
+	ok := engine.GenerateGoldenSAML("DC01.corp.local")
+	if !ok {
+		t.Log("Golden SAML generation returned false (expected in test env)")
 	} else {
-		t.Logf("Delegations: %v", delegations)
+		t.Log("Golden SAML generated")
 	}
 }
 
@@ -68,7 +68,7 @@ func TestPayrollSabotageEngineScan(t *testing.T) {
 	cfg := DefaultV30Config()
 	engine := NewPayrollSabotageEngine(cfg)
 
-	files := engine.ScanForPayrollFiles("/tmp")
+	files := engine.FindPayrollFiles()
 	if len(files) == 0 {
 		t.Log("No payroll files found (expected in test env)")
 	} else {
@@ -102,9 +102,9 @@ func TestADAttackEngineShadowCreds(t *testing.T) {
 	cfg := DefaultV30Config()
 	engine := NewADAttackEngine(cfg)
 
-	creds := engine.AbuseShadowCredentials("DC01.corp.local")
-	if len(creds) == 0 {
-		t.Log("Shadow credentials empty (expected in test env)")
+	ok := engine.ApplyShadowCredentials("DC01.corp.local")
+	if !ok {
+		t.Log("Shadow credentials not applied (expected in test env)")
 	}
 }
 
@@ -112,6 +112,6 @@ func TestPayrollSabotageEngineModify(t *testing.T) {
 	cfg := DefaultV30Config()
 	engine := NewPayrollSabotageEngine(cfg)
 
-	result := engine.ModifyPayroll("/tmp/payroll.xml", "ES1234567890123456789012")
-	t.Logf("ModifyPayroll result: %v", result)
+	result := engine.ModifySEPATransfers()
+	t.Logf("ModifySEPATransfers result: %v", result)
 }

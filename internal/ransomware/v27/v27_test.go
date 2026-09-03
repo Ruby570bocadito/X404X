@@ -141,7 +141,7 @@ func TestSpearPhishAIGenerateLure(t *testing.T) {
 	cfg := DefaultV27Config()
 	sp := NewSpearPhishAIEngine(cfg)
 
-	lure := sp.GenerateLure("john.doe@example.com", "John Doe")
+	lure := sp.GenerateLureWithLLM()
 	if lure == "" {
 		t.Log("GenerateLure empty (expected if no LLM)")
 	} else {

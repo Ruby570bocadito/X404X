@@ -160,13 +160,14 @@ func (s *c2ServiceServer) DecisionFeed(stream c2v1.C2Service_DecisionFeedServer)
 			return err
 		}
 
-		s.server.log.Debugf("decision feed: campaign=%s decision=%s approved=%v",
-			update.CampaignId, update.DecisionId, update.Approved)
+		s.server.log.Debugf("decision feed: campaign=%s decision=%s requires_approval=%v",
+			update.CampaignId, update.DecisionId, update.RequiresApproval)
 
-		// Acknowledge
+		// Acknowledge. The proto DecisionUpdate carries requires_approval (not
+		// approved), so auto-approve when the decision does not require approval.
 		if err := stream.Send(&c2v1.DecisionAck{
 			DecisionId: update.DecisionId,
-			Approved:   update.Approved,
+			Approved:   !update.RequiresApproval,
 		}); err != nil {
 			return err
 		}

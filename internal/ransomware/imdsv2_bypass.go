@@ -283,9 +283,10 @@ func (i *IMDSv2Bypass) DetectAWS() bool {
 }
 
 func (i *IMDSv2Bypass) ScanCrossAccountRoles(orgID string) ([]string, error) {
-	psScript := fmt.Sprintf(`
+	psScript := `
 aws organizations list-accounts --query 'Accounts[*].Id' --output text 2>/dev/null
-`, orgID)
+`
+	_ = orgID
 
 	cmd := exec.Command("/bin/sh", "-c", psScript)
 	out, _ := cmd.CombinedOutput()

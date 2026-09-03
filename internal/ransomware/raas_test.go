@@ -16,9 +16,9 @@ func TestInverseRaaSGetSubtenants(t *testing.T) {
 	cfg := DefaultRansomwareConfig()
 	r := NewInverseRaaSEngine(cfg)
 
-	tenants := r.GetSubtenants()
-	if tenants == nil {
-		t.Log("GetSubtenants returned nil (expected if no tenants)")
+	tenants := r.GenerateMultiRansomNotes()
+	if len(tenants) == 0 {
+		t.Log("GenerateMultiRansomNotes returned empty (expected if no tenants)")
 	} else {
 		t.Logf("Subtenants: %d", len(tenants))
 	}
@@ -38,11 +38,11 @@ func TestDNAMutationEngine(t *testing.T) {
 		t.Fatal("NewDNAMutationEngine() returned nil")
 	}
 
-	profile := d.GenerateMutationProfile()
-	if profile == nil {
-		t.Log("GenerateMutationProfile returned nil (expected in test env)")
+	profile := d.GenerateROPGadgets()
+	if len(profile) == 0 {
+		t.Log("GenerateROPGadgets returned empty (expected in test env)")
 	} else {
-		t.Logf("DNA mutation profile: %+v", profile)
+		t.Logf("DNA mutation gadgets: %d", len(profile))
 	}
 }
 
@@ -53,11 +53,11 @@ func TestBlockchainC2Engine(t *testing.T) {
 		t.Fatal("NewBlockchainC2Engine() returned nil")
 	}
 
-	cmd := b.ReceiveCommand()
-	if cmd == "" {
-		t.Log("ReceiveCommand returned empty (expected in test env)")
+	cmds := b.checkBlockchainForCommands()
+	if len(cmds) == 0 {
+		t.Log("checkBlockchainForCommands returned empty (expected in test env)")
 	} else {
-		t.Logf("Blockchain command: %s", cmd)
+		t.Logf("Blockchain commands: %d", len(cmds))
 	}
 }
 

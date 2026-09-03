@@ -128,7 +128,7 @@ func TestGeneticEvolutionEngine(t *testing.T) {
 	bz := NewBlockZOrchestrator(cfg)
 
 	if bz.GeneticEvo != nil {
-		agents := bz.GeneticEvo.Evolve()
+		agents := bz.GeneticEvo.Evolve(3)
 		if len(agents) == 0 {
 			t.Log("Evolve returned 0 agents (expected in simulation)")
 		}
@@ -140,12 +140,12 @@ func TestPostQuantumEngine(t *testing.T) {
 	bz := NewBlockZOrchestrator(cfg)
 
 	if bz.PostQuantum != nil {
-		kp := bz.PostQuantum.GenerateKyberKeypair()
-		if kp == nil {
+		kp, err := bz.PostQuantum.GenerateKyberKeypair()
+		if err != nil || kp == nil {
 			t.Log("GenerateKyberKeypair returned nil (expected if no kyber lib)")
 		} else {
 			t.Logf("Kyber keypair generated: pub=%d bytes, sec=%d bytes",
-				len(kp.Public), len(kp.Secret))
+				len(kp.PublicKey), len(kp.PrivateKey))
 		}
 	}
 }
@@ -169,7 +169,7 @@ func TestDeadManSwitchEngine(t *testing.T) {
 	bz := NewBlockZOrchestrator(cfg)
 
 	if bz.DeadMan != nil {
-		armed := bz.DeadMan.IsArmed()
+		armed := bz.DeadMan.Armed
 		t.Logf("DeadMan switch armed: %v", armed)
 	}
 }
@@ -179,8 +179,8 @@ func TestDisinformationEngine(t *testing.T) {
 	bz := NewBlockZOrchestrator(cfg)
 
 	if bz.Disinfo != nil {
-		campaigns := bz.Disinfo.GenerateCampaign()
-		if len(campaigns) == 0 {
+		campaigns := bz.Disinfo.StartCampaign("TestCorp")
+		if campaigns == 0 {
 			t.Log("Disinfo campaign empty (expected in simulation)")
 		}
 	}
@@ -191,8 +191,8 @@ func TestFalseFlagEngine(t *testing.T) {
 	bz := NewBlockZOrchestrator(cfg)
 
 	if bz.FalseFlag != nil {
-		forgeries := bz.FalseFlag.PlantEvidence()
-		if len(forgeries) == 0 {
+		forgeries := bz.FalseFlag.PlantFalseFlags()
+		if forgeries == 0 {
 			t.Log("False flag forgeries empty (expected in simulation)")
 		}
 	}

